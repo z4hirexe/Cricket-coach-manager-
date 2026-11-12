@@ -201,6 +201,32 @@ class ScreenPreviews {
         }
     }
 
+    // ---- Phase F: fullscreen broadcast match view
+    /** India v Australia: a T20 chase (or a Test) part-way through, legacy stadium renderer so Robolectric can draw it. */
+    private fun liveVm(test: Boolean = false, firstInnsDone: Int = 1, balls: Int = 64, view3d: Boolean = true): GameVM {
+        val vm = careerVm(Modes.INTL, "N_IND", 0)
+        vm.settings.view3d = view3d; vm.settings.gfx = com.cricketcoach.manager.render3d.Gfx.LOW; vm.settings.comLang = "EN"; vm.settings.comStyle = 0
+        val s = vm.save!!
+        val comp = Competition(id = "PV", name = if (test) "Border Trophy" else "Border Cup", key = "PV", format = if (test) "TEST" else "T20", kind = "NATION", series = true)
+        val m = Career.makeSim(s, comp, Fixture("pv", "N_IND", "N_AUS", "Match", 0, 1), Random(11))
+        m.userTeam = "N_IND"
+        m.autoToss()
+        vm.sim = m
+        repeat(firstInnsDone) { if (!m.finished) m.endInnings() }
+        repeat(balls) { if (!m.finished) { m.nextBall(); vm.updateCommentary(m) } }
+        vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); vm.stack.add(Screen.Live)
+        return vm
+    }
+    @Test fun liveT20Chase() { val vm = liveVm(); shot("95_live_fullscreen_t20.png", 5000) { LiveMatchScreen(vm) } }
+    @Test fun liveFirstInnings() { val vm = liveVm(firstInnsDone = 0, balls = 41); shot("96_live_first_innings.png", 5000) { LiveMatchScreen(vm) } }
+    @Test fun liveScorecardPanel() { val vm = liveVm(); shot("97_live_panel_scorecard.png", 5000) { LiveMatchScreen(vm, initialPanel = 3) } }
+    @Test fun liveCommentaryPanel() { val vm = liveVm(); shot("98_live_panel_commentary.png", 5000) { LiveMatchScreen(vm, initialPanel = 1) } }
+    @Test fun liveWagonPanel() { val vm = liveVm(view3d = false); shot("99_live_2d_wagon_panel.png", 3000) { LiveMatchScreen(vm, initialPanel = 4) } }
+    @Test fun liveTest() { val vm = liveVm(test = true, firstInnsDone = 1, balls = 230); shot("100_live_test_match.png", 5000) { LiveMatchScreen(vm) } }
+    @Test fun liveResult() { val vm = liveVm(); vm.sim!!.simToEnd(); shot("101_live_result.png", 3000) { LiveMatchScreen(vm) } }
+    @Config(sdk = [34], qualifiers = "w740dp-h360dp-land-xxhdpi")
+    @Test fun liveSmallPhone() { val vm = liveVm(); shot("102_live_small_phone.png", 5000) { LiveMatchScreen(vm) } }
+
     // ---- Phase E: Match Centre + tournament squad registration
     /** IPL career with the user's first match pending in the Match Centre. */
     private fun matchCentreVm(team: String = "F_MI", register: Boolean = true, confirm: Boolean = true): GameVM {
