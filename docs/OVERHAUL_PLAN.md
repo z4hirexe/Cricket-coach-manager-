@@ -43,7 +43,7 @@
 | Phase | Scope | Status |
 |---|---|---|
 | A | SIMULATE → Cricket Calendar / Match Schedule Centre | ✅ 2.5.0-alpha1: `Screen.Calendar` with a month grid (Prev / Next / Today), category filter chips (International, IPL, Domestic, Tournaments, Auction, Transfers, Training / Rest, Key events), a date agenda with match cards (team flags/badges, competition + stage, format, date, fictional local start time, venue, status, result) and working Play / Simulate / View details buttons, a mini match centre for any fixture, auction / transfer-window / training / rest / opener / knockouts / final / awards events, "coming up" list. Top-bar SIMULATE opens the calendar; a ▶▶ button keeps the one-tap day advance; on the calendar the button advances a day. Every date is labelled **Generated / fictional schedule**. `game/Schedule.kt` maps engine game days to dates (no engine change). Tests: ScheduleTest (4) + CalendarFlowTest (Robolectric, real VM). |
-| B | Auction premium redesign | planned |
+| B | Auction premium redesign | ✅ build-13 (2.5.0-alpha2): broadcast stage, dossier + career stats, price rail, team panels, history dialog, retention board, auction report |
 | C | Per-player 3D body model + kit + animations | planned |
 | D | Stumpstagram (social rename + player accounts) | planned |
 | E | Match Centre redesign + mandatory tournament squad selection | planned |
