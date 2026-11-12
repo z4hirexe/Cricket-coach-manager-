@@ -42,6 +42,7 @@ import com.cricketcoach.manager.auth.OnlinePost
 import com.cricketcoach.manager.game.*
 import com.cricketcoach.manager.ui.*
 import kotlin.math.abs
+import kotlin.math.max
 
 private fun compact(n: Int): String = when {
     n >= 1_000_000 -> "%.1fM".format(n / 1_000_000.0)
@@ -52,7 +53,7 @@ private fun compact(n: Int): String = when {
 
 private fun kindColor(kind: String): Color = when (kind) {
     "CENTURY", "FIFTY", "MILESTONE", "FORM" -> Color(0xFFE9B949)
-    "FIVEFOR", "WICKETS" -> Color(0xFF4FC3F7)
+    "FIVEFOR", "WICKETS", "HATTRICK" -> Color(0xFF4FC3F7)
     "WIN", "TITLE", "TROPHY" -> Color(0xFF43C66B)
     "LOSS" -> Color(0xFFEF5350)
     "SIGNING", "AUCTION", "TRANSFER" -> Color(0xFFBA68C8)
@@ -64,18 +65,33 @@ private val avatarCols = listOf(Color(0xFFFACC15), Color(0xFFD946EF), Color(0xFF
 private fun handleColor(h: String) = avatarCols[abs(h.hashCode()) % avatarCols.size]
 private fun minutesAgo(seed: String) = "${abs(seed.hashCode()) % 58 + 1}m"
 
-private val TABS = listOf("Trending", "My Team", "Following", "Explore")
+private val TABS = listOf("For You", "Following", "My Team", "Players", "Online")
 
-/** CricGram: the in-game social network. Career posts (auto-generated from real match events) + the online manager feed. */
+/** Brand mark: a set of stumps + bails in a gradient tile. */
 @Composable
-fun SocialScreen(vm: GameVM) {
+fun StumpsLogo(size: androidx.compose.ui.unit.Dp = 26.dp) {
+    Box(Modifier.size(size).clip(RoundedCornerShape(size * 0.3f)).background(Brush.linearGradient(listOf(Color(0xFFFFE7A6), Color(0xFFE9B949), Color(0xFFB8862B)))), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize().padding(size * 0.22f)) {
+            val w = this.size.width; val h = this.size.height; val c = Color(0xFF0A1530)
+            for (k in 0..2) drawRoundRect(c, Offset(w * (0.12f + k * 0.32f), h * 0.2f), Size(w * 0.12f, h * 0.8f), CornerRadius(3f))
+            drawRoundRect(c, Offset(w * 0.08f, h * 0.06f), Size(w * 0.38f, h * 0.08f), CornerRadius(3f))
+            drawRoundRect(c, Offset(w * 0.54f, h * 0.06f), Size(w * 0.38f, h * 0.08f), CornerRadius(3f))
+        }
+    }
+}
+
+/** Stumpstagram: player accounts + auto posts from real match events (offline) and the online manager feed (Supabase). */
+@Composable
+fun SocialScreen(vm: GameVM, initialTab: Int = -1) {
     @Suppress("UNUSED_VARIABLE") val t = vm.tick
     val s = vm.save
-    var tab by remember { mutableIntStateOf(if (s != null) 0 else 3) }
+    var tab by remember { mutableIntStateOf(if (initialTab >= 0) initialTab else if (s != null) 0 else 4) }
     var composer by remember { mutableStateOf("") }
     var selLocal by remember { mutableStateOf<Int?>(null) }
     var selOnline by remember { mutableStateOf<OnlinePost?>(null) }
-    LaunchedEffect(tab) { if (tab >= 2 && vm.signedIn) vm.loadOnlineFeed() }
+    var onlyFollowed by remember { mutableStateOf(false) }
+    LaunchedEffect(tab) { if (tab == 4 && vm.signedIn) vm.loadOnlineFeed() }
+    LaunchedEffect(s) { if (s != null && !s.stumps.seeded) { Stumps.ensureSeeded(s); vm.persist(); vm.tick++ } }
 
     val inShell = LocalInShell.current
     val body: @Composable () -> Unit = {
@@ -83,53 +99,54 @@ fun SocialScreen(vm: GameVM) {
             // ---- header: brand + tabs + followers
             Row(Modifier.fillMaxWidth().height(46.dp).background(UI.Panel).drawBehind { drawLine(UI.Line, Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 2f) }
                 .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(26.dp).clip(RoundedCornerShape(8.dp)).background(Brush.linearGradient(listOf(Color(0xFFF59E0B), UI.Pink, UI.Violet))), contentAlignment = Alignment.Center) {
-                    Glyph("social", Color.White, 18.dp)
-                }
+                StumpsLogo()
                 Spacer(Modifier.width(8.dp))
-                Text("CricGram", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp, fontStyle = FontStyle.Italic)
-                Spacer(Modifier.width(14.dp))
+                Text("Stumpstagram", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp, fontStyle = FontStyle.Italic)
+                Spacer(Modifier.width(10.dp))
                 TABS.forEachIndexed { i, name ->
                     val on = i == tab
-                    Column(Modifier.fillMaxHeight().clickable { GameAudio.click(); tab = i }.padding(horizontal = 10.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(Modifier.fillMaxHeight().clickable { GameAudio.click(); tab = i }.padding(horizontal = 9.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                         Spacer(Modifier.weight(1f))
-                        Text(name, color = if (on) Color.White else C.Sub, fontWeight = if (on) FontWeight.Black else FontWeight.SemiBold, fontSize = 13.sp)
+                        Text(name, color = if (on) Color.White else C.Sub, fontWeight = if (on) FontWeight.Black else FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1)
                         Spacer(Modifier.weight(1f))
-                        Box(Modifier.width(56.dp).height(3.dp).background(if (on) UI.Pink else Color.Transparent))
+                        Box(Modifier.width(48.dp).height(3.dp).background(if (on) C.Gold else Color.Transparent))
                     }
                 }
                 Spacer(Modifier.weight(1f))
                 if (s != null) Column(horizontalAlignment = Alignment.End) {
                     Text(compact(s.followers), color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                    Text("FOLLOWERS", color = C.Sub, fontSize = 8.sp, letterSpacing = 1.sp)
+                    Text("COACH FOLLOWERS", color = C.Sub, fontSize = 8.sp, letterSpacing = 1.sp)
                 }
             }
-            Row(Modifier.weight(1f).fillMaxWidth()) {
+            if (tab == 3) {
+                if (s == null) EmptyNote("Load a career to browse player accounts.") else PlayerDirectory(vm, s)
+            } else Row(Modifier.weight(1f).fillMaxWidth()) {
                 // ---- feed
                 Column(Modifier.weight(0.56f).fillMaxHeight().padding(start = 10.dp, end = 6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
-                        OutlinedTextField(composer, { composer = it.take(200) }, placeholder = { Text(if (tab < 2) "Post to your followers…" else "Share with all managers online…", fontSize = 12.sp) },
+                        OutlinedTextField(composer, { composer = it.take(200) }, placeholder = { Text(if (tab < 4) "Post to your followers…" else "Share with all managers online…", fontSize = 12.sp) },
                             singleLine = true, modifier = Modifier.weight(1f).heightIn(min = 54.dp), textStyle = LocalTextStyle.current.copy(fontSize = 13.sp))
                         Spacer(Modifier.width(6.dp))
                         Button(onClick = {
                             GameAudio.click()
-                            if (tab < 2 && s != null) { Social.userPost(s, composer.trim()); vm.persist() }
-                            else if (tab >= 2) vm.shareOnline(SocialPost(kind = "NEWS", text = composer.trim(), mine = true))
+                            if (tab < 4 && s != null) { Social.userPost(s, composer.trim()); vm.persist() }
+                            else if (tab == 4) vm.shareOnline(SocialPost(kind = "NEWS", text = composer.trim(), mine = true))
                             composer = ""
-                        }, enabled = composer.isNotBlank() && (tab >= 2 && vm.signedIn || tab < 2 && s != null), colors = ButtonDefaults.buttonColors(containerColor = UI.Pink), shape = RoundedCornerShape(10.dp)) {
+                        }, enabled = composer.isNotBlank() && (tab == 4 && vm.signedIn || tab < 4 && s != null), colors = ButtonDefaults.buttonColors(containerColor = C.Gold, contentColor = Color(0xFF1A1205)), shape = RoundedCornerShape(10.dp)) {
                             Text("POST", fontWeight = FontWeight.Black)
                         }
                     }
-                    if (tab < 2) {
-                        val list = remember(vm.tick, tab, s?.posts?.size) {
+                    if (tab < 4) {
+                        val list = remember(vm.tick, tab, s?.posts?.size, s?.stumps?.following?.size) {
                             if (s == null) emptyList() else when (tab) {
-                                0 -> s.posts.take(60).sortedByDescending { it.likes + it.comments.size * 40 + (if (it.headline.isNotEmpty()) 2000 else 0) }
-                                else -> s.posts.filter { it.mine || it.club == s.userClubId || s.userClub().short in it.tags || it.pid in s.userClub().squad }
+                                0 -> s.posts.take(80).sortedByDescending { it.likes + max(it.comments.size, it.commentCount) * 40 + (if (it.headline.isNotEmpty()) 2000 else 0) + (if (it.authorPid.isNotEmpty()) 1500 else 0) }
+                                1 -> Stumps.followingFeed(s)
+                                else -> s.posts.filter { it.mine || it.club == s.userClubId || s.userClub().short in it.tags || it.pid in s.userClub().squad || it.authorPid in s.userClub().squad }
                             }
                         }
                         LaunchedEffect(tab, list.firstOrNull()?.id) { if (selLocal == null || list.none { it.id == selLocal }) selLocal = list.firstOrNull()?.id }
                         if (s == null) EmptyNote("Load a career to see your club's feed.")
-                        else if (list.isEmpty()) EmptyNote(if (tab == 0) "No posts yet - play your first match!" else "Nothing about your team yet.")
+                        else if (list.isEmpty()) EmptyNote(when (tab) { 0 -> "No posts yet - play your first match!"; 1 -> "Follow players in the Players tab (or on their profile) to fill this feed."; else -> "Nothing about your team yet." })
                         else LazyColumn(Modifier.fillMaxSize()) {
                             items(list, key = { it.id }) { p -> LocalPostCard(vm, s, p, p.id == selLocal) { selLocal = p.id } }
                             item { Spacer(Modifier.height(12.dp)) }
@@ -137,9 +154,14 @@ fun SocialScreen(vm: GameVM) {
                     } else {
                         if (!vm.signedIn) SignInNote(vm)
                         else {
-                            val list = if (tab == 2) vm.onlinePosts.filter { it.userId in vm.following } else vm.onlinePosts
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                FilterPill("All managers", !onlyFollowed) { onlyFollowed = false }
+                                Spacer(Modifier.width(6.dp))
+                                FilterPill("Managers I follow", onlyFollowed) { onlyFollowed = true }
+                            }
+                            val list = if (onlyFollowed) vm.onlinePosts.filter { it.userId in vm.following } else vm.onlinePosts
                             if (vm.onlineStatus.isNotEmpty()) Sub(vm.onlineStatus)
-                            if (list.isEmpty()) EmptyNote(if (tab == 2) "Follow other managers in Explore to fill this feed." else "No online posts yet. Be the first!")
+                            if (list.isEmpty()) EmptyNote(if (onlyFollowed) "Follow other managers to fill this feed." else "No online posts yet. Be the first!")
                             else LazyColumn(Modifier.fillMaxSize()) {
                                 items(list, key = { it.id }) { p -> OnlinePostCard(vm, p, p.id == selOnline?.id) { selOnline = p } }
                             }
@@ -148,7 +170,7 @@ fun SocialScreen(vm: GameVM) {
                 }
                 // ---- comments panel
                 Column(Modifier.weight(0.44f).fillMaxHeight().background(Color(0xCC0B111C)).drawBehind { drawLine(UI.Line, Offset(0f, 0f), Offset(0f, size.height), 2f) }) {
-                    if (tab < 2) {
+                    if (tab < 4) {
                         val p = s?.posts?.firstOrNull { it.id == selLocal }
                         CommentsHeader(p?.handle)
                         if (p == null || s == null) EmptyNote("Select a post to read the comments.")
@@ -163,7 +185,167 @@ fun SocialScreen(vm: GameVM) {
             }
         }
     }
-    if (inShell) body() else ScreenScaffold(vm, "CricGram") { body() }
+    if (inShell) body() else ScreenScaffold(vm, "Stumpstagram") { body() }
+}
+
+@Composable
+private fun FilterPill(text: String, on: Boolean, onClick: () -> Unit) {
+    Box(Modifier.height(30.dp).clip(RoundedCornerShape(15.dp)).background(if (on) C.Gold else Color(0xFF13234A)).border(1.dp, if (on) C.Gold else UI.Line, RoundedCornerShape(15.dp))
+        .clickable { GameAudio.click(); onClick() }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+        Text(text, color = if (on) Color(0xFF1A1205) else C.Text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/* ============================================================================ Players directory */
+
+@Composable
+private fun PlayerDirectory(vm: GameVM, s: CareerSave) {
+    var q by remember { mutableStateOf("") }
+    var filter by remember { mutableIntStateOf(0) }     // 0 all, 1 my team, 2 following, 3 verified
+    val all = remember(s.stumps.fDelta.size, vm.tick / 50) { Stumps.directory(s) }
+    val list = remember(q, filter, all, s.stumps.following.size) {
+        val qq = q.trim().lowercase()
+        all.filter { a ->
+            (qq.isEmpty() || a.name.lowercase().contains(qq) || a.username.contains(qq)) && when (filter) {
+                1 -> a.pid in s.userClub().squad; 2 -> a.pid in s.stumps.following; 3 -> a.verified; else -> true
+            }
+        }
+    }
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+        Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(q, { q = it.take(30) }, placeholder = { Text("Search players or @usernames", fontSize = 12.sp) }, singleLine = true,
+                leadingIcon = { Icon(Icons.Filled.Search, null, tint = C.Sub) }, modifier = Modifier.width(300.dp).heightIn(min = 52.dp), textStyle = LocalTextStyle.current.copy(fontSize = 13.sp))
+            Spacer(Modifier.width(10.dp))
+            listOf("All", "My team", "Following", "Verified").forEachIndexed { i, l -> FilterPill(l, filter == i) { filter = i }; Spacer(Modifier.width(6.dp)) }
+            Spacer(Modifier.weight(1f))
+            Text("${list.size} accounts", color = C.Sub, fontSize = 11.sp)
+        }
+        Text(Stumps.ESTIMATE_NOTE, color = C.Sub, fontSize = 9.5.sp)
+        Spacer(Modifier.height(4.dp))
+        LazyColumn(Modifier.fillMaxSize()) {
+            items(list.chunked(2), key = { it.first().pid }) { row ->
+                Row(Modifier.fillMaxWidth()) {
+                    for (a in row) AccountRow(vm, s, a, Modifier.weight(1f))
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+            item { Spacer(Modifier.height(12.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun AccountRow(vm: GameVM, s: CareerSave, a: PlayerAccount, modifier: Modifier) {
+    val shape = RoundedCornerShape(12.dp)
+    Row(modifier.padding(3.dp).clip(shape).background(Brush.horizontalGradient(listOf(Color(0xFF101C3C), Color(0xFF0B1430)))).border(1.dp, UI.Line, shape)
+        .clickable { GameAudio.click(); vm.nav(Screen.SocialProfile(a.pid)) }.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+        PlayerFace(a.pid, a.name, 40.dp, if (a.verified) C.Gold else UI.Line)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(a.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (a.verified) { Spacer(Modifier.width(3.dp)); VerifiedTick(13.dp) }
+            }
+            Text(a.handle, color = C.Sub, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text(Stumps.compact(a.followers), color = C.Gold, fontWeight = FontWeight.Black, fontSize = 13.sp)
+            Text("FOLLOWERS · EST.", color = C.Sub, fontSize = 7.5.sp, letterSpacing = 0.5.sp)
+        }
+        Spacer(Modifier.width(8.dp))
+        FollowButton(vm, s, a.pid, compactSize = true)
+    }
+}
+
+@Composable
+fun VerifiedTick(size: androidx.compose.ui.unit.Dp = 13.dp) = Icon(Icons.Filled.CheckCircle, "verified", tint = Color(0xFF3B82F6), modifier = Modifier.size(size))
+
+@Composable
+private fun FollowButton(vm: GameVM, s: CareerSave, pid: String, compactSize: Boolean = false) {
+    val f = pid in s.stumps.following
+    Box(Modifier.height(if (compactSize) 32.dp else 38.dp).widthIn(min = if (compactSize) 84.dp else 120.dp).clip(RoundedCornerShape(9.dp))
+        .background(if (f) Brush.horizontalGradient(listOf(Color(0xFF1B2A4E), Color(0xFF1B2A4E))) else Brush.horizontalGradient(listOf(Color(0xFFFFE7A6), Color(0xFFE9B949))))
+        .border(1.dp, if (f) UI.Line else Color(0xFFFFE7A6), RoundedCornerShape(9.dp))
+        .clickable { GameAudio.click(); val now = Stumps.toggleFollow(s, pid); vm.persist(); vm.tick++; vm.msg(if (now) "Following ${s.players[pid]?.name ?: ""}" else null) }
+        .padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+        Text(if (f) "Following ✓" else "+ Follow", color = if (f) C.Text else Color(0xFF1A1205), fontWeight = FontWeight.Black, fontSize = if (compactSize) 11.sp else 13.sp)
+    }
+}
+
+/* ============================================================================ Player profile */
+
+@Composable
+fun SocialProfileScreen(vm: GameVM, pid: String) {
+    @Suppress("UNUSED_VARIABLE") val t = vm.tick
+    val s = vm.save
+    if (s == null) { ScreenScaffold(vm, "Stumpstagram") { EmptyNote("Load a career first.") }; return }
+    val a = remember(pid, vm.tick) { Stumps.account(s, pid) }
+    if (a == null) { ScreenScaffold(vm, "Stumpstagram") { EmptyNote("No account for this player.") }; return }
+    val posts = remember(pid, s.posts.size, vm.tick) { Stumps.postsBy(s, pid) }
+    var sel by remember(pid) { mutableStateOf<Int?>(null) }
+    val gp = s.players[pid]
+    val club = gp?.clubId?.let { s.clubs[it] }
+    val prim = club?.let { Color(it.primary) } ?: Color(0xFF1565C0)
+    val body: @Composable () -> Unit = {
+        Row(Modifier.fillMaxSize()) {
+            Column(Modifier.weight(0.56f).fillMaxHeight().padding(start = 10.dp, end = 6.dp)) {
+                // header card
+                val shape = RoundedCornerShape(16.dp)
+                Column(Modifier.fillMaxWidth().padding(vertical = 8.dp).clip(shape)
+                    .background(Brush.linearGradient(listOf(prim.copy(alpha = 0.55f), Color(0xFF0B1430), Color(0xFF070D20)))).border(1.dp, Color(0x66E9B949), shape).padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PlayerFace(pid, a.name, 74.dp, if (a.verified) C.Gold else UI.Line)
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(a.username, color = Color.White, fontWeight = FontWeight.Black, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                                if (a.verified) { Spacer(Modifier.width(4.dp)); VerifiedTick(16.dp) }
+                            }
+                            Text(a.name + if (!a.real) "  ·  FICTIONAL" else "", color = C.Sub, fontSize = 11.sp)
+                            Spacer(Modifier.height(6.dp))
+                            Row {
+                                ProfileCount(a.posts.toLong(), "posts")
+                                ProfileCount(a.followers, "followers", est = a.estimated)
+                                ProfileCount(a.following.toLong(), "following")
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(a.bio, color = C.Text, fontSize = 12.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FollowButton(vm, s, pid)
+                        Spacer(Modifier.width(8.dp))
+                        OutlineBtn("Player profile") { vm.nav(Screen.Profile(pid)) }
+                        Spacer(Modifier.weight(1f))
+                        if (club != null) TeamFlag(club, 34.dp)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("Followers: estimated (in-game model, not verified real data). In-game account - not affiliated with the real player.", color = C.Sub, fontSize = 9.sp)
+                }
+                Text("POSTS", color = C.Gold, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.5.sp)
+                if (posts.isEmpty()) EmptyNote("No posts yet in this career. Big performances, signings and trophies make players post.")
+                else LazyColumn(Modifier.fillMaxSize()) {
+                    items(posts, key = { it.id }) { p -> LocalPostCard(vm, s, p, p.id == sel) { sel = p.id } }
+                    item { Spacer(Modifier.height(12.dp)) }
+                }
+            }
+            Column(Modifier.weight(0.44f).fillMaxHeight().background(Color(0xCC0B111C)).drawBehind { drawLine(UI.Line, Offset(0f, 0f), Offset(0f, size.height), 2f) }) {
+                val p = posts.firstOrNull { it.id == (sel ?: posts.firstOrNull()?.id) }
+                CommentsHeader(p?.handle)
+                if (p == null) EmptyNote("Select a post to read the comments.") else LocalComments(vm, s, p)
+            }
+        }
+    }
+    ScreenScaffold(vm, "${a.handle} · Stumpstagram") { body() }
+}
+
+@Composable
+private fun ProfileCount(n: Long, label: String, est: Boolean = false) {
+    Column(Modifier.padding(end = 18.dp)) {
+        Text(Stumps.compact(n), color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+        Text(if (est) "$label · est." else label, color = C.Sub, fontSize = 10.sp)
+    }
 }
 
 @Composable
@@ -251,9 +433,10 @@ private fun OnlineComments(vm: GameVM, p: OnlinePost) {
 }
 
 @Composable
-private fun AuthorLine(name: String, handle: String, verified: Boolean, kind: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(28.dp).clip(CircleShape).background(Brush.linearGradient(listOf(UI.Pink, UI.Violet))), contentAlignment = Alignment.Center) {
+private fun AuthorLine(name: String, handle: String, verified: Boolean, kind: String, pid: String = "", onOpen: (() -> Unit)? = null) {
+    Row((if (onOpen != null) Modifier.clickable { GameAudio.click(); onOpen() } else Modifier), verticalAlignment = Alignment.CenterVertically) {
+        if (pid.isNotEmpty()) PlayerFace(pid, name, 30.dp, if (verified) C.Gold else UI.Line)
+        else Box(Modifier.size(28.dp).clip(CircleShape).background(Brush.linearGradient(listOf(UI.Pink, UI.Violet))), contentAlignment = Alignment.Center) {
             Text(name.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp)
         }
         Spacer(Modifier.width(8.dp))
@@ -278,9 +461,11 @@ private fun LocalPostCard(vm: GameVM, s: CareerSave, p: SocialPost, selected: Bo
         .border(if (selected) 2.dp else 1.dp, if (selected) UI.Pink.copy(alpha = 0.85f) else UI.Line, shape).clickable { onSelect() }.padding(10.dp)) {
         if (p.headline.isNotEmpty()) { PostPoster(s, p); Spacer(Modifier.height(8.dp)) }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { AuthorLine(p.author, p.handle, p.verified, p.kind) }
+            Box(Modifier.weight(1f)) {
+                AuthorLine(p.author, p.handle, p.verified, p.kind, p.authorPid, if (p.authorPid.isNotEmpty()) ({ vm.nav(Screen.SocialProfile(p.authorPid)) }) else null)
+            }
             Counter(if (p.liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, compact(p.likes), if (p.liked) C.Red else Color(0xFFCBD5E1)) { Social.toggleLike(p); vm.persist() }
-            Counter(Icons.Filled.Email, "${p.comments.size}") { onSelect() }
+            Counter(Icons.Filled.Email, compact(max(p.comments.size, p.commentCount))) { onSelect() }
             Counter(Icons.Filled.Refresh, compact(p.reposts))
             if (vm.signedIn && !p.shared && (p.mine || p.kind != "NEWS")) Counter(Icons.Filled.Share, "", UI.Pink) { vm.shareOnline(p) }
         }

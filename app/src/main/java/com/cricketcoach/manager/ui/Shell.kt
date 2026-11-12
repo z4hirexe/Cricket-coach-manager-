@@ -53,7 +53,7 @@ val LocalInShell = compositionLocalOf { false }
 /** Screens that live inside the career shell. Live match, pre-match and the auction stay full-screen. */
 fun Screen.inShell(): Boolean = when (this) {
     Screen.Dashboard, Screen.Inbox, Screen.MyClub, is Screen.Squad, Screen.Database, is Screen.Profile, Screen.Transfers, Screen.Fixtures,
-    Screen.Table, Screen.TournamentsScr, Screen.Statistics, Screen.Finances, Screen.SettingsScr, Screen.Selection, Screen.Social, Screen.SeasonSummary, Screen.Calendar -> true
+    Screen.Table, Screen.TournamentsScr, Screen.Statistics, Screen.Finances, Screen.SettingsScr, Screen.Selection, Screen.Social, is Screen.SocialProfile, Screen.SeasonSummary, Screen.Calendar -> true
     else -> false
 }
 
@@ -62,7 +62,7 @@ private class NavItem(val key: String, val label: String, val glyph: String?, va
 private fun selectedKey(s: Screen): String? = when (s) {
     Screen.Dashboard -> "home"; Screen.Inbox -> "inbox"; is Screen.Squad -> "squad"; Screen.Selection -> "selection"; Screen.Transfers -> "transfers"
     Screen.MyClub -> "club"; Screen.Fixtures -> "fixtures"; Screen.Table -> "table"; Screen.TournamentsScr -> "tournaments"; Screen.Statistics -> "stats"; Screen.Calendar -> "calendar"
-    Screen.Social -> "social"; Screen.Finances -> "finances"; Screen.Database -> "database"; Screen.SettingsScr -> "settings"; else -> null
+    Screen.Social, is Screen.SocialProfile -> "social"; Screen.Finances -> "finances"; Screen.Database -> "database"; Screen.SettingsScr -> "settings"; else -> null
 }
 
 @Composable
@@ -105,7 +105,7 @@ private fun Sidebar(vm: GameVM) {
         NavItem("tournaments", "Tournaments", "trophy", null) { vm.navRoot(Screen.TournamentsScr) },
         NavItem("stats", "Player Stats", "chart", null) { vm.navRoot(Screen.Statistics) },
     )
-    val media = listOf(NavItem("social", "CricGram", "social", null, badge = 0) { vm.navRoot(Screen.Social) })
+    val media = listOf(NavItem("social", "Stumpstagram", "social", null, badge = 0) { vm.navRoot(Screen.Social) })
     val office = listOf(
         NavItem("finances", "Finances", "coins", null) { vm.navRoot(Screen.Finances) },
         NavItem("database", "Player Database", "search", null) { vm.navRoot(Screen.Database) },

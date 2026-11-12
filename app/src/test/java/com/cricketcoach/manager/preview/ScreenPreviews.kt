@@ -152,10 +152,10 @@ class ScreenPreviews {
     @Test fun dashboardIntl() { val vm = careerVm(Modes.INTL, "N_IND", 4); inShell(vm, Screen.Dashboard, "33_dashboard_india.png") { Dashboard(vm) } }
     @Test fun dashboardIpl() { val vm = careerVm(Modes.IPL, "F_CSK", 5); inShell(vm, Screen.Dashboard, "34_dashboard_ipl.png") { Dashboard(vm) } }
     @Test fun inbox() { val vm = careerVm(days = 8); inShell(vm, Screen.Inbox, "35_inbox.png") { InboxScreen(vm) } }
-    @Test fun socialIntl() { val vm = careerVm(Modes.INTL, "N_IND", 6); inShell(vm, Screen.Social, "41_cricgram_india.png", 2000) { SocialScreen(vm) } }
+    @Test fun socialIntl() { val vm = careerVm(Modes.INTL, "N_IND", 6); inShell(vm, Screen.Social, "41_stumpstagram_india.png", 2000) { SocialScreen(vm) } }
     @Test fun fixturesInShell() { val vm = careerVm(days = 6); inShell(vm, Screen.Fixtures, "36_fixtures_shell.png") { FixturesScreen(vm) } }
     @Test fun tableDomestic() { val vm = careerVm(days = 8); shot("31_points_table.png") { TableScreen(vm) } }
-    @Test fun social() { val vm = careerVm(days = 10); inShell(vm, Screen.Social, "40_cricgram_bengal.png", 2000) { SocialScreen(vm) } }
+    @Test fun social() { val vm = careerVm(days = 10); inShell(vm, Screen.Social, "40_stumpstagram_bengal.png", 2000) { SocialScreen(vm) } }
     @Test fun selection() { val vm = careerVm(Modes.INTL, "N_IND", 0); shot("32_selection_india.png") { SelectionScreen(vm) } }
     // Phase A: cricket calendar / match schedule centre
     @Test fun calendarIpl() { val vm = careerVm(Modes.IPL, "F_CSK", 5); inShell(vm, Screen.Calendar, "75_calendar_ipl.png", 1600) { CalendarScreen(vm) } }
@@ -199,6 +199,20 @@ class ScreenPreviews {
                 }
             }
         }
+    }
+
+    // ---- Phase D: Stumpstagram
+    @Test fun stumpsPlayers() { val vm = careerVm(Modes.IPL, "F_MI", 6); inShell(vm, Screen.Social, "85_stumps_players.png", 1600) { SocialScreen(vm, initialTab = 3) } }
+    @Test fun stumpsProfile() {
+        val vm = careerVm(Modes.INTL, "N_IND", 8); val s = vm.save!!
+        Stumps.ensureSeeded(s); Stumps.toggleFollow(s, "ba607b88")
+        Stumps.playerPost(s, "ba607b88", "CENTURY", 22.0, "Special feeling. Thank you all for the love! 💯 122* (98) v AUS #IND #Century", Random(2))
+        inShell(vm, Screen.SocialProfile("ba607b88"), "86_stumps_profile_kohli.png", 1600) { SocialProfileScreen(vm, "ba607b88") }
+    }
+    @Test fun stumpsFollowing() {
+        val vm = careerVm(Modes.IPL, "F_CSK", 10); val s = vm.save!!
+        Stumps.ensureSeeded(s); s.userClub().squad.take(4).forEach { Stumps.toggleFollow(s, it) }; Stumps.toggleFollow(s, "462411b3")
+        inShell(vm, Screen.Social, "87_stumps_following.png", 1600) { SocialScreen(vm, initialTab = 1) }
     }
 
     @Test fun settings() { val vm = vm(); shot("50_settings.png") { SettingsScreen(vm) } }

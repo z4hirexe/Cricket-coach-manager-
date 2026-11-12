@@ -142,7 +142,9 @@ class CareerSave(
     var mode: String = "CLUB", var followers: Int = 5000, var posts: MutableList<SocialPost> = mutableListOf(),
     var boardRating: Int = 60, var guestPros: Int = 0, var pendingCoins: Int = 0, var pendingXp: Int = 0,
     // v2.2 inbox: newest news item the user has already seen
-    var newsSeen: String = ""
+    var newsSeen: String = "",
+    // v2.5 Phase D: Stumpstagram (followed players, earned followers, post counters)
+    var stumps: StumpsState = StumpsState()
 ) {
     fun userClub(): Club = clubs[userClubId]!!
     fun p(id: String): GPlayer? = players[id]
@@ -158,5 +160,7 @@ class SocialPost(
     var shared: Boolean = false, var mine: Boolean = false,
     // v2.2 poster card: featured player / team, big headline + stat, and a small stat table ("left|right" rows)
     var pid: String = "", var club: String = "", var opp: String = "", var headline: String = "", var stat: String = "",
-    var lines: MutableList<String> = mutableListOf()
+    var lines: MutableList<String> = mutableListOf(),
+    // v2.5 Stumpstagram: the player who wrote the post ("" = media / fan / coach account) and the total comment count
+    var authorPid: String = "", var commentCount: Int = 0
 )

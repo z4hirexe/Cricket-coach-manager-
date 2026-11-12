@@ -54,10 +54,12 @@ sealed class Screen(val title: String) {
     data class ChooseTeam(val mode: String) : Screen("Choose Team")
     object NewTeam : Screen("New Team")
     object Selection : Screen("Squad Selection")
-    object Social : Screen("Social Media")
+    object Social : Screen("Stumpstagram")
     object Inbox : Screen("Inbox")
     // v2.5: cricket calendar / match schedule centre
     object Calendar : Screen("Cricket Calendar")
+    // v2.5 Phase D: Stumpstagram player account
+    data class SocialProfile(val pid: String) : Screen("Stumpstagram")
 }
 
 class PendingMatch(val compId: String, val fixtureId: String)

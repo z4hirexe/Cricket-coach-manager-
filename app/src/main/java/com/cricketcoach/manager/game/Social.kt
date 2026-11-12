@@ -4,7 +4,7 @@ import kotlin.math.max
 import kotlin.random.Random
 
 /**
- * In-game social network (works fully offline). Posts are generated automatically from real match events:
+ * Stumpstagram media / fan accounts (works fully offline); player accounts and player posts live in [Stumps]. Posts are generated automatically from real match events:
  * centuries, five-wicket hauls, wins, records, transfers, auction signings and titles. All accounts are fictional.
  */
 object Social {
@@ -134,6 +134,7 @@ object Social {
                     Poster(topPerformer(sim, inn.batTeam) ?: "", inn.batTeam, inn.bowlTeam, "RECORD TOTAL", "${inn.runs}/${inn.wk}", listOf("OVERS|${inn.balls / 6}.${inn.balls % 6}", "VS|${sim.club(inn.bowlTeam).short}")))
             }
         }
+        Stumps.onMatch(save, comp, fx, sim, rnd)
     }
 
     fun onTitle(save: CareerSave, comp: Competition, rnd: Random = Random.Default) {
@@ -141,6 +142,7 @@ object Social {
         if (champ.id == save.userClubId) {
             save.pendingCoins += 250; save.pendingXp += 200
             save.followers += max(5000, (save.followers * 0.08).toInt())
+            Stumps.onTitle(save, comp, champ, rnd)
             post(save, OFFICIAL, "🏆 CHAMPIONS! ${champ.name} win the ${comp.name}! Coach ${save.manager} lifts the trophy. #${champ.short} #Champions #${tag(comp)}", "TITLE", (save.followers * 0.05).toInt() + 5000, rnd, 6,
                 Poster(champ.captain, champ.id, comp.runnerUp ?: "", "CHAMPIONS", comp.name.substringBefore(" (").uppercase().take(26), recentResults(save, champ.id, 4)))
         } else if (comp.userTeam == save.userClubId || comp.kind != "CLUB" || comp.division == 1) {
@@ -156,6 +158,7 @@ object Social {
             (if (p.fictional) " [fictional player]" else "") + " #${u.short} #${if (kind == "AUCTION") "Auction" else "Transfer"}", kind, 400 + p.overall() * 25 + rnd.nextInt(600), rnd, 3,
             Poster(p.id, u.id, "", if (kind == "AUCTION") "SOLD!" else "SIGNED", if (fee > 0) Money.fmt(fee) else "FREE",
                 listOf("ROLE|${Consts.ROLE_NAMES[p.role] ?: p.role}", "OVERALL|${p.overall()}", "AGE|${p.age(save.year)}", "FROM|${p.country}")))
+        Stumps.onSigning(save, p, u.name, kind, fee, rnd)
     }
 
     /** User's own post from the compose box. */

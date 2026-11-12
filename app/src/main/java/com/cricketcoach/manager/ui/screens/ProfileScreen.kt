@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -23,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cricketcoach.manager.audio.GameAudio
 import com.cricketcoach.manager.data.FmtStats
 import com.cricketcoach.manager.data.OffStats
 import com.cricketcoach.manager.data.RealPlayer
@@ -74,6 +76,18 @@ fun ProfileScreen(vm: GameVM, pid: String) {
             val spin = (gp?.bowlType ?: a?.bowlType) == "SPIN"
             Player3DPanel(vm, pid, name, country, role, spin, club?.primary ?: nat?.primary ?: 0xFF1565C0, club?.secondary ?: nat?.secondary ?: 0xFFFFC107,
                 club?.name ?: nat?.name ?: country)
+            if (s != null) {
+                val acc = remember(pid, vm.tick) { Stumps.account(s, pid) }
+                if (acc != null) Row(Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFF0E1A3A)).border(1.dp, Color(0x44E9B949), RoundedCornerShape(12.dp))
+                    .clickable { GameAudio.click(); vm.nav(Screen.SocialProfile(pid)) }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    StumpsLogo(22.dp); Spacer(Modifier.width(8.dp))
+                    Text(acc.handle, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    if (acc.verified) { Spacer(Modifier.width(3.dp)); VerifiedTick(13.dp) }
+                    Spacer(Modifier.width(10.dp))
+                    Text("${acc.followersLabel} followers · ${acc.posts} posts", color = C.Sub, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Text("OPEN ON STUMPSTAGRAM ›", color = C.Gold, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                }
+            }
             QuickStats(rp, gp, s, pid)
             Spacer(Modifier.height(6.dp))
             Tabs(listOf("Overview", "Real stats", "Career mode"), page) { page = it }

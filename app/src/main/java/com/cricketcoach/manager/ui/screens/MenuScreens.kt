@@ -57,7 +57,7 @@ fun MainMenu(vm: GameVM) {
         MenuEntry("TOURNAMENTS", "Leagues, cups & world events", I.Star, needsCareer = true, go = needCareer { vm.nav(Screen.TournamentsScr) }),
         MenuEntry("AUCTION", "IPL-style bidding", I.ShoppingCart, needsCareer = true, go = needCareer { if (Modes.hasAuction(vm.save!!)) vm.nav(Screen.AuctionScr) else vm.msg("${Modes.label(vm.save!!.mode)} careers have no auction - use Squad Selection.") }),
         MenuEntry("TRANSFERS", "Buy, sell & contracts", I.Refresh, needsCareer = true, go = needCareer { vm.nav(if (Modes.hasTransfers(vm.save!!)) Screen.Transfers else Screen.Selection) }),
-        MenuEntry("SOCIAL MEDIA", "Feed, likes & followers", I.ThumbUp) { vm.nav(Screen.Social) },
+        MenuEntry("STUMPSTAGRAM", "Player accounts, feed & followers", I.ThumbUp) { vm.nav(Screen.Social) },
         MenuEntry("STATISTICS", "Records & leaderboards", I.List, needsCareer = true, go = needCareer { vm.nav(Screen.Statistics) }),
         MenuEntry("SETTINGS", "Graphics • sound • data", I.Settings) { vm.nav(Screen.SettingsScr) },
     )
