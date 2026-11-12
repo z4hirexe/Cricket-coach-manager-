@@ -137,6 +137,8 @@ class Settings(ctx: Context, val userKey: String = SaveManager.GUEST) {
     var comStyle: Int get() = sp.getInt("comStyle", 0); set(v) = sp.edit().putInt("comStyle", v).apply()
     var view3d: Boolean get() = sp.getBoolean("view3d", true); set(v) = sp.edit().putBoolean("view3d", v).apply()
     var camMode: Int get() = sp.getInt("cam", 0); set(v) = sp.edit().putInt("cam", v).apply()
+    /** live-match playback speed 1/2/4/6/8x - always free (3D animation and simulation both follow it) */
+    var playSpeed: Int get() = sp.getInt("playSpeed", 1); set(v) = sp.edit().putInt("playSpeed", v).apply()
     /** 0 = Low (lightweight 2.5D canvas), 1 = Medium (Filament, dynamic resolution), 2 = High (Filament, MSAA, SSAO, 2k shadows, bloom). */
     var gfx: Int get() = sp.getInt("gfx", 1); set(v) = sp.edit().putInt("gfx", v).apply()
     var photos: Boolean get() = sp.getBoolean("photos", true); set(v) = sp.edit().putBoolean("photos", v).apply()

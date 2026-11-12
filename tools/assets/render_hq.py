@@ -30,7 +30,7 @@ class Tex:
 class Scene:
     def __init__(self): self.items = []
 
-    def add_model(self, model, include, anim=None, t=0.0, xform=None, tint=None, cast=True):
+    def add_model(self, model, include, anim=None, t=0.0, xform=None, tint=None, cast=True, flip=False):
         g = model.g; W = model.world(anim, t)
         if not hasattr(model, "_tex"): model._tex = {}
         def texture(ti, srgb=True):
@@ -58,6 +58,7 @@ class Scene:
                 else:
                     Mx = W[ni]; v = v @ Mx[:3, :3].T + Mx[:3, 3]; nr = nr @ np.linalg.inv(Mx[:3, :3])
                 if xform is not None: v, nr = xform(v, nr)
+                if flip: f = f[:, ::-1]          # mirrored instance: keep the winding front-facing
                 mt = g.materials[p.material]; pbr = mt.pbrMetallicRoughness
                 base = np.array(pbr.baseColorFactor or [1, 1, 1, 1], float)
                 if tint is not None and tint[0](mt.name): base[:3] = tint[1]

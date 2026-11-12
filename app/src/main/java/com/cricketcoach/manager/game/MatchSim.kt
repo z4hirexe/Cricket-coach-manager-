@@ -59,7 +59,11 @@ class BallEv(
     val angle: Float,         // shot direction in degrees (0 = straight back past bowler, 90 = off side/cover, 270 = leg side)
     val dist: Float,          // 0..1.25 fraction of boundary radius
     val text: String,
-    val milestone: Boolean = false
+    val milestone: Boolean = false,
+    /** WICKET: the batter who was out (may be the non-striker on a run-out); null in old saves */
+    val outPid: String? = null,
+    /** WICKET: catcher / run-out fielder / stumping keeper; null if none */
+    val fielderPid: String? = null
 ) { val highlight: Boolean get() = kind == "FOUR" || kind == "SIX" || kind == "WICKET" || milestone }
 
 class MatchSim(
@@ -96,6 +100,8 @@ class MatchSim(
     val events = ArrayList<BallEv>()
     var lastEv: BallEv? = null
     private var lastHow = ""
+    private var lastOutPid: String? = null
+    private var lastFielder: String? = null
     private val vrnd = kotlin.random.Random(System.nanoTime())
 
     // Test match clock: 5 days x 90 overs
@@ -370,7 +376,7 @@ class MatchSim(
         val batter = inn.bc.getOrNull(inn.striker)?.pid ?: ""
         val innIdx = innings.size - 1; val keyBefore = keyEvents.size
         val recBefore = inn.recent.size; val lastRecentBefore = inn.recent.lastOrNull()
-        lastHow = ""
+        lastHow = ""; lastOutPid = null; lastFielder = null
         nextBallInner()
         val added = com.size - comBefore
         if (added <= 0) return
@@ -404,7 +410,7 @@ class MatchSim(
             else -> 0.12f + vrnd.nextFloat() * 0.1f
         }
         val ms = keyEvents.drop(keyBefore).any { it.startsWith("MILESTONE") }
-        val ev = BallEv(events.size, innIdx, ballsBefore / 6, ballsBefore % 6 + 1, inn.batTeam, batter, inn.bowler, runs, bat, kind, lastHow, angle, dist, text, ms)
+        val ev = BallEv(events.size, innIdx, ballsBefore / 6, ballsBefore % 6 + 1, inn.batTeam, batter, inn.bowler, runs, bat, kind, lastHow, angle, dist, text, ms, lastOutPid, lastFielder)
         events.add(ev); lastEv = ev
     }
 
@@ -542,23 +548,23 @@ class MatchSim(
                 val nonStrikerOut = rnd.nextDouble() < 0.4
                 val outCard = if (nonStrikerOut) inn.bc[inn.nonStriker] else sCard
                 com.add(0, "$tag, RUN OUT! Direct hit from ${pn(fielder)}, ${pn(outCard.pid)} is short of his ground.")
-                dismiss(inn, bwc, outCard, "run out (${pn(fielder)})", false, null)
+                dismiss(inn, bwc, outCard, "run out (${pn(fielder)})", false, fielder)
             }
             else -> {
                 val z = rnd.nextDouble()
                 if (z < 0.06) {
                     com.add(0, "$tag, OUT! Caught and bowled, sharp reflexes!")
                     catches[bwc.pid] = (catches[bwc.pid] ?: 0) + 1
-                    dismiss(inn, bwc, sCard, "c & b ${pn(bwc.pid)}", true, null)
+                    dismiss(inn, bwc, sCard, "c & b ${pn(bwc.pid)}", true, bwc.pid)
                 } else if (z < 0.32 && bp?.bowlType == "PACE" && keeperId != null) {
                     com.add(0, "$tag, OUT! Edged and taken behind by ${pn(keeperId)}.")
                     catches[keeperId] = (catches[keeperId] ?: 0) + 1
-                    dismiss(inn, bwc, sCard, "c †${pn(keeperId)} b ${pn(bwc.pid)}", true, null)
+                    dismiss(inn, bwc, sCard, "c †${pn(keeperId)} b ${pn(bwc.pid)}", true, keeperId)
                 } else {
                     val f = pickFielder(inn, bwc.pid)
                     com.add(0, "$tag, OUT! ${listOf("Skied and taken by", "Holed out to", "Brilliant catch by", "Straight down the throat of").random(rnd)} ${pn(f)}.")
                     catches[f] = (catches[f] ?: 0) + 1
-                    dismiss(inn, bwc, sCard, "c ${pn(f)} b ${pn(bwc.pid)}", true, null)
+                    dismiss(inn, bwc, sCard, "c ${pn(f)} b ${pn(bwc.pid)}", true, f)
                 }
             }
         }
@@ -574,7 +580,7 @@ class MatchSim(
     }
 
     private fun dismiss(inn: Inns, bwc: BowlCard, card: BatCard, how: String, bowlerCredit: Boolean, fielder: String?) {
-        card.out = true; card.how = how; lastHow = how
+        card.out = true; card.how = how; lastHow = how; lastOutPid = card.pid; lastFielder = fielder
         if (bowlerCredit) bwc.wk++
         fielder?.let { /* stumping credited to keeper */ }
         inn.wk++

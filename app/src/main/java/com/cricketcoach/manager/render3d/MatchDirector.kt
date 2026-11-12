@@ -8,8 +8,10 @@ class Cast(
     val strikerId: String, val strikerLeft: Boolean, val nonStrikerId: String,
     val bowlerId: String, val bowlerLeftArm: Boolean, val bowlerSpin: Boolean,
     val keeperId: String, val fielderIds: List<String>, val countryOf: (String) -> String,
-    val batKit: Kit, val bowlKit: Kit
-)
+    val batKit: Kit, val bowlKit: Kit,
+    /** this delivery's dismissal details, mapped onto the actors: catcher slot (0..8 = fielderIds index, or PlanCast.KEEPER/BOWLER/NONE) */
+    val catcher: Int = PlanCast.NONE, val outIsStriker: Boolean = true, val runOutFielder: Int = PlanCast.NONE
+) { fun planCast() = PlanCast(strikerLeft, bowlerLeftArm, bowlerSpin, catcher, outIsStriker, runOutFielder) }
 
 /**
  * Turns one simulated delivery (BallEv) into a timed 3D sequence: run-up, delivery stride and release, ball flight with
@@ -38,22 +40,12 @@ class MatchDirector(private val a: Arena3D) {
     var onDone: (() -> Unit)? = null
     private var firedImpact = false; private var firedOutcome = false
 
-    // plan
     private var offSign = -1f
     private var spin = false
-    private var armSign = 1f
-    private var bowlX = -0.45f
-    private var runStartZ = 34f; private var creaseZ = 21.4f; private var runSpeed = 7f
-    private var tRunEnd = 0f; private var tRel = 0f; private var tBounce = 0f; private var tImp = 0f; private var tEnd = 6f
-    private val rel = FloatArray(3); private val bounce = FloatArray(3); private val contact = FloatArray(3)
-    private val land = FloatArray(3); private var tLand = 0f; private var aerial = false; private var hitBall = true
-    private var shot = "bat_defend"
-    private var chaser = -1; private var chaseFrom = FloatArray(2); private var throwT = 0f
-    private var runs = 0; private var wicket = ""; private var umpSignal = ""
     private val fpos = Array(9) { FloatArray(2) }
-    private var timeScale = 1f
-    private var keeperZ = -8f
-
+    private var plan: DeliveryPlan? = null
+    /** playback speed (1x..8x, free); replays always run at slow motion */
+    var rate = 1f
     private val FIELD_PACE = arrayOf(160f to 17f, 150f to 18f, 95f to 26f, 55f to 28f, 18f to 30f, 342f to 30f, 300f to 27f, 255f to 24f, 205f to 58f)
     private val FIELD_SPIN = arrayOf(150f to 7f, 120f to 50f, 95f to 24f, 55f to 26f, 15f to 28f, 345f to 28f, 300f to 25f, 250f to 22f, 210f to 52f)
 
@@ -65,7 +57,7 @@ class MatchDirector(private val a: Arena3D) {
     fun setup(c: Cast) {
         cast = c
         offSign = if (c.strikerLeft) 1f else -1f
-        spin = c.bowlerSpin; armSign = if (c.bowlerLeftArm) -1f else 1f
+        spin = c.bowlerSpin
         val field = if (spin) FIELD_SPIN else FIELD_PACE
         for (i in 0 until 9) polar(field[i].first, field[i].second, fpos[i], 0.6f)
         val lod = { d: Float -> if (a.quality >= Gfx.HIGH || d < 30f) 0 else 1 }
@@ -83,106 +75,15 @@ class MatchDirector(private val a: Arena3D) {
         resetStumps()
     }
 
-    /** Plan & start the sequence for [e]. */
-    fun start(e: BallEv, durationMs: Int) {
-        val c = cast ?: return
+    /** Plan & start the sequence for [e] (deterministic timeline: see [DeliveryPlan]). */
+    fun start(e: BallEv, @Suppress("UNUSED_PARAMETER") durationMs: Int, c: Cast? = null) {
+        val cc = c ?: cast ?: return
         ev = e; t = 0f; done = false; firedImpact = false; firedOutcome = false
-        val h = (e.id * 2654435761L).toInt().let { abs(it) }
-        fun r(k: Int) = ((h shr k) and 1023) / 1023f
-        // bowler
-        bowlX = -0.45f * armSign
-        keeperZ = if (spin) -0.9f else -8f
-        runSpeed = if (spin) 3.6f else 7.2f
-        creaseZ = 20.12f + if (spin) 1.25f else 1.55f
-        runStartZ = creaseZ + if (spin) 4.5f else 11f
-        tRunEnd = (runStartZ - creaseZ) / runSpeed
-        val relClip = if (spin) 1.30f else 1.68f
-        tRel = tRunEnd + relClip
-        rel[0] = bowlX + armSign * 0.28f; rel[1] = if (spin) 2.05f else 2.25f; rel[2] = creaseZ - 1.15f
-        val speed = if (spin) 22f + 3f * r(1) else 36f + 6f * r(1)
-        val wide = e.kind == "WIDE"
-        contact[0] = offSign * (if (wide) 1.15f else 0.18f + 0.15f * r(3)); contact[1] = 0.62f; contact[2] = if (e.kind == "WICKET" && e.how.startsWith("b ")) 0.1f else 1.35f
-        bounce[2] = if (spin) 3.2f + 1.6f * r(5) else 4.5f + 3.5f * r(5)
-        bounce[0] = rel[0] + (contact[0] - rel[0]) * ((rel[2] - bounce[2]) / (rel[2] - contact[2])); bounce[1] = 0.036f
-        val flight = (rel[2] - contact[2]) / speed
-        tBounce = tRel + flight * ((rel[2] - bounce[2]) / (rel[2] - contact[2])); tImp = tRel + flight
-        // outcome
-        runs = e.bat; wicket = ""; umpSignal = ""; chaser = -1; aerial = false; hitBall = true
-        val ang = e.angle
-        val how = e.how
-        when (e.kind) {
-            "WICKET" -> wicket = when {
-                how.startsWith("lbw") -> "lbw"; how.startsWith("b ") -> "bowled"; how.startsWith("st ") -> "stumped"
-                how.startsWith("run out") || how.contains("run out") -> "runout"; else -> "caught"
-            }
-        }
-        shot = when {
-            wide -> "bat_leave"
-            wicket == "bowled" || wicket == "lbw" || wicket == "stumped" -> "bat_miss"
-            e.kind == "DOT" -> if (r(7) < 0.3f) "bat_leave" else "bat_defend"
-            else -> shotFor(ang, e.kind == "SIX" || wicket == "caught" && e.dist > 0.6f)
-        }
-        hitBall = shot != "bat_leave" && shot != "bat_miss"
-        val dirA = Math.toRadians(ang.toDouble())
-        val dx = (offSign * sin(dirA)).toFloat(); val dz = cos(dirA).toFloat()
-        // real oval: distance to the rope along this shot's direction
-        val bd = Arena3D.boundaryDist(contact[0], contact[2], dx, dz)
-        var dist = when (e.kind) { "FOUR" -> bd + 2.2f; "SIX" -> bd + 6f + 12f * r(9); "DOT" -> 2f + 4f * r(9); else -> min(e.dist.coerceIn(0.05f, 1.2f) * 62f, bd - 3f) }
-        if (wicket == "caught") {
-            // ball goes to the nearest fielder (or keeper/slip when edged)
-            var best = 0; var bd = 1e9f
-            val tx = contact[0] + dx * e.dist * 62f; val tz = contact[2] + dz * e.dist * 62f
-            for (i in 0 until 9) { val d = hypot(fpos[i][0] - tx, fpos[i][1] - tz); if (d < bd) { bd = d; best = i } }
-            chaser = best; land[0] = fpos[best][0]; land[2] = fpos[best][1]; land[1] = 1.4f; aerial = true
-            tLand = tImp + max(0.6f, hypot(land[0] - contact[0], land[2] - contact[2]) / 24f)
-        } else if (hitBall) {
-            land[0] = contact[0] + dx * dist; land[2] = contact[2] + dz * dist; land[1] = 0.036f
-            aerial = e.kind == "SIX"
-            tLand = tImp + if (aerial) 2.6f + 0.6f * r(11) else dist / (if (e.kind == "FOUR") 26f else 18f)
-            if (e.kind != "SIX" && e.kind != "DOT") {
-                var best = 0; var bd = 1e9f
-                for (i in 0 until 9) { val d = hypot(fpos[i][0] - land[0], fpos[i][1] - land[2]); if (d < bd) { bd = d; best = i } }
-                chaser = best
-            }
-        } else {
-            land[0] = offSign * 0.3f; land[2] = keeperZ + 0.5f; land[1] = 0.75f; tLand = tImp + (contact[2] - land[2]) / (speed * 0.8f)
-        }
-        chaseFrom = floatArrayOf(chaser.takeIf { it >= 0 }?.let { fpos[it][0] } ?: 0f, chaser.takeIf { it >= 0 }?.let { fpos[it][1] } ?: 0f)
-        throwT = if (chaser >= 0 && wicket != "caught") tLand + 0.4f else -1f
-        umpSignal = when {
-            wicket != "" -> if (wicket == "runout" || wicket == "stumped") "" else "ump_out"
-            e.kind == "FOUR" -> "ump_four"; e.kind == "SIX" -> "ump_six"; wide -> "ump_wide"; else -> ""
-        }
-        val runTime = if (runs in 1..3 && e.kind != "FOUR" && e.kind != "SIX") runs * 2.9f else 0f
-        tEnd = maxOf(tLand + 1.2f, tImp + 2.0f + runTime, if (umpSignal.isNotEmpty()) tImp + 3.4f else 0f)
-        // fit long sequences into the user's sim speed, without looking sped-up on normal settings
-        timeScale = (tEnd / (durationMs / 1000f * 1.9f)).coerceIn(1f, 1.9f)
-        if (replay) timeScale = 0.55f
-        // initial poses
+        plan = try { DeliveryPlan(e, cc.planCast()) } catch (x: Throwable) { android.util.Log.e("MatchDirector", "plan failed", x); null }
+        if (plan == null) { done = true; onDone?.invoke(); return }
         resetStumps()
-        place(striker, 0.0f + offSign * 0.25f, 0f, 1.05f, if (offSign < 0) -90f else 90f, offSign > 0); striker.play("bat_stance", true, 0.01f)
-        place(nonStriker, -bowlX * 2.0f, 0f, 20.12f + 1.4f, 180f, false); nonStriker.play("idle", true, 0.01f)
-        place(bowler, bowlX, 0f, runStartZ, 180f, armSign < 0); bowler.play(if (spin) "walk" else "run", true, 0.01f)
-        place(keeper, offSign * 0.25f, 0f, keeperZ, 0f, false); keeper.play("keep_crouch", true, 0.01f)
-        place(umpBowl, -bowlX * 1.4f, 0f, 20.12f + 2.3f, 180f, false); umpBowl.play("ump_idle", true, 0.01f)
-        place(umpLeg, -offSign * 24f, 0f, 1.2f, if (offSign < 0) 90f else -90f, false); umpLeg.play("ump_idle", true, 0.01f)
-        for (i in 0 until 9) {
-            val f = fielders[i]; val yaw = Math.toDegrees(atan2(-fpos[i][0].toDouble(), (1.0 - fpos[i][1]))).toFloat()
-            place(f, fpos[i][0], 0f, fpos[i][1], yaw, false); f.play("field_ready", true, 0.01f)
-        }
-        a.setTransform(a.ball, rel[0], rel[1], rel[2])
-    }
-
-    private fun shotFor(angle: Float, air: Boolean): String {
-        val g = ((angle % 360f) + 360f) % 360f
-        return when {
-            g < 25f || g > 335f -> if (air) "bat_loft" else "bat_straight_drive"
-            g < 80f -> if (air) "bat_loft" else "bat_cover_drive"
-            g < 150f -> "bat_cut"
-            g < 215f -> if (spin) "bat_reverse_sweep" else "bat_cut"
-            g < 260f -> if (spin) "bat_sweep" else "bat_hook"
-            else -> if (air && !spin) "bat_hook" else "bat_pull"
-        }
+        for (act in a.actors) act.resetDrive()
+        apply(0f, 0f)
     }
 
     private fun place(act: Actor, x: Float, y: Float, z: Float, yaw: Float, mirror: Boolean) { act.x = x; act.y = y; act.z = z; act.yaw = yaw; act.mirror = mirror }
@@ -193,97 +94,46 @@ class MatchDirector(private val a: Arena3D) {
             for (i in 0..1) a.stumps["bail_${end.first}_$i"]?.let { a.setTransform(it, (i * 2 - 1) * 0.054f, 0.718f, end.second) }
         }
     }
-    private fun breakStumps(end: String, z: Float, k: Float) {
-        val e = k.coerceIn(0f, 1f)
-        for (i in 0..2) a.stumps["stump_${end}_$i"]?.let { a.setTransform(it, (i - 1) * 0.0953f, 0f, z - 0.05f * e * (i + 1), 0f, 1f, -55f * e * (0.6f + 0.3f * i), (i - 1) * 25f * e) }
+    /** stumps knocked back and bails flying, [k] seconds after the break, pushed in direction [dir] (+1 towards the far end) */
+    private fun breakStumps(end: String, z: Float, k: Float, dir: Float) {
+        val e = (k * 3f).coerceIn(0f, 1f)
+        for (i in 0..2) a.stumps["stump_${end}_$i"]?.let { a.setTransform(it, (i - 1) * 0.0953f, 0f, z + dir * 0.05f * e * (i + 1), 0f, 1f, dir * 55f * e * (0.6f + 0.3f * i), (i - 1) * 25f * e) }
         for (i in 0..1) a.stumps["bail_${end}_$i"]?.let {
-            val tt = e * 0.9f; a.setTransform(it, (i * 2 - 1) * (0.054f + 1.2f * tt), 0.718f + 1.6f * tt - 3.5f * tt * tt, z - 1.8f * tt, 0f, 1f, 720f * tt, 360f * tt * (i * 2 - 1))
+            val tt = (k * 2.7f).coerceIn(0f, 0.95f)
+            val y = (0.718f + 1.6f * tt - 3.5f * tt * tt).coerceAtLeast(0.02f)
+            a.setTransform(it, (i * 2 - 1) * (0.054f + 1.2f * tt), y, z + dir * 1.8f * tt, 0f, 1f, 720f * tt, 360f * tt * (i * 2 - 1))
         }
     }
 
-    private fun ballAt(tt: Float, out: FloatArray) {
-        when {
-            tt < tRel -> { out[0] = rel[0]; out[1] = rel[1]; out[2] = rel[2]; }
-            tt < tBounce -> { val u = (tt - tRel) / (tBounce - tRel); lerp3(rel, bounce, u, out); out[1] = rel[1] + (bounce[1] - rel[1]) * u * u.coerceAtLeast(0.6f) }
-            tt < tImp -> { val u = (tt - tBounce) / (tImp - tBounce); lerp3(bounce, contact, u, out); out[1] = bounce[1] + (contact[1] - bounce[1]) * sqrt(u) }
-            tt < tLand -> {
-                val u = (tt - tImp) / (tLand - tImp)
-                lerp3(contact, land, if (aerial || !hitBall) u else 1f - (1f - u) * (1f - u), out)
-                out[1] = if (aerial) contact[1] + (land[1] - contact[1]) * u + (if (ev?.kind == "SIX") 26f else 9f) * 4f * u * (1f - u)
-                         else if (!hitBall) contact[1] + (land[1] - contact[1]) * u else 0.036f + 0.5f * abs(sin(u * 9f)) * (1f - u) * 0.6f
-            }
-            else -> {
-                out[0] = land[0]; out[1] = land[1]; out[2] = land[2]
-                if (throwT > 0 && tt > throwT + 0.35f) { val u = ((tt - throwT - 0.35f) / 0.9f).coerceIn(0f, 1f); out[0] = land[0] + (offSign * 0.3f - land[0]) * u; out[2] = land[2] + ((if (wicket == "runout") 20.12f else -0.6f) - land[2]) * u; out[1] = 0.6f + 6f * u * (1 - u) }
-            }
-        }
-    }
-    private fun lerp3(p: FloatArray, q: FloatArray, u: Float, o: FloatArray) { for (i in 0..2) o[i] = p[i] + (q[i] - p[i]) * u }
     private val bp = FloatArray(3)
+
+    /** pose every actor, the ball and the stumps at timeline time [tt] */
+    private fun apply(tt: Float, dt: Float) {
+        val p = plan ?: return
+        p.eval(tt)
+        for (i in 0 until DeliveryPlan.N) {
+            val act = a.actors[i]; val ps = p.pose[i]
+            act.x = ps.x; act.y = 0f; act.z = ps.z; act.yaw = ps.yaw; act.mirror = ps.mirror
+            act.drive(ps.clip, ps.loop, ps.clipStart, ps.clipTime(tt), ps.fade, dt)
+        }
+        p.ball.copyInto(bp)
+        a.setTransform(a.ball, bp[0], bp[1], bp[2])
+        if (p.breakBat >= 0f && tt >= p.breakBat) breakStumps("bat", 0f, tt - p.breakBat, -1f)
+        if (p.breakBowl >= 0f && tt >= p.breakBowl) breakStumps("bowl", 20.12f, tt - p.breakBowl, 1f)
+    }
 
     /** Advance by dt seconds of real time and apply transforms/animations/camera. */
     fun update(dtReal: Float) {
         if (title) { updateTitle(dtReal); return }
-        val e = ev
-        if (e == null || done) { idle(dtReal); return }
-        val dt = dtReal / timeScale * (if (replay) 1f else 1f)
-        t += dt
-        // bowler
-        if (t < tRunEnd) { bowler.z = runStartZ - runSpeed * t }
-        else { if (bowler.z != creaseZ) { bowler.z = creaseZ; bowler.play(if (spin) "bowl_spin" else "bowl_fast", false, 0.12f) } }
-        // batter: start shot so the clip's impact frame (0.55 s) meets the ball
-        if (t >= tImp - 0.55f && striker.clipTime >= 0f && t < tImp + 0.1f) { striker.play(shot, false, 0.1f) }
-        val runTime = if (runs in 1..3 && e.kind != "FOUR" && e.kind != "SIX" && wicket != "caught") runs * 2.9f else 0f
-        if (runTime > 0 || wicket == "runout") {
-            val start = tImp + 0.9f
-            if (t > start) {
-                val leg = ((t - start) / 2.9f); val k = floor(leg).toInt(); val u = (leg - k).coerceIn(0f, 1f)
-                val nRuns = if (wicket == "runout") 1 else runs
-                if (k < nRuns) {
-                    val from = if (k % 2 == 0) 1.05f else 19.07f; val to = if (k % 2 == 0) 19.07f else 1.05f
-                    val s = u * u * (3 - 2 * u)
-                    striker.z = from + (to - from) * s; nonStriker.z = to + (from - to) * s
-                    striker.yaw = if (to > from) 0f else 180f; nonStriker.yaw = if (to > from) 180f else 0f
-                    striker.play("bat_run", true, 0.15f); nonStriker.play("bat_run", true, 0.15f)
-                    if (wicket == "runout" && u > 0.85f) breakStumps("bowl", 20.12f, (u - 0.85f) * 6f)
-                } else { striker.play("bat_stance", true, 0.3f); nonStriker.play("idle", true, 0.3f) }
-            }
-        }
-        // ball
-        ballAt(t, bp); a.setTransform(a.ball, bp[0], bp[1], bp[2])
-        if (!firedImpact && t >= tImp) { firedImpact = true; onImpact?.invoke(e) }
-        // wickets
-        if (wicket == "bowled" && t > tImp) breakStumps("bat", 0f, (t - tImp) * 3f)
-        if (wicket == "stumped" && t > tImp + 0.35f) { keeper.play("keep_stump", false, 0.08f); if (t > tImp + 0.8f) breakStumps("bat", 0f, (t - tImp - 0.8f) * 3f) }
-        if (wicket == "lbw" && t > tImp + 0.3f) { bowler.play("appeal", false, 0.15f) }
-        // keeper
-        if (!hitBall && t > tImp - 0.2f && wicket != "stumped") keeper.play("keep_collect", false, 0.1f)
-        // fielding
-        if (chaser >= 0 && t > tImp + 0.15f) {
-            val f = fielders[chaser]
-            if (wicket == "caught") {
-                if (t > tLand - 0.55f) f.play("field_catch", false, 0.1f)
-            } else if (t < tLand + 0.4f) {
-                val u = ((t - tImp - 0.15f) / (tLand - tImp + 0.25f)).coerceIn(0f, 1f)
-                val tx = land[0]; val tz = land[2]
-                f.x = chaseFrom[0] + (tx - chaseFrom[0]) * u; f.z = chaseFrom[1] + (tz - chaseFrom[1]) * u
-                f.yaw = Math.toDegrees(atan2((tx - chaseFrom[0]).toDouble(), (tz - chaseFrom[1]).toDouble())).toFloat()
-                if (hypot(tx - f.x, tz - f.z) > 0.8f) f.play("run", true, 0.15f)
-                else if (e.kind == "FOUR" && u > 0.9f) f.play("field_dive", false, 0.1f)
-            } else if (throwT > 0 && t > throwT) {
-                f.yaw = Math.toDegrees(atan2((0f - f.x).toDouble(), ((if (wicket == "runout") 20.12f else 0f) - f.z).toDouble())).toFloat(); f.play("field_throw", false, 0.1f)
-            }
-        }
-        // celebrations & umpire
-        if (!firedOutcome && t >= min(tLand, tImp + 1.0f)) { firedOutcome = true; onOutcome?.invoke(e) }
-        if (umpSignal.isNotEmpty() && t > tImp + 1.3f) umpBowl.play(umpSignal, false, 0.2f)
-        if (wicket.isNotEmpty() && t > tLand + 0.3f) {
-            bowler.play("celebrate", false, 0.2f); fielders.forEachIndexed { i, f -> if (i != chaser || wicket == "caught") if (t > tLand + 0.6f) f.play("celebrate", false, 0.3f) }
-        }
-        if ((e.kind == "FOUR" || e.kind == "SIX" || e.milestone) && t > tLand + 0.2f) striker.play("bat_celebrate", false, 0.3f)
-        for (act in a.actors) act.update(dt)
+        val e = ev; val p = plan
+        if (e == null || p == null || done) { idle(dtReal); return }
+        val dt = dtReal * (if (replay) 0.55f else rate.coerceIn(0.25f, 8f))
+        t = min(t + dt, p.tEnd)
+        apply(t, dt)
+        if (!firedImpact && t >= p.tImp) { firedImpact = true; onImpact?.invoke(e) }
+        if (!firedOutcome && t >= p.tOut) { firedOutcome = true; onOutcome?.invoke(e) }
         camera(dt, e)
-        if (t >= tEnd) { done = true; onDone?.invoke() }
+        if (t >= p.tEnd) { done = true; if (!firedImpact) onImpact?.invoke(e); if (!firedOutcome) onOutcome?.invoke(e); onDone?.invoke() }
     }
 
     private var idleT = 0f
@@ -299,7 +149,8 @@ class MatchDirector(private val a: Arena3D) {
     private val ce = floatArrayOf(0f, 11f, 92f); private val ct = floatArrayOf(0f, 1f, 2f); private var cfov = 15f
     private fun camera(dt: Float, e: BallEv) {
         val k = 1f - exp(-dt * 4f)
-        val follow = t > tImp + 0.35f && hitBall
+        val p = plan
+        val follow = p != null && p.hitBall && t > p.tImp + 0.35f
         var ex: Float; var ey: Float; var ez: Float; var tx: Float; var ty: Float; var tz: Float; var fov: Float
         val mode = if (replay) 2 else cam
         when {

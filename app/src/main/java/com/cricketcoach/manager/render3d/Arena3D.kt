@@ -113,6 +113,31 @@ class Actor(private val arena: Arena3D, val inst: FilamentInstance) {
     }
     val clipTime get() = t
 
+    private var segStart = Float.NaN
+    /**
+     * Drive the actor from an absolute timeline (DeliveryPlan): ([name], [start]) identifies one clip segment, [time] is the
+     * clip-local time.  A new segment cross-fades from the previous pose over [fadeDur] (of timeline time); seeking or
+     * replaying is exact because nothing is integrated.
+     */
+    fun drive(name: String, loop: Boolean, start: Float, time: Float, fadeDur: Float, dt: Float) {
+        if (!active) return
+        val idx = arena.clipIndex[name] ?: arena.clipIndex["idle"] ?: return
+        if (idx != clip || start != segStart) {
+            if (clip >= 0 && !segStart.isNaN() && start < segStart) { prev = -1; fade = 1f }        // jumped back (replay): no blend
+            else { prev = clip; prevT = t; fade = if (clip < 0) 1f else 0f }
+            clip = idx; segStart = start; this.fadeDur = max(fadeDur, 0.001f)
+        }
+        val d = arena.clipDur[clip]
+        t = if (loop) (if (d > 0) time % d else 0f) else min(time, d); this.loop = loop
+        fade = min(1f, fade + dt / this.fadeDur)
+        animator.applyAnimation(clip, t)
+        if (prev >= 0 && fade < 1f) animator.applyCrossFade(prev, prevT, 1f - fade)
+        animator.updateBoneMatrices()
+        arena.setTransform(inst.root, x, y, z, yaw, if (mirror) -1f else 1f)
+    }
+    /** forget the current segment so the next [drive] starts clean (new delivery) */
+    fun resetDrive() { segStart = Float.NaN; prev = -1; fade = 1f }
+
     fun update(dt: Float) {
         if (!active || clip < 0) return
         val d = arena.clipDur[clip]

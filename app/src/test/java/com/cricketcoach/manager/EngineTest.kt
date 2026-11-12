@@ -191,6 +191,7 @@ class EngineTest {
     }
 
     @Test fun castFor3DMatchesRealSquads() {
+        var nsRunOuts = 0
         val s = career()
         Tournaments.ensureNations(s)
         val rnd = Random(21)
@@ -198,7 +199,7 @@ class EngineTest {
             val comp = Competition(id = "Z$fmt", name = "Test", key = "Z$fmt", format = fmt, kind = "NATION", series = true)
             val m = Career.makeSim(s, comp, Fixture("c$fmt", "N_IND", "N_AUS", "Match", 0, 1), rnd)
             m.autoToss(); m.simToEnd()
-            var spin = 0; var left = 0
+            var spin = 0; var left = 0; var planned = 0
             for (ev in m.events) {
                 val c = com.cricketcoach.manager.ui.screens.castFor(m, ev, s.players)
                 assertNotNull(c); c!!
@@ -210,7 +211,18 @@ class EngineTest {
                 assertTrue(c.nonStrikerId != c.strikerId || inn.wk >= 9)
                 if (c.bowlerSpin) spin++; if (c.strikerLeft) left++
                 if (ev.kind == "WICKET") assertTrue("dismissal parsable: ${ev.how}", listOf("b ", "lbw", "st ", "c ", "run out").any { ev.how.startsWith(it) || ev.how.contains("run out") })
+                // the 3D planner gets the real catcher / run-out details and can plan every real delivery
+                if (ev.kind == "WICKET") {
+                    assertNotNull("out batter recorded", ev.outPid)
+                    if (ev.how.startsWith("c ") && !ev.how.startsWith("c & b") && !ev.how.startsWith("c †")) assertTrue("catcher mapped to a fielder slot: ${ev.how}", c.catcher in 0..8)
+                    if (ev.how.startsWith("c & b")) assertEquals(com.cricketcoach.manager.render3d.PlanCast.BOWLER, c.catcher)
+                    if (ev.how.contains("run out")) { assertNotNull(ev.fielderPid); assertEquals(ev.outPid == ev.batter, c.outIsStriker); if (c.outIsStriker == false) nsRunOuts++ }
+                }
+                val plan = com.cricketcoach.manager.render3d.DeliveryPlan(ev, c.planCast())
+                assertTrue("plan ends: ${ev.kind} ${ev.how}", plan.tEnd > plan.tImp && plan.tEnd <= plan.tImp + 26.001f)
+                planned++
             }
+            assertEquals(m.events.size, planned); planned = 0
             assertTrue("some spin bowled", spin > 0)
         }
     }

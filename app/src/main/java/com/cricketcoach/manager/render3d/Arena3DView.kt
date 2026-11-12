@@ -47,7 +47,7 @@ private fun rememberHost(quality: Int): Host? {
 @Composable
 fun Match3DView(
     ev: BallEv?, cast: Cast?, camMode: Int, durationMs: Int, replay: Boolean, quality: Int, lighting: Int, redBall: Boolean,
-    modifier: Modifier = Modifier, playKey: Int = 0, pitchWear: Float = 0.1f, onImpact: (BallEv) -> Unit = {}, onOutcome: (BallEv) -> Unit = {}, onDone: () -> Unit = {},
+    modifier: Modifier = Modifier, playKey: Int = 0, pitchWear: Float = 0.1f, rate: Float = 1f, onImpact: (BallEv) -> Unit = {}, onOutcome: (BallEv) -> Unit = {}, onDone: () -> Unit = {},
     fallback: @Composable () -> Unit
 ) {
     val host = rememberHost(quality)
@@ -55,6 +55,7 @@ fun Match3DView(
     var loading by remember { mutableStateOf(true) }
     val d = host.director
     d.cam = camMode
+    d.rate = rate
     val curImpact by rememberUpdatedState(onImpact); val curOutcome by rememberUpdatedState(onOutcome); val curDone by rememberUpdatedState(onDone)
     LaunchedEffect(Unit) {
         d.onImpact = { curImpact(it) }; d.onOutcome = { curOutcome(it) }; d.onDone = { curDone() }
@@ -67,7 +68,7 @@ fun Match3DView(
     LaunchedEffect(castKey) { cast?.let { d.setup(it) } }
     LaunchedEffect(ev?.id, replay, playKey, castKey) {
         if (ev == null) { onDone(); return@LaunchedEffect }
-        cast?.let { d.replay = replay; d.start(ev, durationMs) } ?: onDone()
+        cast?.let { d.replay = replay; d.start(ev, durationMs, it) } ?: onDone()
     }
     Box(modifier) {
         AndroidView(factory = { c -> SurfaceView(c).also { host.arena.attach(it); host.start() } }, modifier = Modifier.fillMaxSize())

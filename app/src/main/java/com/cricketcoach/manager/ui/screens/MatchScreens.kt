@@ -188,7 +188,8 @@ fun LiveMatchScreen(vm: GameVM) {
     var playKey by remember { mutableIntStateOf(0) }
     var tab by remember { mutableIntStateOf(0) }
     var wagonInn by remember { mutableIntStateOf(-1) }
-    val dur = (vm.settings.simSpeedMs * 6).coerceIn(1400, 4200)
+    var speedX by remember { mutableIntStateOf(vm.settings.playSpeed.let { if (it in SPEEDS) it else 1 }) }
+    val dur = (vm.settings.simSpeedMs * 6 / speedX).coerceIn(500, 4200)
     DisposableEffect(Unit) { GameAudio.setScene(GameAudio.Scene.MATCH); onDispose { GameAudio.setScene(GameAudio.Scene.MENU) } }
     // 2D mode: sound straight away
     // ball-by-ball commentary (English / Hindi, situation-aware); 2D mode: sound + voice straight away, 3D: at the animation moment
@@ -198,9 +199,9 @@ fun LiveMatchScreen(vm: GameVM) {
     }
     LaunchedEffect(m.innings.size) { if (m.innings.size > 1 && !m.finished) GameAudio.play("horn", 0.7f) }
     LaunchedEffect(m.finished) { if (m.finished) { GameAudio.play("horn"); GameAudio.play("applause"); GameAudio.speak(m.resultText) } }
-    LaunchedEffect(vm.autoPlay, view3d) {
+    LaunchedEffect(vm.autoPlay, view3d, speedX) {
         while (vm.autoPlay && !m.finished) {
-            if (view3d) { withTimeoutOrNull(dur * 3L) { snapshotFlow { animBusy }.first { !it } }; delay(300) } else delay(vm.settings.simSpeedMs.toLong())
+            if (view3d) { withTimeoutOrNull(32_000L / speedX + 2_000L) { snapshotFlow { animBusy }.first { !it } }; delay(300L / speedX) } else delay(vm.settings.simSpeedMs.toLong() / speedX)
             if (!vm.autoPlay) break
             replayEv = null
             val before = m.events.size
@@ -222,7 +223,7 @@ fun LiveMatchScreen(vm: GameVM) {
                 val light = when { fmt == "TEST" && (m.cfg.weather == "Overcast" || m.cfg.weather == "Cloudy") -> Lighting.OVERCAST; fmt == "TEST" -> Lighting.DAY; fmt == "ODI" -> Lighting.DUSK; else -> Lighting.NIGHT }
                 val wear = remember(m.events.size) { val tot = m.innings.sumOf { it.balls }; val cap = if (fmt == "TEST") 2700f else (m.cfg.overs * 12f).coerceAtLeast(60f); (0.08f + 0.92f * tot / cap).coerceIn(0f, 1f) }
                 Match3DView(ev, remember(ev?.id, inn?.bowlTeam) { castFor(m, ev, s.players) }, cam, dur, replayEv != null, vm.settings.gfx, light, fmt == "TEST",
-                    Modifier.fillMaxSize(), playKey = playKey, pitchWear = wear,
+                    Modifier.fillMaxSize(), playKey = playKey, pitchWear = wear, rate = speedX.toFloat(),
                     onImpact = { e -> GameAudio.onBat(e.kind) }, onOutcome = { e -> GameAudio.onOutcome(e.kind, e.how, e.milestone); vm.comLines.firstOrNull { it.evId == e.id }?.let { GameAudio.speak(it.text, it.lang) } },
                     onDone = { animBusy = false }, fallback = legacy)
             } else if (view3d) legacy()
@@ -236,6 +237,10 @@ fun LiveMatchScreen(vm: GameVM) {
                 val camNames = listOf("TV", "Aerial", "Side", "Bat")
                 SmallBtn(if (view3d) "2D" else "3D", Color(0xCC13362A), Modifier.width(54.dp), dark = false) { view3d = !view3d; vm.settings.view3d = view3d; animBusy = false }
                 if (view3d) SmallBtn("🎥 ${camNames[cam]}", Color(0xCC13362A), Modifier.width(54.dp), dark = false) { cam = (cam + 1) % 4; vm.settings.camMode = cam }
+                // playback speed: every speed is free
+                SmallBtn("⏩ ${speedX}x", if (speedX > 1) C.Gold else Color(0xCC13362A), Modifier.width(54.dp), dark = speedX > 1) {
+                    speedX = SPEEDS[(SPEEDS.indexOf(speedX) + 1) % SPEEDS.size]; vm.settings.playSpeed = speedX
+                }
                 if (replayEv != null) SmallBtn("LIVE", C.Red, Modifier.width(54.dp)) { replayEv = null }
             }
             if (m.finished) Box(Modifier.align(Alignment.Center).padding(12.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xEE0F2A1F)).padding(14.dp)) {
@@ -487,6 +492,9 @@ fun PointsTable(vm: GameVM, s: CareerSave, comp: Competition, group: Int?, promo
 }
 
 
+/** live-match playback speeds - all free */
+val SPEEDS = listOf(1, 2, 4, 6, 8)
+
 /** Resolve who is on the field for [ev] from the live match + real dataset (batting hand, bowling arm/type). */
 fun castFor(m: com.cricketcoach.manager.game.MatchSim, ev: BallEv?, players: Map<String, com.cricketcoach.manager.game.GPlayer>): Cast? {
     val inn = ev?.let { m.innings.getOrNull(it.inn) } ?: m.cur ?: return null
@@ -505,7 +513,19 @@ fun castFor(m: com.cricketcoach.manager.game.MatchSim, ev: BallEv?, players: Map
     fun kit(id: String) = m.club(id).let { Kit(it.primary.toInt(), it.secondary.toInt(), whites) }
     val bk = kit(inn.batTeam); var wk = kit(inn.bowlTeam)
     if (!whites && wk.primary == bk.primary) wk = Kit(0xFF1565C0.toInt(), wk.secondary, false)
-    return Cast(batter, left, ns, bowlerId, leftArm, spin, keeper, fielders, { players[it]?.country ?: "" }, bk, wk)
+    // who caught it / ran him out, as an actor slot the 3D planner understands
+    var catcher = PlanCast.NONE; var outIsStriker = true; var roFielder = PlanCast.NONE
+    if (ev != null && ev.kind == "WICKET") {
+        val fp = ev.fielderPid
+        fun slot(id: String?): Int = when { id == null -> PlanCast.NONE; id == bowlerId -> PlanCast.BOWLER; id == keeper -> PlanCast.KEEPER; else -> fielders.indexOf(id).takeIf { it in 0..8 } ?: PlanCast.NONE }
+        when {
+            ev.how.startsWith("c & b") -> catcher = PlanCast.BOWLER
+            ev.how.startsWith("c †") -> catcher = PlanCast.KEEPER
+            ev.how.startsWith("c ") -> catcher = slot(fp)
+            ev.how.startsWith("run out") -> { outIsStriker = ev.outPid == null || ev.outPid == batter; roFielder = slot(fp).takeIf { it >= 0 } ?: PlanCast.NONE }
+        }
+    }
+    return Cast(batter, left, ns, bowlerId, leftArm, spin, keeper, fielders, { players[it]?.country ?: "" }, bk, wk, catcher, outIsStriker, roFielder)
 }
 
 
