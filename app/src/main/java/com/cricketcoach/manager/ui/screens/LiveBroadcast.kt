@@ -145,7 +145,6 @@ private fun DrawScope.drawGlyph(icon: RIcon, col: Color) {
 
 /* ===================================================================================================== rail */
 
-@Composable
 private val LocalRailH = compositionLocalOf { 42.dp }
 
 @Composable
@@ -357,6 +356,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF040A18))) {
         val railW = if (maxWidth < 780.dp) 128.dp else 144.dp
         val panelW = (maxWidth * 0.42f).coerceIn(280.dp, 380.dp)
+        val railBtnH = if (maxHeight < 400.dp) 36.dp else 42.dp
 
         /* ---- stadium: full-bleed, behind everything ---- */
         Box(Modifier.fillMaxSize()) {
@@ -504,7 +504,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
             }
 
             /* ---- right: control rail ---- */
-            CompositionLocalProvider(LocalRailH provides if (maxHeight < 400.dp) 36.dp else 42.dp) {
+            CompositionLocalProvider(LocalRailH provides railBtnH) {
             Column(Modifier.align(Alignment.CenterEnd).width(railW).fillMaxHeight()
                 .background(Brush.horizontalGradient(listOf(Color(0xCC07102A), Color(0xF2081127))))
                 .drawBehind { drawLine(Brush.verticalGradient(listOf(Color.Transparent, C.Gold.copy(alpha = 0.6f), Color.Transparent)), Offset(0f, 0f), Offset(0f, size.height), 2f) }
