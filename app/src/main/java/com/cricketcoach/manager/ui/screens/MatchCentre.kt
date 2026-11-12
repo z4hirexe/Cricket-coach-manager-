@@ -114,15 +114,21 @@ private fun statLine(comp: Competition, p: GPlayer): String {
         "THIS COMP " + parts.joinToString(" · ").ifBlank { "${b?.m ?: w?.m ?: 0} m" }
     } else {
         // real record in this format (Cricsheet data) when available, otherwise the in-game career
-        val key = when { comp.key == "IPL" -> "IPL"; comp.format == "TEST" || comp.format == "FC" -> "Test"; comp.format == "ODI" || comp.format == "LIST_A" -> "ODI"; else -> "T20I" }
+        val key = when { comp.key == "IPL" -> "IPL"; comp.format == "TEST" -> "TEST"; comp.format == "ODI" -> "ODI"; else -> "T20I" }
         val st = com.cricketcoach.manager.data.Repo.byId[p.id]?.stats?.let { it[key] ?: it[key.uppercase()] }
         if (st != null && st.m > 0) {
             val parts = arrayListOf("$key ${st.m}m")
-            if (st.inn > 0) parts += "${st.runs}r" + (st.avg?.let { " @%.1f".format(it) } ?: "") + (st.sr?.takeIf { key != "Test" }?.let { " SR %.0f".format(it) } ?: "")
+            if (st.inn > 0) parts += "${st.runs}r" + (st.avg?.let { " @%.1f".format(it) } ?: "") + (st.sr?.takeIf { key != "TEST" }?.let { " SR %.0f".format(it) } ?: "")
             if (st.wk > 0) parts += "${st.wk}w"
             parts.joinToString(" · ")
         } else if (p.careerM > 0) "CAREER ${p.careerM}m · ${p.careerRuns}r · ${p.careerWk}w" else if (p.fictional) "FICTIONAL · no record yet" else "No recorded matches in this format"
     }
+}
+
+private fun bowlRecord(comp: Competition, p: GPlayer): String {
+    val key = when { comp.key == "IPL" -> "IPL"; comp.format == "TEST" -> "TEST"; comp.format == "ODI" -> "ODI"; else -> "T20I" }
+    val st = com.cricketcoach.manager.data.Repo.byId[p.id]?.stats?.get(key)
+    return if (st != null && st.balls > 0) "$key ${st.wk}w" + (if (st.balls > 0) " econ %.1f".format(st.rc * 6.0 / st.balls) else "") else "${p.careerWk} wkts in game"
 }
 
 /* ===================================================================================================== Match Centre */
@@ -455,7 +461,7 @@ private fun BowlingPlanTab(vm: GameVM, s: CareerSave, comp: Competition, c: Club
                     PlayerFace(p.id, p.name, 28.dp, roleColor(p.role)); Spacer(Modifier.width(6.dp))
                     Column(Modifier.width(150.dp)) {
                         Text(p.name, color = Color.White, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${p.bowlType} · BOWL ${p.bowl} · " + (if (w != null && w.balls > 0) "${w.wk}w e${"%.1f".format(w.econ() ?: 0.0)}" else "${p.careerWk} career w"), color = C.Sub, fontSize = 8.5.sp, maxLines = 1)
+                        Text("${p.bowlType} · BOWL ${p.bowl} · " + (if (w != null && w.balls > 0) "${w.wk}w e${"%.1f".format(w.econ() ?: 0.0)}" else bowlRecord(comp, p)), color = C.Sub, fontSize = 8.5.sp, maxLines = 1)
                     }
                     Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                         for (r in Registration.BOWL_ROLES) Pill(Registration.roleChip(r, test), (c.bowlRoles[pid] ?: "AUTO") == r, color = if (r == "DEATH") C.Red else if (r == "NEW") C.Blue else C.Gold, enabled = canEdit) {
@@ -621,7 +627,7 @@ fun SquadRegistrationScreen(vm: GameVM, compId: String) {
                                     if (TeamSelector.isOverseas(p, c)) Text(" OS", color = C.Blue, fontSize = 8.5.sp, fontWeight = FontWeight.Black)
                                     if (p.fictional) Text(" FICTIONAL", color = C.Sub, fontSize = 8.sp)
                                 }
-                                Text("${roleShort(p.role)} · ${p.overall()} OVR · age ${p.age(s.year)} · ${p.bowlType.lowercase()} · CAREER ${p.careerM}m ${p.careerRuns}r ${p.careerWk}w", color = C.Sub, fontSize = 8.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("${roleShort(p.role)} · ${p.overall()} OVR · age ${p.age(s.year)}${if (p.bowl >= Registration.BOWL_OPTION) " · " + p.bowlType.lowercase() else ""} · ${statLine(comp, p)}", color = C.Sub, fontSize = 8.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                             if (p.injured) { TagChip("INJURED ${p.injuryDays}d", C.Red); Spacer(Modifier.width(4.dp)) }
                             if (locked && !on) { TagChip("NOT REGISTERED", C.Sub); Spacer(Modifier.width(4.dp)) }
@@ -671,7 +677,7 @@ fun SquadRegistrationScreen(vm: GameVM, compId: String) {
                         }
                     }
                     Row {
-                        OutlineBtn("Auto-select", Modifier.weight(1f)) { sel = Registration.autoSelect(s, comp).toSet() }
+                        OutlineBtn("Auto", Modifier.weight(1f)) { sel = Registration.autoSelect(s, comp).toSet() }
                         Spacer(Modifier.width(6.dp))
                         OutlineBtn("Clear", Modifier.weight(1f)) { sel = emptySet() }
                     }
