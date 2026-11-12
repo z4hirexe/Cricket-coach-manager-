@@ -56,3 +56,11 @@ Procedurally generated humans cannot match motion-captured, artist-sculpted, lic
 2. Get mocap cricket animation packs.
 3. Licence player likenesses through a players' association, which is required for real faces.
 4. Optionally add a Unity-as-a-Library match scene behind the same `MatchPresenter` interface.
+
+## Phase E — Match Centre + mandatory squad registration (DONE, build-26, 2.5.0-alpha5, 93/93 tests)
+- Match Centre tabs: Team Sheet (XI + bench, C/VC/WK, impact), Batting Order, Bowling Plan (New/Mid/Death/Part roles), Match Info, Opponent; 5-step pre-match checklist gates toss / Watch live / Quick sim.
+- Tournament squad registration (IPL 18-25, max 8 overseas, 4 replacements; Ranji/VHT/SMAT & tours 18-25, 3 replacements; ICC events 15). Locks after match 1; only injured/departed players replaceable.
+- XI is picked only from the registered squad (engine-enforced); simulated matches auto-register a default squad.
+- Bowling roles change who bowls in powerplay/death overs (RegistrationTest).
+- Previews 88-94.
+- Leftovers: batting-tab still shows in-game career runs; bench FORM chip truncates; registration not yet linked from Calendar/Shell nav.
