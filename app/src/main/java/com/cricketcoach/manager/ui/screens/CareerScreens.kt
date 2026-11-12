@@ -264,7 +264,7 @@ fun SelectionScreen(vm: GameVM) {
         Row(Modifier.fillMaxSize().padding(8.dp)) {
             Column(Modifier.weight(1f).fillMaxHeight()) {
                 Text("${u.name.uppercase()} SQUAD  ${u.squad.size}/${Modes.maxSquad(s)}", color = C.Gold, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Sub(if (s.mode == Modes.DOMESTIC) "Guest professionals from other states: ${s.guestPros}/3 used" else "Pick 15-18 players. Your XI is set in Squad & XI.")
+                Sub(if (s.mode == Modes.DOMESTIC) "Guest professionals from other states: ${s.guestPros}/3 used" else "Build a pool of up to 25. Register 18-25 for each series (15 for ICC events) in the Match Centre.")
                 LazyColumn {
                     items(u.squad.mapNotNull { s.players[it] }.sortedByDescending { it.overall() }, key = { it.id }) { p ->
                         PlayerRow(p, s.year, onClick = { vm.nav(Screen.Profile(p.id)) }, extra = "${p.role}${if (p.fictional) " • FICTIONAL" else ""}${if (p.id in u.xi) " • XI" else ""}",

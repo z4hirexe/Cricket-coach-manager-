@@ -270,17 +270,17 @@ object Career {
     fun forecast(save: CareerSave, comp: Competition, fx: Fixture): String =
         weatherFor(save.clubs[fx.home]?.country ?: "India", Random((comp.id + "/" + fx.id).hashCode().toLong()))
 
-    fun makeSim(save: CareerSave, comp: Competition, fx: Fixture, rnd: Random = Random.Default): MatchSim {
+    fun makeSim(save: CareerSave, comp: Competition, fx: Fixture, rnd: Random = Random.Default, keepCfg: MatchCfg? = null): MatchSim {
         val h = save.clubs[fx.home]!!; val a = save.clubs[fx.away]!!
         for (c in listOf(h, a)) {
-            if (c.isUser && c.id == save.userClubId) TeamSelector.validate(c, save.players)
-            else if (c.id == comp.userTeam) TeamSelector.validate(c, save.players)
+            if ((c.isUser && c.id == save.userClubId) || c.id == comp.userTeam) TeamSelector.validate(c, save.players, Registration.xiPool(save, comp))
             else TeamSelector.autoPick(c, save.players)
         }
         val overs = when (comp.format) { "T20" -> 20; "ODI" -> 50; else -> 0 }
         val neutral = comp.kind == "NATION" && !comp.series
         val venueClub = h
-        val cfg = MatchCfg(comp.format, overs, pitchFor(venueClub.country, rnd), forecast(save, comp, fx),
+        // the Match Centre rebuilds the sim after team changes: keep the same pitch / weather / venue
+        val cfg = keepCfg ?: MatchCfg(comp.format, overs, pitchFor(venueClub.country, rnd), forecast(save, comp, fx),
             if (neutral) "${venueClub.stadium} (tournament venue)" else venueClub.stadium, comp.name, comp.allowImpact)
         val sim = MatchSim(cfg, h, a, save.players, h.xi.toList(), a.xi.toList(), h.bowlers.toList(), a.bowlers.toList(), rnd)
         if (comp.format == "TEST" && Modes.fourDay(comp, fx)) sim.testBallsTotal = 4 * 90 * 6 // first-class: 4 days x 90 overs
@@ -289,6 +289,7 @@ object Career {
 
     /** Quick-simulate an AI fixture fully and apply results. */
     fun quickSim(save: CareerSave, comp: Competition, fx: Fixture, rnd: Random = Random.Default) {
+        if (comp.userTeam != null && (fx.home == comp.userTeam || fx.away == comp.userTeam)) Registration.ensureForAutoSim(save, comp)
         val sim = makeSim(save, comp, fx, rnd)
         sim.simToEnd()
         finishFixture(save, comp, fx, sim)
@@ -329,6 +330,7 @@ object Career {
         save.auction = null
         save.phase = "LEAGUE"; save.day = 0
         save.addNews(if (save.mode == Modes.CLUB) "Season ${save.season} begins! Division ${u.division} campaign under way." else "Season ${save.season} (${save.year}) begins for ${u.name}!")
+        Registration.onSeasonStart(save)
         return null
     }
 

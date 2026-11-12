@@ -40,6 +40,10 @@ fun SquadScreen(vm: GameVM, clubIdArg: String?) {
                 Text(c.name, color = C.Gold, fontWeight = FontWeight.Bold)
                 Sub("${c.squad.size} players • overseas ${if (c.kind == "NATION") "-" else "${Career.overseasCount(s, c)}/8"} • strength ${"%.0f".format(Career.strength(s, c))}")
             }
+            if (editable && clubId == s.userClubId) {
+                val rc = Registration.nextPending(s) ?: s.league.firstOrNull { Registration.required(s, it) && it.fixtures.any { f -> !f.played } }
+                if (rc != null) { OutlineBtn(if (Registration.registered(s, rc)) "${Registration.short(rc)} squad" else "Register ${Registration.short(rc)} squad") { vm.nav(Screen.SquadRegistration(rc.id)) }; Spacer(Modifier.width(6.dp)) }
+            }
             if (editable) OutlineBtn("Auto-pick") { TeamSelector.autoPick(c, s.players); vm.persist(); vm.msg("Best XI selected") }
         }
         Tabs(listOf("Playing XI", "Full squad", "Bowling plan", "Tactics") + if (clubId == s.userClubId) listOf("Academy") else emptyList(), tab) { tab = it }

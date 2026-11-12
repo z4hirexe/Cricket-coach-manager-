@@ -60,6 +60,8 @@ sealed class Screen(val title: String) {
     object Calendar : Screen("Cricket Calendar")
     // v2.5 Phase D: Stumpstagram player account
     data class SocialProfile(val pid: String) : Screen("Stumpstagram")
+    // v2.5 Phase E: tournament squad registration
+    data class SquadRegistration(val compId: String) : Screen("Squad Registration")
 }
 
 class PendingMatch(val compId: String, val fixtureId: String)
@@ -711,14 +713,55 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     fun prepareSim(): MatchSim? {
         val s = save ?: return null
         val c = pendingComp() ?: return null; val f = pendingFixture() ?: return null
-        if (sim == null) { sim = Career.makeSim(s, c, f, rnd).also { it.userTeam = c.userTeam ?: "" }; matchApplied = false }
+        if (sim == null) {
+            // only reached with a registered squad from the Match Centre; calendar "simulate" registers a default squad
+            Registration.ensureForAutoSim(s, c)
+            sim = Career.makeSim(s, c, f, rnd).also { it.userTeam = c.userTeam ?: "" }; matchApplied = false
+        }
         return sim
+    }
+
+    /** Rebuild the (not yet started) match after team changes, keeping venue / pitch / weather. */
+    fun rebuildSim(): MatchSim? {
+        val s = save ?: return null
+        val c = pendingComp() ?: return null; val f = pendingFixture() ?: return null
+        val old = sim
+        if (old != null && old.started) return old
+        sim = Career.makeSim(s, c, f, rnd, old?.cfg).also { it.userTeam = c.userTeam ?: "" }; matchApplied = false
+        return sim
+    }
+
+    /* ---------------- Phase E: mandatory pre-match selection ---------------- */
+    fun pendingRegistrationOk(): Boolean { val s = save ?: return true; val c = pendingComp() ?: return true; return Registration.registered(s, c) }
+    fun sheetConfirmed(): Boolean { val s = save ?: return false; val f = pendingFixture() ?: return false; return s.sheetFx == f.id }
+    fun sheetEdited() { val s = save ?: return; if (sim?.started != true) s.sheetFx = ""; persist(); tick++ }
+
+    /** Confirm the user's team sheet for the pending match. Returns an error or null. */
+    fun confirmTeamSheet(): String? {
+        val s = save ?: return "No career"
+        val c = pendingComp() ?: return "No match"; val f = pendingFixture() ?: return "No match"
+        val me = s.clubs[c.userTeam ?: s.userClubId] ?: return "No team"
+        if (!Registration.registered(s, c)) return "Register your ${Registration.short(c)} squad first."
+        Registration.sheetErrors(s, c, me).firstOrNull()?.let { return it }
+        s.sheetFx = f.id
+        rebuildSim()
+        persist(); tick++
+        return null
+    }
+
+    /** Guard for toss / Watch live / Quick sim from the Match Centre. */
+    private fun preMatchGate(): Boolean {
+        val c = pendingComp() ?: return false
+        if (!pendingRegistrationOk()) { msg("Register your ${Registration.short(c)} squad before the match."); nav(Screen.SquadRegistration(c.id)); return false }
+        if (sim?.started != true && !sheetConfirmed()) { msg("Confirm your team sheet first."); return false }
+        return true
     }
 
     /** User called the toss. Returns true if the user won. */
     fun callToss(heads: Boolean): Boolean {
+        if (!preMatchGate()) return false
         GameAudio.play("coin")
-        val m = prepareSim() ?: return false
+        val m = (if (sim?.started == true) sim else rebuildSim()) ?: return false
         val coin = rnd.nextBoolean()
         val won = coin == heads
         if (!won) {
@@ -733,10 +776,12 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         m.doToss(userSideId() ?: m.home.id, if (bat) "BAT" else "BOWL"); simTick++
     }
 
-    fun watchLive() { prepareSim()?.let { if (!it.started) it.autoToss() }; autoPlay = false; nav(Screen.Live) }
+    fun watchLive() { if (!preMatchGate()) return; prepareSim()?.let { if (!it.started) it.autoToss() }; autoPlay = false; nav(Screen.Live) }
 
     fun quickSimMatch() {
+        if (!preMatchGate()) return
         val m = prepareSim() ?: return
+        if (!m.started) m.autoToss()
         m.simToEnd(); simTick++
         applyMatch()
         nav(Screen.Live)

@@ -440,7 +440,7 @@ object Modes {
         }
     }
 
-    fun maxSquad(save: CareerSave) = when (save.mode) { INTL -> 18; DOMESTIC -> 20; else -> 25 }
+    fun maxSquad(save: CareerSave) = 25   // v2.5 Phase E: tournament squads are 18-25 (national / state pools may hold 25)
 
     /** Adds a player to the user's national/state squad. Domestic: unattached players join freely, players of other states count as 'guest professionals' (max 3). */
     fun callUp(save: CareerSave, pid: String): String {

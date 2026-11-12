@@ -201,6 +201,56 @@ class ScreenPreviews {
         }
     }
 
+    // ---- Phase E: Match Centre + tournament squad registration
+    /** IPL career with the user's first match pending in the Match Centre. */
+    private fun matchCentreVm(team: String = "F_MI", register: Boolean = true, confirm: Boolean = true): GameVM {
+        val vm = careerVm(Modes.IPL, team, 0)
+        val s = vm.save!!
+        val comp = s.league.first(); val u = s.userClubId
+        val fx = comp.fixtures.filter { it.home == u || it.away == u }.minByOrNull { it.day }!!
+        s.day = fx.day
+        vm.pending = com.cricketcoach.manager.ui.PendingMatch(comp.id, fx.id)
+        if (register) {
+            Registration.register(s, comp, Registration.autoSelect(s, comp))
+            val c = s.userClub()
+            TeamSelector.autoPick(c, s.players, pool = Registration.xiPool(s, comp))
+            if (c.vice !in c.xi || c.vice == c.captain) c.vice = c.xi.first { it != c.captain }
+            autoRoles(s, c, false)
+            s.players[c.xi[9]]?.fitness = 54
+            vm.prepareSim()
+            if (confirm) vm.confirmTeamSheet()
+        }
+        vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); vm.stack.add(Screen.PreMatch)
+        return vm
+    }
+    @Test fun matchCentreGate() { val vm = matchCentreVm(register = false); shot("88_match_centre_registration_gate.png", 1500) { PreMatchScreen(vm) } }
+    @Test fun matchCentreTeamSheet() { val vm = matchCentreVm(confirm = false); shot("89_match_centre_team_sheet.png", 1500) { PreMatchScreen(vm, 0) } }
+    @Test fun matchCentreBatting() { val vm = matchCentreVm(); shot("90_match_centre_batting_order.png", 1500) { PreMatchScreen(vm, 1) } }
+    @Test fun matchCentreBowling() { val vm = matchCentreVm(); shot("91_match_centre_bowling_plan.png", 1500) { PreMatchScreen(vm, 2) } }
+    @Test fun matchCentreInfo() { val vm = matchCentreVm(); shot("92_match_centre_info.png", 1500) { PreMatchScreen(vm, 3) } }
+    @Test fun squadRegistration() {
+        val vm = matchCentreVm(register = false); val s = vm.save!!
+        val comp = s.league.first()
+        vm.stack.add(Screen.SquadRegistration(comp.id))
+        shot("93_squad_registration_ipl.png", 1500) { SquadRegistrationScreen(vm, comp.id) }
+    }
+    @Test fun squadRegistrationLocked() {
+        val vm = careerVm(Modes.DOMESTIC, "S_BEN", 0); val s = vm.save!!
+        val ranji = s.league.first { it.key == "RANJI" }; val u = s.userClubId
+        val fx = ranji.fixtures.filter { it.home == u || it.away == u }.minByOrNull { it.day }!!
+        s.day = fx.day
+        Career.quickSim(s, ranji, fx, Random(3))            // registers (auto) and locks
+        ranji.regAuto = false
+        val hurt = ranji.reg.mapNotNull { s.players[it] }.sortedByDescending { it.overall() }[2]
+        hurt.injuryDays = 21; hurt.injury = "side strain"
+        val repl = Registration.replacementPool(s, ranji).firstOrNull()
+        val second = ranji.reg.mapNotNull { s.players[it] }.sortedByDescending { it.overall() }[5]
+        second.injuryDays = 14; second.injury = "hamstring"
+        if (repl != null) Registration.replace(s, ranji, second.id, repl.id)
+        vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); vm.stack.add(Screen.SquadRegistration(ranji.id))
+        shot("94_squad_registration_locked_ranji.png", 1500) { SquadRegistrationScreen(vm, ranji.id) }
+    }
+
     // ---- Phase D: Stumpstagram
     @Test fun stumpsPlayers() { val vm = careerVm(Modes.IPL, "F_MI", 6); inShell(vm, Screen.Social, "85_stumps_players.png", 1600) { SocialScreen(vm, initialTab = 3) } }
     @Test fun stumpsProfile() {

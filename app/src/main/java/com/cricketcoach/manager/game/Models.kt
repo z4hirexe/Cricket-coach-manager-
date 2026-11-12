@@ -45,7 +45,9 @@ class Club(
     var lastIncome: MutableMap<String, Double> = mutableMapOf(), var lastExpense: MutableMap<String, Double> = mutableMapOf(),
     var lastAttendance: Int = 0, var trophies: MutableList<String> = mutableListOf(),
     /** Optional custom badge uploaded by the user (path inside the app's private storage). */
-    var logoFile: String = ""
+    var logoFile: String = "",
+    /** v2.5 Phase E: bowling role per player (NEW new ball / powerplay, MID middle overs, DEATH death overs, PART part-timer; missing = AUTO) */
+    var bowlRoles: MutableMap<String, String> = mutableMapOf()
 )
 
 class MatchSummary(
@@ -106,7 +108,10 @@ class Competition(
     var bat: MutableMap<String, BatAgg> = mutableMapOf(), var bowlS: MutableMap<String, BowlAgg> = mutableMapOf(),
     var series: Boolean = false, var allowImpact: Boolean = false, var nextFixtureId: Int = 1,
     // v2.5 calendar: ISO start date for side tournaments (league comps derive dates from game days)
-    var startDate: String = ""
+    var startDate: String = "",
+    // v2.5 Phase E: the user team's registered tournament squad (kept separate from the club squad and the XI)
+    var reg: MutableList<String> = mutableListOf(), var regDone: Boolean = false, var regAuto: Boolean = false,
+    var regRepl: Int = 0, var regLog: MutableList<String> = mutableListOf()
 )
 
 class AuctionSale(var pid: String = "", var club: String = "", var price: Double = 0.0)
@@ -144,7 +149,9 @@ class CareerSave(
     // v2.2 inbox: newest news item the user has already seen
     var newsSeen: String = "",
     // v2.5 Phase D: Stumpstagram (followed players, earned followers, post counters)
-    var stumps: StumpsState = StumpsState()
+    var stumps: StumpsState = StumpsState(),
+    // v2.5 Phase E: fixture id whose team sheet the user confirmed in the Match Centre
+    var sheetFx: String = ""
 ) {
     fun userClub(): Club = clubs[userClubId]!!
     fun p(id: String): GPlayer? = players[id]

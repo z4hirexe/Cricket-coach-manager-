@@ -257,9 +257,13 @@ class MatchSim(
         val totalOvers = inn.maxBalls / 6
         val death = !isTest && overIdx >= totalOvers - (if (cfg.format == "ODI") 10 else 4)
         val pp = !isTest && overIdx < inn.ppOvers
+        // v2.5 Phase E: the user's bowling roles (missing = AUTO, i.e. the original behaviour)
+        val roles = club(inn.bowlTeam).bowlRoles
+        val deathOvers = if (cfg.format == "ODI") 10 else 4
         val best = cands.maxByOrNull { c ->
             val p = players[c]
             var s = effBowl(c, inn)
+            val role = roles[c]
             if (!isTest) {
                 val rem = quota - oversBy(inn, c)
                 val oversLeft = totalOvers - overIdx
@@ -267,12 +271,24 @@ class MatchSim(
                 if (death) s += (p?.bowl ?: 0) * 0.25 - (if (p?.bowlType == "SPIN") 6 else 0)
                 if (pp && p?.bowlType == "SPIN") s -= 4
                 if (!death && rem >= oversLeft / 2) s += 6
+                when (role) {
+                    "NEW" -> s += if (pp) 12.0 else if (death) -4.0 else 0.0
+                    "MID" -> s += if (!pp && !death) 9.0 else -5.0
+                    "DEATH" -> s += if (death) 14.0 else if (rem <= (deathOvers + 1) / 2) -16.0 else -3.0   // save overs for the death
+                    "PART" -> s -= 10.0
+                }
             } else {
                 val sp = inn.spell[c] ?: 0
                 s -= sp * 4.5
                 val ballAge = overIdx % 80
                 if (ballAge < 12 && p?.bowlType == "PACE") s += 6
                 if (ballAge > 35 && p?.bowlType == "SPIN") s += 4
+                when (role) {
+                    "NEW" -> if (ballAge < 15) s += 8.0
+                    "MID" -> if (ballAge in 15..70) s += 3.0          // stock bowler: long, tight spells
+                    "DEATH" -> if (inn.wk >= 6 || sp == 0) s += 3.0   // strike bowler: fresh bursts, finish the tail
+                    "PART" -> s -= 8.0
+                }
             }
             s + rnd.nextDouble() * 4
         } ?: xiOf(inn.bowlTeam).first()

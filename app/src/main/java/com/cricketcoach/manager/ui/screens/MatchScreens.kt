@@ -33,78 +33,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.platform.LocalConfiguration
 import com.cricketcoach.manager.audio.GameAudio
 
-@Composable
-fun PreMatchScreen(vm: GameVM) {
-    val s = vm.save ?: return
-    @Suppress("UNUSED_VARIABLE") val t = vm.tick + vm.simTick
-    val comp = vm.pendingComp(); val fx = vm.pendingFixture()
-    if (comp == null || fx == null) { ScreenScaffold(vm, "Match Centre") { Sub("No match scheduled.", Modifier.padding(16.dp)) }; return }
-    val me = comp.userTeam ?: s.userClubId
-    val h = s.clubs[fx.home]!!; val a = s.clubs[fx.away]!!
-    val myClub = s.clubs[me]!!
-    val m = vm.prepareSim()
-    var tossState by remember { mutableStateOf(if (m?.started == true) "DONE" else "CALL") }
-    LaunchedEffect(Unit) { TeamSelector.validate(myClub, s.players).forEach { vm.msg(it) } }
-    ScreenScaffold(vm, "Match Centre") {
-        Column(Modifier.padding(14.dp).verticalScroll(rememberScrollState())) {
-            CcmCard(highlight = true) {
-                Sub("${Stats.compLabel(comp)} • ${fx.stage} • ${comp.format}", Modifier.align(Alignment.CenterHorizontally))
-                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) { ClubBadge(h, 60.dp); Text(h.short, color = C.Text, fontWeight = FontWeight.Bold); Sub("Str ${"%.0f".format(Career.strength(s, h))}") }
-                    Text("VS", color = C.Gold, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) { ClubBadge(a, 60.dp); Text(a.short, color = C.Text, fontWeight = FontWeight.Bold); Sub("Str ${"%.0f".format(Career.strength(s, a))}") }
-                }
-                if (m != null) {
-                    StadiumGraphic(h.capacity, h.primary)
-                    KV("Venue", m.cfg.venue); KV("Pitch", m.pitchText()); KV("Weather", m.cfg.weather)
-                    if (m.rainNote.isNotEmpty()) Text(m.rainNote, color = C.Blue, fontSize = 12.sp)
-                    KV("Format", if (m.isTest) "Test (5 days)" else "${m.cfg.overs} overs a side${if (m.cfg.allowImpact) " • Impact Player rule" else ""}")
-                }
-            }
-            CcmCard {
-                Text("Your XI (${myClub.short})", color = C.Gold, fontWeight = FontWeight.Bold)
-                myClub.xi.forEachIndexed { i, pid -> val p = s.players[pid]; if (p != null) Text("${i + 1}. ${p.name}${if (myClub.captain == pid) " (c)" else ""}${if (myClub.keeper == pid) " †" else ""} • ${p.overall()}${if (p.fitness < 60) " • tired" else ""}", color = C.Text, fontSize = 13.sp) }
-                s.players[myClub.impact]?.let { Sub("Impact sub: ${it.name}") }
-                Spacer(Modifier.height(6.dp))
-                Row {
-                    OutlineBtn("Edit XI & tactics", Modifier.weight(1f), enabled = m?.started != true) { vm.nav(Screen.Squad(me)) }
-                    Spacer(Modifier.width(8.dp))
-                    OutlineBtn("Opponent squad", Modifier.weight(1f)) { vm.nav(Screen.Squad(if (fx.home == me) fx.away else fx.home)) }
-                }
-                if (m?.started == true) Sub("Teams are locked after the toss.")
-            }
-            CcmCard {
-                Text("Toss", color = C.Gold, fontWeight = FontWeight.Bold)
-                when (tossState) {
-                    "CALL" -> {
-                        Sub("Call heads or tails.")
-                        Row {
-                            GoldButton("Heads", Modifier.weight(1f)) { vm.sim = null; vm.prepareSim(); tossState = if (vm.callToss(true)) "CHOOSE" else "DONE" }
-                            Spacer(Modifier.width(8.dp))
-                            GoldButton("Tails", Modifier.weight(1f)) { vm.sim = null; vm.prepareSim(); tossState = if (vm.callToss(false)) "CHOOSE" else "DONE" }
-                        }
-                    }
-                    "CHOOSE" -> {
-                        Text("You won the toss!", color = C.Green, fontWeight = FontWeight.Bold)
-                        Row {
-                            GreenButton("Bat first", Modifier.weight(1f)) { vm.chooseToss(true); tossState = "DONE" }
-                            Spacer(Modifier.width(8.dp))
-                            GreenButton("Bowl first", Modifier.weight(1f)) { vm.chooseToss(false); tossState = "DONE" }
-                        }
-                    }
-                    else -> vm.sim?.let { sim -> Text("${sim.club(sim.tossWinner).name} won the toss and chose to ${sim.decision.lowercase()} first.", color = C.Text) }
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Row {
-                GoldButton("Watch live", Modifier.weight(1f), enabled = tossState == "DONE") { vm.watchLive() }
-                Spacer(Modifier.width(8.dp))
-                OutlineBtn("Quick sim", Modifier.weight(1f)) { if (vm.sim?.started != true) vm.sim?.autoToss(); vm.quickSimMatch() }
-            }
-            Spacer(Modifier.height(30.dp))
-        }
-    }
-}
+/* PreMatchScreen (Match Centre) moved to MatchCentre.kt in v2.5 Phase E */
 
 @Composable
 internal fun SmallBtn(text: String, color: Color, modifier: Modifier = Modifier, dark: Boolean = true, onClick: () -> Unit) {

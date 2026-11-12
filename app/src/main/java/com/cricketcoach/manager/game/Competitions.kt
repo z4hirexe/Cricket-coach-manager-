@@ -7,12 +7,12 @@ import kotlin.random.Random
 object TeamSelector {
     fun isOverseas(p: GPlayer, c: Club) = c.kind != "NATION" && p.country != c.country
 
-    fun available(c: Club, players: Map<String, GPlayer>): List<GPlayer> =
-        c.squad.mapNotNull { players[it] }.filter { !it.injured && !it.retired }
+    fun available(c: Club, players: Map<String, GPlayer>, pool: Set<String>? = null): List<GPlayer> =
+        c.squad.mapNotNull { players[it] }.filter { !it.injured && !it.retired && (pool == null || it.id in pool) }
 
-    /** Pick a balanced XI, batting order, bowling plan, captain, keeper and impact player. */
-    fun autoPick(c: Club, players: Map<String, GPlayer>, xiOverseasLimit: Int = 4) {
-        val avail = available(c, players).sortedByDescending { it.overall() }
+    /** Pick a balanced XI, batting order, bowling plan, captain, keeper and impact player ([pool] = registered squad, if any). */
+    fun autoPick(c: Club, players: Map<String, GPlayer>, xiOverseasLimit: Int = 4, pool: Set<String>? = null) {
+        val avail = available(c, players, pool).sortedByDescending { it.overall() }
         if (avail.isEmpty()) return
         val limit = if (c.kind == "NATION") 11 else xiOverseasLimit
         val picks = mutableListOf<GPlayer>()
@@ -51,16 +51,16 @@ object TeamSelector {
     }
 
     /** Validate the user's XI; fix injured/missing players. Returns a list of notes. */
-    fun validate(c: Club, players: Map<String, GPlayer>): List<String> {
+    fun validate(c: Club, players: Map<String, GPlayer>, pool: Set<String>? = null): List<String> {
         val notes = mutableListOf<String>()
-        val bad = c.xi.filter { players[it] == null || players[it]!!.injured || it !in c.squad }
+        val bad = c.xi.filter { players[it] == null || players[it]!!.injured || it !in c.squad || (pool != null && it !in pool) }
         if (bad.isNotEmpty()) {
             notes.add("Replaced unavailable: " + bad.joinToString { players[it]?.name ?: it })
             c.xi.removeAll(bad)
         }
         if (c.xi.size < 11) {
-            val pool = available(c, players).filter { it.id !in c.xi }.sortedByDescending { it.overall() }
-            for (p in pool) { if (c.xi.size >= 11) break; c.xi.add(p.id) }
+            val cand = available(c, players, pool).filter { it.id !in c.xi }.sortedByDescending { it.overall() }
+            for (p in cand) { if (c.xi.size >= 11) break; c.xi.add(p.id) }
         }
         if (c.xi.size > 11) c.xi = c.xi.take(11).toMutableList()
         c.bowlers.removeAll { it !in c.xi }
@@ -69,7 +69,8 @@ object TeamSelector {
         }
         if (c.keeper !in c.xi) c.keeper = c.xi.mapNotNull { players[it] }.maxByOrNull { it.keep }?.id ?: ""
         if (c.captain !in c.xi) c.captain = c.xi.mapNotNull { players[it] }.maxByOrNull { it.overall() }?.id ?: ""
-        if (c.impact in c.xi || players[c.impact]?.injured == true) c.impact = ""
+        if (c.vice !in c.xi || c.vice == c.captain) c.vice = c.xi.mapNotNull { players[it] }.filter { it.id != c.captain }.maxByOrNull { it.overall() }?.id ?: ""
+        if (c.impact in c.xi || players[c.impact]?.injured == true || (pool != null && c.impact.isNotEmpty() && c.impact !in pool)) c.impact = ""
         return notes
     }
 }
