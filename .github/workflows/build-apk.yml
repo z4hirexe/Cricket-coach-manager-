@@ -7,9 +7,19 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,7 +29,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
+
+      - name: Set up Gradle (with cache)
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -27,15 +39,54 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Run engine unit tests
-        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+      - name: Read version
+        id: ver
+        run: |
+          NAME=$(grep -m1 'versionName' app/build.gradle.kts | sed -E 's/.*"(.*)".*/\1/')
+          CODE=$(grep -m1 'versionCode' app/build.gradle.kts | grep -oE '[0-9]+')
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Version: $NAME ($CODE)"
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Unit tests (engine, delivery planner, modes)
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=512m"
 
-      - name: Upload app-debug.apk
+      - name: Upload test reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=512m"
+
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/debug/app-debug.apk \
+             "out/CricketManagerPro-${{ steps.ver.outputs.name }}-build${{ github.run_number }}.apk"
+          ls -la out
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CricketManagerPro-${{ steps.ver.outputs.name }}-build${{ github.run_number }}
+          path: out/*.apk
           if-no-files-found: error
+
+      - name: Publish pre-release (direct download link)
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "Cricket Manager Pro ${{ steps.ver.outputs.name }} (build ${{ github.run_number }})"
+          prerelease: true
+          make_latest: true
+          target_commitish: ${{ github.sha }}
+          files: out/*.apk
+          body: |
+            Automatic build from commit ${{ github.sha }}.
+            Version ${{ steps.ver.outputs.name }} (versionCode ${{ steps.ver.outputs.code }}).
+            Download the APK below and install it on Android 8.0+ (allow "Install unknown apps").
