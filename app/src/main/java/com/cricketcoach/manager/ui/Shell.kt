@@ -217,7 +217,7 @@ private fun ShellTopBar(vm: GameVM) {
         val onCal = vm.screen == Screen.Calendar
         // SIMULATE opens the cricket calendar (schedule centre); on the calendar it advances one day.
         // Always: SIMULATE opens the calendar first; on the calendar the same button runs the next step.
-        val text = if (onCal) calendarStepLabel(vm) else "Simulate"
+        val text = if (onCal) com.cricketcoach.manager.ui.screens.calendarStepLabel(vm) else "Simulate"
         Row(Modifier.height(38.dp).clip(RoundedCornerShape(9.dp)).background(if (vm.busy) Brush.horizontalGradient(listOf(Color(0xFF334155), Color(0xFF334155))) else UI.SimBrush)
             .clickable(enabled = !vm.busy) { GameAudio.click(); if (!onCal) vm.navRoot(Screen.Calendar) else vm.continueAction() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!onCal) Glyph("calendar", Color.White, 16.dp) else Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(18.dp))
