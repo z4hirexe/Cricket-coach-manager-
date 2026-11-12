@@ -145,12 +145,12 @@ internal fun Auctioneer(strikeKey: Int, countdown: Int, modifier: Modifier = Mod
 
 @Composable
 internal fun GoingPips(countdown: Int) {
-    Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         listOf("ONCE", "TWICE", "SOLD").forEachIndexed { i, l ->
             val on = countdown > i
             val col by animateColorAsState(if (on) (if (i == 2) C.Red else C.Gold) else Color(0x33FFFFFF), label = "pip")
-            Box(Modifier.clip(RoundedCornerShape(4.dp)).background(col.copy(alpha = if (on) 1f else 0.25f)).padding(horizontal = 5.dp, vertical = 2.dp)) {
-                Text(l, color = if (on) Color.Black else C.Sub, fontSize = 8.sp, fontWeight = FontWeight.ExtraBold)
+            Box(Modifier.clip(RoundedCornerShape(4.dp)).background(col.copy(alpha = if (on) 1f else 0.25f)).padding(horizontal = 4.dp, vertical = 1.dp)) {
+                Text(l, color = if (on) Color.Black else C.Sub, fontSize = 7.5.sp, lineHeight = 9.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false)
             }
         }
     }
