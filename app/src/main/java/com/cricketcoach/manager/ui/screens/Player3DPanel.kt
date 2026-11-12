@@ -63,7 +63,7 @@ fun Player3DPanel(
                 }
             } else {
                 KitFigure(look, Color(primary), Color(secondary), sc.gear, Modifier.fillMaxSize().padding(10.dp))
-                Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 30.dp).clip(RoundedCornerShape(9.dp))
+                Box(Modifier.align(Alignment.TopEnd).padding(8.dp).clip(RoundedCornerShape(9.dp))
                     .background(Brush.horizontalGradient(listOf(Color(0xFFFFE7A6), Color(0xFFE9B949), Color(0xFFB8862B))))
                     .clickable {
                         GameAudio.click()
@@ -78,7 +78,7 @@ fun Player3DPanel(
                 color = Color.White.copy(alpha = 0.55f), fontSize = 8.5.sp, modifier = Modifier.align(Alignment.BottomStart).padding(8.dp))
         }
         // ---------------- details + animation selector
-        Column(Modifier.width(232.dp).fillMaxHeight().background(Color(0x66050A18)).padding(10.dp)) {
+        Column(Modifier.width(268.dp).fillMaxHeight().background(Color(0x66050A18)).padding(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("3D MODEL", color = C.Gold, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.5.sp, modifier = Modifier.weight(1f))
                 val badge = if (look.isCurated) "APPROX. LOOK" else "FICTIONAL"
@@ -101,10 +101,10 @@ fun Player3DPanel(
             Text("ANIMATIONS", color = C.Sub, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
             Spacer(Modifier.height(3.dp))
             val all = Showcase.values().toList()
-            for (row in all.chunked(3)) {
+            for (row in all.chunked(4)) {
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     for (o in row) AnimChip(o.label, o == sc, Modifier.weight(1f)) { GameAudio.click(); sc = o }
-                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                    repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
@@ -121,10 +121,10 @@ private fun Spec(k: String, v: String) {
 
 @Composable
 private fun AnimChip(text: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Box(modifier.height(30.dp).clip(RoundedCornerShape(7.dp))
+    Box(modifier.height(30.dp).padding(horizontal = 0.dp).clip(RoundedCornerShape(7.dp))
         .background(if (on) Brush.horizontalGradient(listOf(Color(0xFFFFE7A6), Color(0xFFE9B949))) else Brush.horizontalGradient(listOf(Color(0xFF13234A), Color(0xFF0D1A3A))))
         .border(1.dp, if (on) Color(0xFFFFE7A6) else Color(0x44E9B949), RoundedCornerShape(7.dp)).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Text(text, color = if (on) Color(0xFF1A1205) else C.Text, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(text, color = if (on) Color(0xFF1A1205) else C.Text, fontSize = 9.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 
@@ -136,8 +136,8 @@ private fun AnimChip(text: String, on: Boolean, modifier: Modifier, onClick: () 
 fun KitFigure(look: Look, primary: Color, secondary: Color, gear: Gear, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val w = size.width; val h = size.height
-        val hs = (h / 1.08f).coerceAtMost(w * 1.6f) * (look.heightCm / 195f)   // figure height in px, taller players stand taller
-        val ground = h * 0.96f
+        val hs = (h * 0.9f).coerceAtMost(w * 1.7f) * (look.heightCm / 200f)   // figure height in px, taller players stand taller
+        val ground = h * 0.95f
         val top = ground - hs
         val cx = w / 2
         val bw = when (look.build) { Build.SLIM -> 0.90f; Build.HEAVY -> 1.16f; else -> 1f }

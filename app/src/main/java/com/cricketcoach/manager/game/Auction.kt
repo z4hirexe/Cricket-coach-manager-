@@ -143,7 +143,13 @@ object Auction {
             if (bidForUser && p != null && u.squad.size < AUTO_TARGET && st.curBidder != u.id && eligible(save, u, p, nextAmount(st)) &&
                 Career.canJoin(save, u, p, nextAmount(st)) == null) {
                 // a little more eager the emptier the squad is
-                st.aiVal[u.id] = valuation(save, u, p, rnd) * (if (u.squad.size < 12) 1.15 else 1.0)
+                // ...but budgeted: keep enough purse to fill every remaining slot at the minimum price, and don't blow
+                // more than ~2.5x the average per-slot budget on one player
+                val left = (AUTO_TARGET - u.squad.size).coerceAtLeast(1)
+                val minP = Money.basePrice(0, save.economy)
+                val purse = Career.purse(save, u)
+                val cap = minOf(purse - (left - 1) * minP, purse / left * 2.5)
+                st.aiVal[u.id] = minOf(valuation(save, u, p, rnd) * (if (u.squad.size < 12) 1.15 else 1.0), cap)
             } else st.aiVal.remove(u.id)
             resolveLot(save, st, rnd)
         }

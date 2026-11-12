@@ -191,7 +191,7 @@ class ScreenPreviews {
                         val l = com.cricketcoach.manager.render3d.Look.of(id, c)
                         Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                             KitFigure(l, androidx.compose.ui.graphics.Color(kits[i].first), androidx.compose.ui.graphics.Color(kits[i].second), gears[i], Modifier.weight(1f).fillMaxWidth())
-                            androidx.compose.material3.Text((Repo.byId[id]?.name ?: "Fictional ${id.removePrefix("gen-")}").split(" ").last(),
+                            androidx.compose.material3.Text((Repo.byId[id]?.name?.split(" ")?.last() ?: "Fictional #${id.removePrefix("gen-")}"),
                                 color = androidx.compose.ui.graphics.Color.White, fontSize = 10.sp, maxLines = 1)
                             androidx.compose.material3.Text("${l.build.name.lowercase()} ${l.heightCm}cm", color = androidx.compose.ui.graphics.Color(0xFF8FA0C0), fontSize = 8.sp, maxLines = 1)
                         }
