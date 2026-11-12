@@ -564,7 +564,7 @@ class MatchSim(
                     val f = pickFielder(inn, bwc.pid)
                     com.add(0, "$tag, OUT! ${listOf("Skied and taken by", "Holed out to", "Brilliant catch by", "Straight down the throat of").random(rnd)} ${pn(f)}.")
                     catches[f] = (catches[f] ?: 0) + 1
-                    dismiss(inn, bwc, sCard, "c ${pn(f)} b ${pn(bwc.pid)}", true, f)
+                    dismiss(inn, bwc, sCard, if (f == keeperId) "c †${pn(f)} b ${pn(bwc.pid)}" else "c ${pn(f)} b ${pn(bwc.pid)}", true, f)
                 }
             }
         }
