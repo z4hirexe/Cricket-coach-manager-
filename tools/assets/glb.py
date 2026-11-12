@@ -36,19 +36,29 @@ class GLB:
         self.g["accessors"].append(acc)
         return len(self.g["accessors"]) - 1
 
-    def texture(self, png: bytes, repeat=True):
+    def texture(self, png, repeat=True, jpeg=False, quality=88):
+        """png: encoded PNG bytes, or a PIL image (encoded here as JPEG when jpeg=True, else PNG)."""
+        mime = "image/png"
+        if not isinstance(png, (bytes, bytearray)):
+            b = io.BytesIO()
+            if jpeg: png.convert("RGB").save(b, "JPEG", quality=quality, optimize=True, progressive=False); mime = "image/jpeg"
+            else: png.save(b, "PNG", optimize=True)
+            png = b.getvalue()
         bv = self._view(png)
-        self.g.setdefault("images", []).append({"bufferView": bv, "mimeType": "image/png"})
+        self.g.setdefault("images", []).append({"bufferView": bv, "mimeType": mime})
         self.g.setdefault("samplers", []).append({"magFilter": 9729, "minFilter": 9987, "wrapS": 10497 if repeat else 33071, "wrapT": 10497 if repeat else 33071})
         self.g.setdefault("textures", []).append({"source": len(self.g["images"]) - 1, "sampler": len(self.g["samplers"]) - 1})
         return len(self.g["textures"]) - 1
 
-    def material(self, name, color=(1, 1, 1, 1), metallic=0.0, roughness=0.6, tex=None, normal=None, emissive=None, double=False, unlit=False, blend=False):
+    def material(self, name, color=(1, 1, 1, 1), metallic=0.0, roughness=0.6, tex=None, normal=None, emissive=None, double=False, unlit=False, blend=False, emissive_tex=None):
         pbr = {"baseColorFactor": list(color), "metallicFactor": metallic, "roughnessFactor": roughness}
         if tex is not None: pbr["baseColorTexture"] = {"index": tex}
         m = {"name": name, "pbrMetallicRoughness": pbr}
         if normal is not None: m["normalTexture"] = {"index": normal, "scale": 1.0}
         if emissive is not None: m["emissiveFactor"] = list(emissive[:3])
+        if emissive_tex is not None:
+            m["emissiveTexture"] = {"index": emissive_tex}
+            if emissive is None: m["emissiveFactor"] = [1.0, 1.0, 1.0]
         if double: m["doubleSided"] = True
         if blend: m["alphaMode"] = "BLEND"
         if unlit:
