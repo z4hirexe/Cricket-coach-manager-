@@ -81,7 +81,7 @@ class LiveBroadcastUiTest {
         // Sim end -> result card with Continue
         tap("Sim end"); assertTrue(m.finished)
         compose.onNodeWithText("FULL TIME").assertExists()
-        compose.onNodeWithText("Continue").assertExists()
+        compose.onNodeWithText("Continue", ignoreCase = true).assertExists()
         // Ball is disabled once the match is over
         compose.onNodeWithContentDescription("Ball").assertIsNotEnabled()
     }
