@@ -69,6 +69,17 @@ class ScheduleTest {
         assertFalse(Schedule.events(s).any { it.cat == Schedule.AUCTION })   // no auction in international mode
     }
 
+    @Test fun multiDayMatchesDoNotOverlap() {
+        val s = career(Modes.INTL, "N_IND")
+        val tests = Schedule.matches(s).filter { it.comp!!.format == "TEST" && it.mine }.sortedBy { it.date }
+        assertTrue(tests.size >= 3)
+        for (e in tests) assertEquals(4L, java.time.temporal.ChronoUnit.DAYS.between(e.date, e.endDate))
+        for (i in 1 until tests.size) assertTrue("Test ${i + 1} starts after Test $i ends", tests[i].date.isAfter(tests[i - 1].endDate))
+        val d = career(Modes.DOMESTIC, "S_BEN")
+        val ranji = Schedule.matches(d).filter { it.comp!!.key == "RANJI" && it.mine }.sortedBy { it.date }
+        for (i in 1 until ranji.size) assertTrue(ranji[i].date.isAfter(ranji[i - 1].endDate))
+    }
+
     @Test fun todayFollowsTheEngineDay() {
         val s = career(Modes.DOMESTIC, "S_BEN")
         val rnd = Random(9)

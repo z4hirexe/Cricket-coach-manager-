@@ -242,9 +242,11 @@ private fun MatchCard(vm: GameVM, s: CareerSave, e: Schedule.Entry, onPlay: () -
         Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
         Column(Modifier.weight(1f).padding(horizontal = 9.dp, vertical = 7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(c.name.uppercase(), color = C.Gold, fontSize = 9.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                Text("  ·  ${f.stage}", color = C.Sub, fontSize = 9.5.sp, maxLines = 1)
-                Spacer(Modifier.weight(1f))
+                Text(androidx.compose.ui.text.buildAnnotatedString {
+                    pushStyle(androidx.compose.ui.text.SpanStyle(color = C.Gold, fontWeight = FontWeight.Black)); append(c.name.uppercase()); pop()
+                    pushStyle(androidx.compose.ui.text.SpanStyle(color = C.Sub)); append("  ·  ${f.stage}"); pop()
+                }, fontSize = 9.5.sp, letterSpacing = 0.6.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Spacer(Modifier.width(4.dp))
                 MiniTag(Schedule.formatLabel(c, f), accent)
                 Spacer(Modifier.width(4.dp))
                 StatusTag(status)
@@ -264,7 +266,9 @@ private fun MatchCard(vm: GameVM, s: CareerSave, e: Schedule.Entry, onPlay: () -
                 Spacer(Modifier.width(6.dp)); TeamFlag(a, 30.dp)
             }
             Spacer(Modifier.height(4.dp))
-            Text("${e.date.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH))} · ${Schedule.startTime(s, c, f)} local · ${Schedule.venue(s, f)}",
+            val span = if (e.endDate != e.date) "${e.date.format(DateTimeFormatter.ofPattern("d", Locale.ENGLISH))}–${e.endDate.format(DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH))} (${Schedule.duration(c, f)} days)"
+                else e.date.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH))
+            Text("$span · ${Schedule.startTime(s, c, f)} local · ${Schedule.venue(s, f)}",
                 color = C.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             f.res?.let { Text(it.text, color = C.Positive, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             Spacer(Modifier.height(6.dp))

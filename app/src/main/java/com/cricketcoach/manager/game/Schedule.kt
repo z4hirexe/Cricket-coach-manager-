@@ -43,13 +43,60 @@ object Schedule {
         else -> LocalDate.of(s.year, 4, 10)
     }
 
-    /** Calendar days between two consecutive game days. */
-    fun step(s: CareerSave): Int = if (s.mode == Modes.CLUB) 3 else 1
+    /** Length of a fixture in calendar days (Tests 5, first-class 4, everything else 1). */
+    fun duration(c: Competition, f: Fixture): Int = when {
+        Modes.fourDay(c, f) -> 4
+        c.format == "TEST" -> 5
+        else -> 1
+    }
 
-    fun dateOf(s: CareerSave, day: Int): LocalDate = seasonStart(s).plusDays(((day.coerceAtLeast(1) - 1) * step(s)).toLong())
+    /** Calendar days to the next game day after a match of this kind (match length + travel / rest). */
+    private fun gapAfter(c: Competition, f: Fixture): Int = when {
+        c.kind == "CLUB" -> if (c.format == "TEST") 6 else if (c.format == "ODI") 4 else 3
+        c.format == "TEST" -> duration(c, f) + if (c.kind == "NATION") 2 else 1
+        c.format == "ODI" -> if (c.kind == "NATION") 3 else 2
+        c.kind == "FRANCHISE" -> 2
+        c.kind == "NATION" -> 2
+        else -> 1
+    }
 
-    /** Inverse of [dateOf]: the game day a date falls on (may be fractional for club mode, rounded down). */
-    fun dayOf(s: CareerSave, d: LocalDate): Int = (ChronoUnit.DAYS.between(seasonStart(s), d) / step(s)).toInt() + 1
+    // cumulative offsets (in calendar days) of each game day from the season start; cached per save state
+    private var cacheKey: Any? = null
+    private var cacheOffsets = IntArray(0)
+
+    private fun offsets(s: CareerSave): IntArray {
+        val nFx = s.league.sumOf { it.fixtures.size }
+        val key = listOf(System.identityHashCode(s), s.season, s.mode, nFx)
+        if (key == cacheKey) return cacheOffsets
+        val gap = HashMap<Int, Int>()
+        var maxDay = 1
+        for (c in s.league) for (f in c.fixtures) {
+            val d = f.day.coerceAtLeast(1); maxDay = maxOf(maxDay, d)
+            gap[d] = maxOf(gap[d] ?: 1, gapAfter(c, f))
+        }
+        val off = IntArray(maxDay + 2)
+        for (d in 2..maxDay + 1) off[d] = off[d - 1] + (gap[d - 1] ?: 1)
+        cacheKey = key; cacheOffsets = off
+        return off
+    }
+
+    fun dateOf(s: CareerSave, day: Int): LocalDate {
+        val d = day.coerceAtLeast(1)
+        val off = offsets(s)
+        val o = if (d < off.size) off[d] else off.last() + (d - (off.size - 1))
+        return seasonStart(s).plusDays(o.toLong())
+    }
+
+    /** Inverse of [dateOf]: the last game day that starts on or before the date. */
+    fun dayOf(s: CareerSave, d: LocalDate): Int {
+        val off = offsets(s)
+        val o = ChronoUnit.DAYS.between(seasonStart(s), d).toInt()
+        if (o < 0) return o
+        if (o > off.last()) return off.size - 1 + (o - off.last())
+        var best = 1
+        for (i in 1 until off.size) if (off[i] <= o) best = i else break
+        return best
+    }
 
     /** "Today" in the career: pre-season sits a week before the opener, off-season a week after the last match. */
     fun today(s: CareerSave): LocalDate = when (s.phase) {
@@ -107,7 +154,7 @@ object Schedule {
     }
 
     fun fixtureDate(s: CareerSave, c: Competition, f: Fixture): LocalDate =
-        if (s.tournament?.id == c.id) tournamentStart(s, c).plusDays((f.day.coerceAtLeast(1) - 1).toLong()) else dateOf(s, f.day)
+        if (s.tournament?.id == c.id) tournamentStart(s, c).plusDays(((f.day.coerceAtLeast(1) - 1) * gapAfter(c, f)).toLong()) else dateOf(s, f.day)
 
     /** All matches of the career (league competitions + the side tournament). */
     fun matches(s: CareerSave): List<Entry> {
@@ -118,8 +165,9 @@ object Schedule {
             for (f in c.fixtures) {
                 val h = s.clubs[f.home]; val a = s.clubs[f.away]
                 val mine = c.userTeam != null && (f.home == c.userTeam || f.away == c.userTeam)
-                out.add(Entry(fixtureDate(s, c, f), cats.first(), "${h?.short ?: f.home} v ${a?.short ?: f.away}", "${c.name} · ${f.stage}",
-                    c, f, mine, cats))
+                val d0 = fixtureDate(s, c, f)
+                out.add(Entry(d0, cats.first(), "${h?.short ?: f.home} v ${a?.short ?: f.away}", "${c.name} · ${f.stage}",
+                    c, f, mine, cats, endDate = d0.plusDays((duration(c, f) - 1).toLong())))
             }
         }
         return out
@@ -148,7 +196,8 @@ object Schedule {
         if (s.league.isNotEmpty()) out.add(Entry(lastSeasonDate(s).plusDays(2), EVENT, "Season awards & review", "Player of the season, records and board review"))
         s.tournament?.let { t -> out.add(Entry(tournamentStart(s, t), EVENT, "${t.name.ifBlank { "Tournament" }} starts", "Side tournament", t, cats = setOf(EVENT, TOURN))) }
         // training / rest days for the user's side between the first and last of their matches
-        val mineDates = matches.filter { it.mine && s.tournament?.id != it.comp?.id }.map { it.date }.toSortedSet()
+        val mineDates = matches.filter { it.mine && s.tournament?.id != it.comp?.id }
+            .flatMap { e -> (0..ChronoUnit.DAYS.between(e.date, e.endDate)).map { e.date.plusDays(it) } }.toSortedSet()
         if (mineDates.isNotEmpty()) {
             var d = minOf(start, mineDates.first()); val end = mineDates.last()
             var guard = 0
