@@ -133,7 +133,9 @@ class CareerSave(
     var created: Long = 0L, var difficulty: Int = 1, var weeklyDoneDay: Int = -1,
     // v2 career types + social
     var mode: String = "CLUB", var followers: Int = 5000, var posts: MutableList<SocialPost> = mutableListOf(),
-    var boardRating: Int = 60, var guestPros: Int = 0, var pendingCoins: Int = 0, var pendingXp: Int = 0
+    var boardRating: Int = 60, var guestPros: Int = 0, var pendingCoins: Int = 0, var pendingXp: Int = 0,
+    // v2.2 inbox: newest news item the user has already seen
+    var newsSeen: String = ""
 ) {
     fun userClub(): Club = clubs[userClubId]!!
     fun p(id: String): GPlayer? = players[id]
@@ -146,5 +148,8 @@ class SocialPost(
     var id: Int = 0, var author: String = "", var handle: String = "", var verified: Boolean = false, var kind: String = "NEWS",
     var text: String = "", var likes: Int = 0, var reposts: Int = 0, var comments: MutableList<SocialComment> = mutableListOf(),
     var season: Int = 1, var day: Int = 0, var liked: Boolean = false, var tags: MutableList<String> = mutableListOf(),
-    var shared: Boolean = false, var mine: Boolean = false
+    var shared: Boolean = false, var mine: Boolean = false,
+    // v2.2 poster card: featured player / team, big headline + stat, and a small stat table ("left|right" rows)
+    var pid: String = "", var club: String = "", var opp: String = "", var headline: String = "", var stat: String = "",
+    var lines: MutableList<String> = mutableListOf()
 )

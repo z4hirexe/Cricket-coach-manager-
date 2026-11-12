@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cricketcoach.manager.data.Repo
 import com.cricketcoach.manager.ui.CcmTheme
 import com.cricketcoach.manager.ui.GameVM
+import com.cricketcoach.manager.ui.Screen
 import com.cricketcoach.manager.ui.screens.*
 import com.cricketcoach.manager.game.*
 import androidx.compose.runtime.Composable
@@ -42,7 +43,7 @@ class ScreenPreviews {
 
     @Test fun splash() {
         compose.setContent { CcmTheme { Splash() } }
-        compose.mainClock.advanceTimeBy(500)
+        compose.mainClock.advanceTimeBy(1400)
         compose.onRoot().captureRoboImage(File(out, "00_splash.png").path)
     }
 
@@ -58,9 +59,10 @@ class ScreenPreviews {
         val vm = vm()
         val rnd = Random(4)
         val s = Modes.newCareer(1, "Arjun Sen", mode, team, 1.0, 1, rnd)
+        s.auction = null
         Career.startSeason(s)
         repeat(days) {
-            val d = s.league.flatMap { it.fixtures }.filter { !it.played }.minOf { it.day }
+            val d = s.league.flatMap { it.fixtures }.filter { !it.played }.minOfOrNull { it.day } ?: return@repeat
             s.day = d
             for ((c, f) in Career.fixturesOnDay(s, d)) Career.quickSim(s, c, f, rnd)
             Career.weeklyUpdate(s, emptySet(), rnd)
@@ -75,9 +77,20 @@ class ScreenPreviews {
     @Test fun newTeam() { val vm = vm(); shot("13_new_team.png") { NewTeamScreen(vm) } }
     @Test fun login() { val vm = vm(); shot("20_login.png") { LoginScreen(vm) } }
     @Test fun signUp() { val vm = vm(); shot("21_signup.png") { SignUpScreen(vm) } }
-    @Test fun dashboardDomestic() { val vm = careerVm(); shot("30_dashboard_bengal.png") { Dashboard(vm) } }
+    /** Career screens are shown the way the app shows them: inside the sidebar + top-bar shell. */
+    private fun inShell(vm: GameVM, scr: Screen, name: String, ms: Long = 1500, content: @Composable () -> Unit) {
+        vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); if (scr != Screen.Dashboard) vm.stack.add(scr)
+        shot(name, ms) { com.cricketcoach.manager.ui.GameShell(vm) { content() } }
+    }
+
+    @Test fun dashboardDomestic() { val vm = careerVm(); inShell(vm, Screen.Dashboard, "30_dashboard_bengal.png") { Dashboard(vm) } }
+    @Test fun dashboardIntl() { val vm = careerVm(Modes.INTL, "N_IND", 4); inShell(vm, Screen.Dashboard, "33_dashboard_india.png") { Dashboard(vm) } }
+    @Test fun dashboardIpl() { val vm = careerVm(Modes.IPL, "F_CSK", 5); inShell(vm, Screen.Dashboard, "34_dashboard_ipl.png") { Dashboard(vm) } }
+    @Test fun inbox() { val vm = careerVm(days = 8); inShell(vm, Screen.Inbox, "35_inbox.png") { InboxScreen(vm) } }
+    @Test fun socialIntl() { val vm = careerVm(Modes.INTL, "N_IND", 6); inShell(vm, Screen.Social, "41_cricgram_india.png", 2000) { SocialScreen(vm) } }
+    @Test fun fixturesInShell() { val vm = careerVm(days = 6); inShell(vm, Screen.Fixtures, "36_fixtures_shell.png") { FixturesScreen(vm) } }
     @Test fun tableDomestic() { val vm = careerVm(days = 8); shot("31_points_table.png") { TableScreen(vm) } }
-    @Test fun social() { val vm = careerVm(days = 10); shot("40_social.png") { SocialScreen(vm) } }
+    @Test fun social() { val vm = careerVm(days = 10); inShell(vm, Screen.Social, "40_cricgram_bengal.png", 2000) { SocialScreen(vm) } }
     @Test fun selection() { val vm = careerVm(Modes.INTL, "N_IND", 0); shot("32_selection_india.png") { SelectionScreen(vm) } }
     @Test fun settings() { val vm = vm(); shot("50_settings.png") { SettingsScreen(vm) } }
 }

@@ -82,6 +82,13 @@ fun CcmTheme(content: @Composable () -> Unit) = MaterialTheme(colorScheme = sche
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenScaffold(vm: GameVM, title: String, actions: @Composable RowScope.() -> Unit = {}, content: @Composable ColumnScope.() -> Unit) {
+    if (LocalInShell.current) {
+        Column(Modifier.fillMaxSize()) {
+            ShellTitleRow(vm, title, actions)
+            Column(Modifier.weight(1f).fillMaxWidth(), content = content)
+        }
+        return
+    }
     Scaffold(
         containerColor = C.Bg,
         contentWindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout),

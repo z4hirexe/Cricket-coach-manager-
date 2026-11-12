@@ -57,7 +57,7 @@ object GameAudio {
     fun channel(name: String): Float {
         val s = settings ?: return 0.8f
         if (s.mute) return 0f
-        return s.volume * when (name) { in BAT -> s.volBat; in CROWD -> s.volCrowd; "music" -> s.volMusic; "voice" -> s.volCommentary; "ambience" -> s.volCrowd; else -> 1f }
+        return s.volume * when (name) { in BAT -> s.volBat; in CROWD -> s.volCrowd; "music" -> if (s.music) s.volMusic else 0f; "voice" -> s.volCommentary; "ambience" -> s.volCrowd; else -> 1f }
     }
 
     fun play(name: String, gain: Float = 1f, rate: Float = 1f) {

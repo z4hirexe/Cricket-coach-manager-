@@ -55,6 +55,7 @@ sealed class Screen(val title: String) {
     object NewTeam : Screen("New Team")
     object Selection : Screen("Squad Selection")
     object Social : Screen("Social Media")
+    object Inbox : Screen("Inbox")
 }
 
 class PendingMatch(val compId: String, val fixtureId: String)
@@ -123,6 +124,12 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     fun back() { if (stack.size > 1) stack.removeAt(stack.size - 1) }
     fun replaceTop(s: Screen) { if (stack.isNotEmpty()) stack.removeAt(stack.size - 1); stack.add(s) }
     fun goHome() { stack.clear(); stack.add(Screen.Main); if (save != null) stack.add(Screen.Dashboard) }
+    /** Sidebar navigation: keep the back stack shallow (Main > Home > section). */
+    fun navRoot(s: Screen) { stack.clear(); stack.add(Screen.Main); if (save != null) stack.add(Screen.Dashboard); if (s != Screen.Dashboard && s != Screen.Main) stack.add(s) }
+    /** Inbox: news items newer than the last one the user opened. */
+    fun unreadNews(): Int { val s = save ?: return 0; if (s.news.isEmpty()) return 0; val i = s.news.indexOf(s.newsSeen); return if (i >= 0) i else minOf(s.news.size, 99) }
+    fun markNewsRead() { val s = save ?: return; val top = s.news.firstOrNull() ?: return; if (s.newsSeen != top) { s.newsSeen = top; bump() } }
+    fun toggleMusic() { settings.music = !settings.music; com.cricketcoach.manager.audio.GameAudio.refresh(); bump() }
     fun bump() { tick++ }
     fun msg(s: String?) { if (s != null) toast = s }
 

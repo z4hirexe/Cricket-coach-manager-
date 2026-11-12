@@ -266,6 +266,10 @@ object Career {
         }
     }
 
+    /** Match-day weather is fixed per fixture, so the dashboard forecast always matches the real match. */
+    fun forecast(save: CareerSave, comp: Competition, fx: Fixture): String =
+        weatherFor(save.clubs[fx.home]?.country ?: "India", Random((comp.id + "/" + fx.id).hashCode().toLong()))
+
     fun makeSim(save: CareerSave, comp: Competition, fx: Fixture, rnd: Random = Random.Default): MatchSim {
         val h = save.clubs[fx.home]!!; val a = save.clubs[fx.away]!!
         for (c in listOf(h, a)) {
@@ -276,7 +280,7 @@ object Career {
         val overs = when (comp.format) { "T20" -> 20; "ODI" -> 50; else -> 0 }
         val neutral = comp.kind == "NATION" && !comp.series
         val venueClub = h
-        val cfg = MatchCfg(comp.format, overs, pitchFor(venueClub.country, rnd), weatherFor(venueClub.country, rnd),
+        val cfg = MatchCfg(comp.format, overs, pitchFor(venueClub.country, rnd), forecast(save, comp, fx),
             if (neutral) "${venueClub.stadium} (tournament venue)" else venueClub.stadium, comp.name, comp.allowImpact)
         val sim = MatchSim(cfg, h, a, save.players, h.xi.toList(), a.xi.toList(), h.bowlers.toList(), a.bowlers.toList(), rnd)
         if (comp.format == "TEST" && Modes.fourDay(comp, fx)) sim.testBallsTotal = 4 * 90 * 6 // first-class: 4 days x 90 overs

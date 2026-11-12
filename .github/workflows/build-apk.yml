@@ -61,6 +61,14 @@ jobs:
           path: app/build/reports/tests/
           if-no-files-found: ignore
 
+      - name: Upload UI screenshots (Robolectric + Roborazzi)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screens
+          path: docs/previews/screens/*.png
+          if-no-files-found: ignore
+
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=512m"
 
