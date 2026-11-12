@@ -377,7 +377,7 @@ private fun CareerStatsTable(p: GPlayer, rp: RealPlayer?, modifier: Modifier) {
             head.forEachIndexed { i, h -> Text(h, color = C.Gold, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp, modifier = Modifier.weight(weights[i]), textAlign = if (i == 0) TextAlign.Start else TextAlign.End) }
         }
         if (rows.isEmpty()) Text("No senior career record — scouted on skills", color = C.Sub, fontSize = 10.sp, modifier = Modifier.padding(6.dp))
-        rows.take(3).forEach { r ->
+        rows.take(4).forEach { r ->
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 1.5.dp)) {
                 r.forEachIndexed { i, v -> Text(v, color = if (i == 0) C.Text else C.Text.copy(alpha = 0.9f), fontSize = 10.5.sp, fontWeight = if (i == 0) FontWeight.Bold else FontWeight.Medium,
                     modifier = Modifier.weight(weights[i]), textAlign = if (i == 0) TextAlign.Start else TextAlign.End, maxLines = 1) }
@@ -441,11 +441,7 @@ private fun PriceRail(s: CareerSave, a: AuctionState, p: GPlayer?, leader: Club?
         // current bid
         Box(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (a.curBidder.isEmpty()) "OPENING BID" else "CURRENT BID", color = C.Gold, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                    Spacer(Modifier.width(6.dp))
-                    Box(Modifier.offset(y = (-2).dp)) { GoingPips(a.countdown) }
-                }
+                Text(if (a.curBidder.isEmpty()) "OPENING BID" else "CURRENT BID", color = C.Gold, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                 Text(Money.fmt(amount.toDouble()), color = C.GoldLight, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = if (narrow) 28.sp else 34.sp, lineHeight = 34.sp, maxLines = 1, softWrap = false, modifier = Modifier.scale(pop.value))
             }
             if (rise.value < 1f && lastInc.isNotEmpty())
@@ -458,8 +454,8 @@ private fun PriceRail(s: CareerSave, a: AuctionState, p: GPlayer?, leader: Club?
             Spacer(Modifier.width(6.dp))
             Column {
                 Text(if (mine) "YOU LEAD" else "HIGHEST BIDDER", color = if (mine) C.Positive else C.Sub, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                Text(leader?.name ?: "Awaiting paddles", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 13.sp)
-                if (a.countdown > 0) Text(if (a.countdown == 1) "GOING ONCE…" else "GOING TWICE…", color = C.Red, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                Text(leader?.name ?: "Awaiting paddles", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, lineHeight = 13.sp)
+                GoingPips(a.countdown)
             }
         }
     }
