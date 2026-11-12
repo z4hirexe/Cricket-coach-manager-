@@ -213,6 +213,8 @@ class MegaPhaseTest {
         assertEquals(2, top.size)
         assertTrue(top[0].second.runs >= top[1].second.runs)
         assertTrue(Scorecard.topBowl(inns, 2).first().second.wk >= Scorecard.topBowl(inns, 2).last().second.wk)
+        // a bowler is credited to the fielding side, i.e. he bowled in the OTHER team's innings
+        for ((team, b) in Scorecard.topBowl(inns, 3)) assertTrue(inns.first { it.team != team }.bowl.contains(b))
     }
 
     @Test fun playedFixturesHaveCompactResultData() {

@@ -3,6 +3,8 @@ package com.cricketcoach.manager.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -59,19 +61,19 @@ fun YorkerScreen(vm: GameVM) {
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(s) { if (!s.yorker.seeded) { Yorker.ensureSeeded(s); vm.persist() } }
     LaunchedEffect(s.yorker.posts.size) { vm.markYorkerRead() }
-    ScreenScaffold(vm, Yorker.NAME) {
+    // one compact header: the shell title row carries the Yorker mark, the tabs and the profile button
+    ScreenScaffold(vm, Yorker.NAME, actions = {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+            YorkerMark(22.dp, withName = false)
+            Spacer(Modifier.width(6.dp))
+            for ((i, l) in listOf("Home", "Trending", "Following", "Search").withIndex()) YTab(l, tab == i) { tab = i }
+            YIcon(Icons.Filled.Person, "My Yorker profile") { vm.nav(Screen.YorkerProfile("me")) }
+        }
+    }) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val wide = maxWidth > 820.dp
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
-                    Row(Modifier.fillMaxWidth().background(DS.Navy2).padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        YorkerMark(24.dp)
-                        Spacer(Modifier.width(14.dp))
-                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            for ((i, l) in listOf("Home", "Trending", "Following", "Search").withIndex()) YTab(l, tab == i) { tab = i }
-                        }
-                        YIcon(Icons.Filled.Person, "My Yorker profile") { vm.nav(Screen.YorkerProfile("me")) }
-                    }
                     when (tab) {
                         0 -> Feed(vm, s, Yorker.home(s), header = { Composer(vm, s) })
                         1 -> TrendingTab(vm, s) { t -> query = "#$t"; tab = 3 }
@@ -132,26 +134,25 @@ private fun Composer(vm: GameVM, s: CareerSave) {
     var text by remember { mutableStateOf("") }
     var photo by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth()) {
-    Column(Modifier.fillMaxWidth().background(DS.Navy).padding(horizontal = 12.dp, vertical = 10.dp)) {
-        Row(verticalAlignment = Alignment.Top) {
-            YAvatar(s, "me", 36.dp)
+    Column(Modifier.fillMaxWidth().background(DS.Navy).padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            YAvatar(s, "me", 34.dp)
             Spacer(Modifier.width(10.dp))
-            OutlinedTextField(text, { text = it.take(280) }, placeholder = { Text("What's happening in your dressing room?", fontSize = 12.sp) }, modifier = Modifier.weight(1f),
+            OutlinedTextField(text, { text = it.take(280) }, placeholder = { Text("What's happening in your dressing room?", fontSize = 12.sp, maxLines = 1) }, modifier = Modifier.weight(1f),
                 textStyle = LocalTextStyle.current.copy(fontSize = 13.sp), minLines = 1, maxLines = 4,
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = YAccent, unfocusedBorderColor = DS.Line, cursorColor = YAccent, focusedTextColor = DS.White, unfocusedTextColor = DS.White))
+            Spacer(Modifier.width(8.dp))
+            DsButton("Post", height = DS.BtnHSmall, enabled = text.isNotBlank()) { if (Yorker.userPost(s, text, photo) != null) { text = ""; photo = ""; vm.persist() } }
         }
-        Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Spacer(Modifier.width(46.dp))
+            Spacer(Modifier.width(38.dp))
             // attach one of the team photos (recoloured to your team)
             Text(if (photo.isEmpty()) "+ Photo" else "Photo: $photo ✕", color = YAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable {
                     photo = when (photo) { "" -> "win"; "win" -> "trophy"; else -> "" }
                 }.padding(horizontal = 6.dp, vertical = 8.dp))
             Spacer(Modifier.weight(1f))
-            Text("${280 - text.length}", color = if (text.length > 260) DS.Bad else DS.Muted, fontSize = 10.sp)
-            Spacer(Modifier.width(8.dp))
-            DsButton("Post", height = DS.BtnHSmall, enabled = text.isNotBlank()) { if (Yorker.userPost(s, text, photo) != null) { text = ""; photo = ""; vm.persist() } }
+            if (text.isNotEmpty()) Text("${280 - text.length}", color = if (text.length > 260) DS.Bad else DS.Muted, fontSize = 10.sp)
         }
         if (photo.isNotEmpty()) PhotoMoment(photo, s.clubs[s.userClubId]?.primary ?: 0xFF4F8EF7, Modifier.padding(start = 46.dp, top = 6.dp).size(120.dp).clip(RoundedCornerShape(8.dp)))
     }
@@ -195,7 +196,7 @@ private fun YPost(vm: GameVM, s: CareerSave, p: YorkerPost, inThread: Boolean = 
                     Text(a.name, color = DS.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     if (a.verified) { Spacer(Modifier.width(3.dp)); Icon(Icons.Filled.CheckCircle, "verified", tint = YAccent, modifier = Modifier.size(13.dp)) }
                     Spacer(Modifier.width(4.dp))
-                    Text("${a.handle} · ${p.date.ifBlank { "S${p.season} D${p.day}" }}", color = DS.Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Text("${a.handle} · ${runCatching { Schedule.fmt(java.time.LocalDate.parse(p.date), vm.settings.dateStyle) }.getOrDefault("S${p.season} D${p.day}")}", color = DS.Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 }
                 if (p.kind in setOf("RESULT", "AUCTION", "TRANSFER", "TROPHY", "CENTURY", "FIVEFOR", "HATTRICK")) Text(when (p.kind) { "RESULT" -> "MATCH UPDATE"; "AUCTION" -> "AUCTION"; "TRANSFER" -> "TRANSFER NEWS"; "TROPHY" -> "CHAMPIONS"; "FIVEFOR" -> "FIVE-FOR"; "HATTRICK" -> "HAT-TRICK"; else -> p.kind },
                     color = DS.Gold, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp)

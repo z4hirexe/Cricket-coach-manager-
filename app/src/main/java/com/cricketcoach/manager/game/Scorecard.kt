@@ -37,5 +37,9 @@ object Scorecard {
 
     /** Top performers of a match for the result card: best batters and bowlers across innings. */
     fun topBat(inns: List<Inn>, n: Int = 3) = inns.flatMap { i -> i.bat.map { i.team to it } }.sortedByDescending { it.second.runs * 1000 - it.second.balls }.take(n)
-    fun topBowl(inns: List<Inn>, n: Int = 3) = inns.flatMap { i -> i.bowl.map { i.team to it } }.sortedByDescending { it.second.wk * 1000 - it.second.runs }.take(n)
+    /** Best bowlers, paired with the FIELDING side (the innings header names the batting side). */
+    fun topBowl(inns: List<Inn>, n: Int = 3): List<Pair<String, Bowl>> {
+        val teams = inns.map { it.team }.distinct()
+        return inns.flatMap { i -> val f = teams.firstOrNull { it != i.team } ?: i.team; i.bowl.map { f to it } }.sortedByDescending { it.second.wk * 1000 - it.second.runs }.take(n)
+    }
 }

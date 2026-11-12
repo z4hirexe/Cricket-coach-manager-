@@ -79,7 +79,7 @@ object DS {
 fun brandText(gold: Color = DS.Gold, white: Color = DS.White, upper: Boolean = true): AnnotatedString = buildAnnotatedString {
     withStyle(SpanStyle(color = white)) { append(if (upper) Brand.NAME.uppercase() else Brand.NAME); append(" ") }
     withStyle(SpanStyle(color = gold)) { append(Brand.YEAR) }
-    withStyle(SpanStyle(color = white, fontSize = 0.42f.em(), baselineShift = BaselineShift(0.9f), fontWeight = FontWeight.SemiBold)) { append(Brand.TM) }
+    withStyle(SpanStyle(color = white, fontSize = 0.42f.em(), baselineShift = BaselineShift(0.55f), fontWeight = FontWeight.SemiBold)) { append(Brand.TM) }
 }
 
 private fun Float.em() = androidx.compose.ui.unit.TextUnit(this, androidx.compose.ui.unit.TextUnitType.Em)
@@ -96,10 +96,13 @@ fun BrandWordmark(modifier: Modifier = Modifier, size: TextUnit = 18.sp, gold: C
 fun BrandStack(modifier: Modifier = Modifier, size: TextUnit = 22.sp, center: Boolean = true) {
     Column(modifier.semantics(mergeDescendants = true) { contentDescription = Brand.FULL }, horizontalAlignment = if (center) Alignment.CenterHorizontally else Alignment.Start) {
         Text(Brand.NAME.uppercase(), color = DS.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = size, letterSpacing = 2.sp, maxLines = 1, softWrap = false, lineHeight = size * 1.05f)
-        Text(buildAnnotatedString {
-            withStyle(SpanStyle(color = DS.Gold)) { append(Brand.YEAR) }
-            withStyle(SpanStyle(color = DS.White, fontSize = 0.34f.em(), baselineShift = BaselineShift(1.15f), fontWeight = FontWeight.SemiBold)) { append(Brand.TM) }
-        }, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = size * 1.6f, letterSpacing = 3.sp, maxLines = 1, softWrap = false, lineHeight = size * 1.6f)
+        // year + a small (TM) at its upper right, laid out as two boxes so the mark never adds line height
+        Row(verticalAlignment = Alignment.Top) {
+            Text(Brand.YEAR, color = DS.Gold, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = size * 1.6f, letterSpacing = 3.sp, maxLines = 1, softWrap = false,
+                lineHeight = size * 1.6f)
+            Text(Brand.TM, color = DS.White, fontWeight = FontWeight.SemiBold, fontSize = size * 0.5f, maxLines = 1, softWrap = false, lineHeight = size * 0.5f,
+                modifier = Modifier.padding(start = 1.dp, top = (size.value * 0.28f).dp))
+        }
     }
 }
 

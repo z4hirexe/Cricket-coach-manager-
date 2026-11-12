@@ -53,8 +53,9 @@ fun ResultCard(s: CareerSave, f: Fixture, vm: GameVM? = null, onClose: () -> Uni
                 if (bats.isNotEmpty() || bowls.isNotEmpty()) {
                     DsLabel("Top performers", color = DS.Sub)
                     Spacer(Modifier.height(4.dp))
-                    for ((team, b) in bats) PerfRow(b.name, team, "${b.runs}${if (b.notOut) "*" else ""} (${b.balls})")
-                    for ((team, b) in bowls) if (b.wk > 0) PerfRow(b.name, team, "${b.wk}/${b.runs} (${b.overs})")
+                    fun short(name: String) = s.clubs.values.firstOrNull { it.name == name }?.short ?: name
+                    for ((team, b) in bats) PerfRow(b.name, short(team), "${b.runs}${if (b.notOut) "*" else ""} (${b.balls})")
+                    for ((team, b) in bowls) if (b.wk > 0) PerfRow(b.name, short(team), "${b.wk}/${b.runs} (${b.overs})")
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {

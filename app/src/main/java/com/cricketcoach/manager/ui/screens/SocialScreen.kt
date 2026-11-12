@@ -172,8 +172,7 @@ fun SocialScreen(vm: GameVM, initialTab: Int = -1) {
                 Column(Modifier.weight(0.44f).fillMaxHeight().background(Color(0xCC0B111C)).drawBehind { drawLine(UI.Line, Offset(0f, 0f), Offset(0f, size.height), 2f) }) {
                     if (tab < 4) {
                         val p = s?.posts?.firstOrNull { it.id == selLocal }
-                        CommentsHeader(p?.handle)
-                        if (p == null || s == null) EmptyNote("Select a post to read the comments.")
+                        if (p == null || s == null) { CommentsHeader(p?.handle); EmptyNote("Select a post to read the comments.") }
                         else LocalComments(vm, s, p)
                     } else {
                         val p = selOnline
@@ -334,8 +333,7 @@ fun SocialProfileScreen(vm: GameVM, pid: String) {
             }
             Column(Modifier.weight(0.44f).fillMaxHeight().background(Color(0xCC0B111C)).drawBehind { drawLine(UI.Line, Offset(0f, 0f), Offset(0f, size.height), 2f) }) {
                 val p = posts.firstOrNull { it.id == (sel ?: posts.firstOrNull()?.id) }
-                CommentsHeader(p?.handle)
-                if (p == null) EmptyNote("Select a post to read the comments.") else LocalComments(vm, s, p)
+                if (p == null) { CommentsHeader(null); EmptyNote("Select a post to read the comments.") } else LocalComments(vm, s, p)
             }
         }
     }
@@ -396,7 +394,8 @@ private fun CommentBubble(author: String, handle: String, text: String, time: St
 @Composable
 private fun LocalComments(vm: GameVM, s: CareerSave, p: SocialPost) {
     CommentThreadView(key = p.id, total = max(p.comments.size, p.commentCount), stored = p.comments, generatedTotal = Stumps.generatedTotal(s, p),
-        page = { from, n -> Stumps.commentPage(s, p, from, n) }, meName = "Coach ${s.manager}", version = vm.tick, modifier = Modifier.fillMaxSize(), accent = UI.Pink) { text, replyTo ->
+        page = { from, n -> Stumps.commentPage(s, p, from, n) }, meName = "Coach ${s.manager}", version = vm.tick, modifier = Modifier.fillMaxSize(), accent = UI.Pink,
+        subtitle = "on ${p.handle}'s post") { text, replyTo ->
         Stumps.userComment(s, p, text, replyTo); vm.persist()
     }
 }

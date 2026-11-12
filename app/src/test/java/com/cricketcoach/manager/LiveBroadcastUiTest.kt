@@ -116,7 +116,9 @@ class LiveBroadcastUiTest {
         tap("Pause menu"); tap("Exit match")
         compose.onNodeWithText("Exit match?").assertExists()
         compose.onNodeWithContentDescription("Cancel").performClick(); compose.mainClock.advanceTimeBy(400)
-        assertEquals(Screen.Live, vm.stack.last())
+        assertFalse(Screen.Calendar in vm.stack)     // (the async account check may push Login in Robolectric - only the exit must not happen)
+        compose.onAllNodesWithText("Exit match?").assertCountEquals(0)
+        assertEquals(balls, m.events.size)
         // confirm: back to the calendar, the match is kept exactly at this ball
         tap("Exit match")
         compose.onAllNodesWithContentDescription("Exit match").onLast().performClick(); compose.mainClock.advanceTimeBy(400)

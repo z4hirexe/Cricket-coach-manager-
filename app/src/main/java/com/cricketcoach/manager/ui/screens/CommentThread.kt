@@ -40,7 +40,7 @@ private val AV = listOf(Color(0xFF4F8EF7), Color(0xFFE9B949), Color(0xFF3DBE7A),
 @Composable
 fun CommentThreadView(
     key: Any, total: Int, stored: List<SocialComment>, generatedTotal: Int, page: (Int, Int) -> List<SocialComment>,
-    meName: String, version: Int, modifier: Modifier = Modifier, title: String = "Comments", accent: Color = DS.Gold,
+    meName: String, version: Int, modifier: Modifier = Modifier, title: String = "Comments", accent: Color = DS.Gold, subtitle: String = "",
     onSend: (text: String, replyTo: Int) -> Unit,
 ) {
     var loaded by remember(key) { mutableStateOf(page(0, 20)) }
@@ -62,7 +62,7 @@ fun CommentThreadView(
             Spacer(Modifier.width(8.dp))
             Text(Stumps.compact(maxOf(total, snap.size).toLong()), color = accent, fontWeight = FontWeight.Black, fontSize = 12.sp)
             Spacer(Modifier.weight(1f))
-            Text("${top.size + loaded.size} shown", color = DS.Muted, fontSize = 10.sp)
+            Text(subtitle.ifEmpty { "${top.size + loaded.size} shown" }, color = DS.Muted, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         LazyColumn(Modifier.weight(1f), state = state) {
             items(top, key = { "s" + it.id }) { c -> CommentItem(c, repliesOf[c.id].orEmpty(), accent) { replyTo = c } }
