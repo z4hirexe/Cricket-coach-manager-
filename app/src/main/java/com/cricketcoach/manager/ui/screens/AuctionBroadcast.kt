@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.unit.em
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -89,13 +91,14 @@ internal fun AuctionStage(vm: GameVM, s: CareerSave, a: AuctionState, preview: I
     val leader = s.clubs[a.curBidder]
     val tint by animateColorAsState(leader?.let { Color(it.primary) } ?: Color(0xFF1D3A8A), tween(600), label = "tint")
 
+    CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.copy(lineHeight = 1.18.em)) {
     BoxWithConstraints(Modifier.fillMaxSize().background(Navy0).windowInsetsPadding(WindowInsets.displayCutout)) {
         val narrow = maxWidth < 800.dp
         val spotW: Dp = if (narrow) 150.dp else 196.dp
         val teamsW: Dp = if (narrow) 222.dp else 252.dp
         StageBackdrop(tint)
         Column(Modifier.fillMaxSize()) {
-            BroadcastHeader(vm, s, a, p, running, show3d,
+            BroadcastHeader(vm, s, a, p, running, show3d, narrow,
                 onPause = { running = !running }, onAuto = { vm.auctionAuto() }, on3d = {
                     if (vm.settings.gfx == 0 && !show3d) vm.msg("Set Graphics to Medium or High in Settings for the 3D player view") else show3d = !show3d
                 }, onHistory = { history = true })
@@ -108,7 +111,7 @@ internal fun AuctionStage(vm: GameVM, s: CareerSave, a: AuctionState, preview: I
                     if (p != null) Dossier(vm, s, p, u, Modifier.weight(1f).fillMaxWidth())
                     else Box(Modifier.weight(1f))
                     Spacer(Modifier.height(5.dp))
-                    PriceRail(s, a, p, leader, u)
+                    PriceRail(s, a, p, leader, u, narrow)
                     Spacer(Modifier.height(5.dp))
                     RecentTicker(s, a) { history = true }
                 }
@@ -132,6 +135,7 @@ internal fun AuctionStage(vm: GameVM, s: CareerSave, a: AuctionState, preview: I
             SoldStamp(s, a.lastPid, s.clubs[a.lastClub], a.lastPrice, a.lastClub == u.id)
         }
     }
+    }
     if (history) AuctionHistoryDialog(vm, s, a) { history = false }
 }
 
@@ -146,7 +150,7 @@ fun auctionSetLabel(a: AuctionState, p: GPlayer?): String {
 }
 
 @Composable
-private fun BroadcastHeader(vm: GameVM, s: CareerSave, a: AuctionState, p: GPlayer?, running: Boolean, show3d: Boolean,
+private fun BroadcastHeader(vm: GameVM, s: CareerSave, a: AuctionState, p: GPlayer?, running: Boolean, show3d: Boolean, narrow: Boolean,
                             onPause: () -> Unit, onAuto: () -> Unit, on3d: () -> Unit, onHistory: () -> Unit) {
     Row(Modifier.fillMaxWidth().height(38.dp).background(Brush.horizontalGradient(listOf(Color(0xF2050B20), Color(0xE60B1838), Color(0xF2050B20))))
         .padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -155,15 +159,15 @@ private fun BroadcastHeader(vm: GameVM, s: CareerSave, a: AuctionState, p: GPlay
         }
         Glyph("gavel", C.Gold, 18.dp)
         Spacer(Modifier.width(6.dp))
-        Text("${if (a.type == "MEGA") "MEGA" else "MINI"} AUCTION ${s.year}", fontFamily = Display, color = C.GoldLight, fontWeight = FontWeight.Bold, fontSize = 19.sp, letterSpacing = 1.5.sp, maxLines = 1)
+        Text(if (narrow) "${if (a.type == "MEGA") "MEGA" else "MINI"} AUCTION" else "${if (a.type == "MEGA") "MEGA" else "MINI"} AUCTION ${s.year}", fontFamily = Display, color = C.GoldLight, fontWeight = FontWeight.Bold, fontSize = if (narrow) 17.sp else 19.sp, letterSpacing = 1.2.sp, maxLines = 1)
         Spacer(Modifier.width(8.dp))
         LiveDot(running)
         Spacer(Modifier.width(8.dp))
         HeaderTag("LOT ${(a.index + 1).coerceAtMost(a.lots.size)}/${a.lots.size}", C.Text)
         Spacer(Modifier.width(4.dp))
-        HeaderTag(auctionSetLabel(a, p), C.Gold)
+        HeaderTag(if (narrow) auctionSetLabel(a, p).substringAfter(" · ") else auctionSetLabel(a, p), C.Gold)
         Spacer(Modifier.weight(1f))
-        Text("SOLD ${a.sold.size} · UNSOLD ${a.unsold.size}" + (if (a.retained.isNotEmpty()) " · RETAINED ${a.retained.size}" else "") + " · ${Money.fmt(a.sold.sumOf { it.price })}",
+        if (!narrow) Text("SOLD ${a.sold.size} · UNSOLD ${a.unsold.size}" + (if (a.retained.isNotEmpty()) " · RETAINED ${a.retained.size}" else "") + " · ${Money.fmt(a.sold.sumOf { it.price })}",
             color = C.Sub, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 260.dp))
         Spacer(Modifier.width(6.dp))
         HeaderBtn(if (show3d) "3D ON" else "3D", show3d, on3d)
@@ -319,7 +323,7 @@ private fun Dossier(vm: GameVM, s: CareerSave, p: GPlayer, u: Club, modifier: Mo
         .border(1.dp, GoldEdge, shape).clickable { vm.nav(Screen.Profile(p.id)) }.padding(horizontal = 10.dp, vertical = 7.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(p.name.uppercase(), color = Color.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 26.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(p.name.uppercase(), color = Color.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 24.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 rp?.full?.takeIf { it.isNotBlank() && it != p.name }?.let { Text(it, color = C.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             }
             if (nat != null && nat.short in Flags.CODES) NationFlag(nat.short, 30.dp)
@@ -412,7 +416,7 @@ private fun RowScope.MiniBarInline(p: GPlayer) {
 /* ----------------------------------------------------------------- price rail */
 
 @Composable
-private fun PriceRail(s: CareerSave, a: AuctionState, p: GPlayer?, leader: Club?, u: Club) {
+private fun PriceRail(s: CareerSave, a: AuctionState, p: GPlayer?, leader: Club?, u: Club, narrow: Boolean = false) {
     val amount by animateFloatAsState(a.curBid.toFloat(), tween(450, easing = FastOutSlowInEasing), label = "amt")
     val pop = remember { Animatable(1f) }
     val rise = remember { Animatable(1f) }
@@ -429,7 +433,7 @@ private fun PriceRail(s: CareerSave, a: AuctionState, p: GPlayer?, leader: Club?
     Row(Modifier.fillMaxWidth().height(70.dp).clip(shape).background(Brush.horizontalGradient(listOf(Color(0xF0050A18), Color(0xF00E1B3D), Color(0xF0050A18))))
         .border(1.5.dp, edge, shape), verticalAlignment = Alignment.CenterVertically) {
         // base
-        Column(Modifier.width(92.dp).padding(start = 10.dp)) {
+        Column(Modifier.width(if (narrow) 76.dp else 92.dp).padding(start = 10.dp)) {
             Text("BASE PRICE", color = C.Sub, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
             Text(p?.let { Money.fmt(Money.basePrice(it.overall(), s.economy)) } ?: "—", color = C.Text, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
@@ -437,17 +441,20 @@ private fun PriceRail(s: CareerSave, a: AuctionState, p: GPlayer?, leader: Club?
         // current bid
         Box(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 10.dp), contentAlignment = Alignment.CenterStart) {
             Column {
-                Text(if (a.curBidder.isEmpty()) "OPENING BID" else "CURRENT BID", color = C.Gold, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                Text(Money.fmt(amount.toDouble()), color = C.GoldLight, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 34.sp, lineHeight = 34.sp, modifier = Modifier.scale(pop.value))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (a.curBidder.isEmpty()) "OPENING BID" else "CURRENT BID", color = C.Gold, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Box(Modifier.offset(y = (-2).dp)) { GoingPips(a.countdown) }
+                }
+                Text(Money.fmt(amount.toDouble()), color = C.GoldLight, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = if (narrow) 28.sp else 34.sp, lineHeight = 34.sp, maxLines = 1, softWrap = false, modifier = Modifier.scale(pop.value))
             }
             if (rise.value < 1f && lastInc.isNotEmpty())
                 Text(lastInc, color = C.Positive, fontSize = 12.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.TopEnd).offset(y = (8 - 18 * rise.value).dp).alpha(1f - rise.value))
-            Box(Modifier.align(Alignment.BottomEnd).padding(bottom = 4.dp)) { GoingPips(a.countdown) }
         }
         Box(Modifier.width(1.dp).fillMaxHeight().padding(vertical = 10.dp).background(Color(0x33E9B949)))
         // highest bidder
-        Row(Modifier.width(170.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (leader != null) ClubBadge(leader, 36.dp) else Box(Modifier.size(36.dp).clip(CircleShape).border(1.dp, Color(0x55FFFFFF), CircleShape))
+        Row(Modifier.width(if (narrow) 128.dp else 170.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (leader != null) ClubBadge(leader, if (narrow) 28.dp else 36.dp) else Box(Modifier.size(36.dp).clip(CircleShape).border(1.dp, Color(0x55FFFFFF), CircleShape))
             Spacer(Modifier.width(6.dp))
             Column {
                 Text(if (mine) "YOU LEAD" else "HIGHEST BIDDER", color = if (mine) C.Positive else C.Sub, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
@@ -479,6 +486,7 @@ private fun RecentTicker(s: CareerSave, a: AuctionState, onOpen: () -> Unit) {
                 Text("   •   ", color = Color(0x55E9B949), fontSize = 10.sp)
             }
         }
+        Spacer(Modifier.width(8.dp))
         Text("HISTORY ›", color = C.GoldLight, fontSize = 9.5.sp, fontWeight = FontWeight.Black)
     }
 }
@@ -623,6 +631,7 @@ internal fun AuctionHistoryDialog(vm: GameVM, s: CareerSave, a: AuctionState, on
 internal fun AuctionBoard(vm: GameVM, s: CareerSave, a: AuctionState) {
     var history by remember { mutableStateOf(false) }
     val u = s.userClub()
+    CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.copy(lineHeight = 1.18.em)) {
     Box(Modifier.fillMaxSize().background(Navy0).windowInsetsPadding(WindowInsets.displayCutout)) {
         StageBackdrop(Color(u.primary))
         Column(Modifier.fillMaxSize()) {
@@ -644,6 +653,7 @@ internal fun AuctionBoard(vm: GameVM, s: CareerSave, a: AuctionState) {
             Box(Modifier.fillMaxWidth().height(1.5.dp).background(GoldEdge))
             if (a.phase == "RETENTION") RetentionBoard(vm, s, a) else AuctionReport(vm, s, a) { history = true }
         }
+    }
     }
     if (history) AuctionHistoryDialog(vm, s, a) { history = false }
 }
@@ -710,20 +720,28 @@ private fun AuctionReport(vm: GameVM, s: CareerSave, a: AuctionState, onHistory:
                 Spacer(Modifier.width(5.dp)); ReportTile("UNSOLD", "${a.unsold.size}", C.Red, Modifier.weight(1f))
             }
             Spacer(Modifier.height(6.dp))
-            Text("YOUR NEW SIGNINGS", color = C.Gold, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
+            Text("YOUR SQUAD AFTER THE AUCTION", color = C.Gold, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
             Spacer(Modifier.height(3.dp))
-            if (mine.isEmpty()) Text("You did not buy anyone at this auction.", color = C.Sub, fontSize = 11.sp)
+            val boughtIds = mine.map { it.pid }.toSet()
+            val retainedMine = a.retained.filter { it.club == u.id }
+            val others = u.squad.filter { it !in boughtIds && retainedMine.none { r -> r.pid == it } }.mapNotNull { s.players[it] }
+            val cards: List<Triple<String, String, Double?>> = mine.map { Triple(it.pid, "BOUGHT", it.price) } + retainedMine.map { Triple(it.pid, "RETAINED", it.price) } + others.map { Triple(it.id, "SQUAD", null) }
+            if (cards.isEmpty()) Text("Your squad is empty — sign free agents in Transfers.", color = C.Sub, fontSize = 11.sp)
             androidx.compose.foundation.lazy.grid.LazyVerticalGrid(androidx.compose.foundation.lazy.grid.GridCells.Adaptive(128.dp), Modifier.weight(1f).fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(mine.size) { i ->
-                    val sale = mine[i]; val p = s.players[sale.pid]
+                items(cards.size) { i ->
+                    val (pid, tag, price) = cards[i]; val p = s.players[pid]
                     val shape = RoundedCornerShape(10.dp)
-                    Column(Modifier.clip(shape).background(Brush.verticalGradient(listOf(Navy2, Navy1))).border(1.dp, GoldEdge, shape)
+                    val col = when (tag) { "BOUGHT" -> C.Positive; "RETAINED" -> UI.Cyan; else -> C.Sub }
+                    Column(Modifier.clip(shape).background(Brush.verticalGradient(listOf(Navy2, Navy1))).border(1.dp, if (tag == "SQUAD") Color(0x333D5A99) else col.copy(alpha = 0.7f), shape)
                         .clickable { if (p != null) vm.nav(Screen.Profile(p.id)) }.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        if (p != null) PlayerFace(p.id, p.name, 44.dp)
+                        if (p != null) PlayerFace(p.id, p.name, 40.dp)
                         Text(p?.name ?: "", color = C.Text, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text("${Consts.ROLE_NAMES[p?.role] ?: ""} · ${p?.overall() ?: ""}", color = C.Sub, fontSize = 9.5.sp, maxLines = 1)
-                        Text(Money.fmt(sale.price), color = C.GoldLight, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TagChip(tag, col)
+                            if (price != null) { Spacer(Modifier.width(4.dp)); Text(Money.fmt(price), color = C.GoldLight, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 15.sp) }
+                        }
                     }
                 }
             }
