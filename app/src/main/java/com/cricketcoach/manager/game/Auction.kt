@@ -30,7 +30,7 @@ object Auction {
         for (c in save.clubs.values.filter { it.kind == Modes.marketKind(save) }) {
             val keep = if (c.isUser) userRetain.filter { it in c.squad }.take(4)
             else c.squad.mapNotNull { save.players[it] }.filter { it.age(save.year) <= 33 }.sortedByDescending { it.overall() }.take(4).map { it.id }
-            keep.forEachIndexed { i, pid -> save.players[pid]?.let { it.salary = retentionCost(save, i, c.division); it.contractYears = 3 } }
+            keep.forEachIndexed { i, pid -> save.players[pid]?.let { it.salary = retentionCost(save, i, c.division); it.contractYears = 3; st.retained.add(AuctionSale(pid, c.id, it.salary)) } }
             for (pid in c.squad.filter { it !in keep }) save.players[pid]?.let { it.clubId = ""; it.forSale = false }
             c.squad = keep.toMutableList(); c.xi.clear(); c.bowlers.clear(); c.captain = ""; c.vice = ""; c.impact = ""; c.keeper = ""
         }

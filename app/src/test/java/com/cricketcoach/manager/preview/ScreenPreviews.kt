@@ -113,6 +113,26 @@ class ScreenPreviews {
         vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); vm.stack.add(Screen.AuctionScr)
         return vm
     }
+    // Phase B: premium auction broadcast
+    @Test fun auctionRetention() {
+        val vm = careerVm(Modes.IPL, "F_MI", 0); val s = vm.save!!
+        s.auctionDoneThisSeason = false; s.auction = Auction.start(s, "MEGA")
+        vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); vm.stack.add(Screen.AuctionScr)
+        shot("79_auction_retention.png", 1400) { AuctionScreen(vm, preview = 1) }
+    }
+    @Test fun auctionReport() {
+        val vm = careerVm(Modes.IPL, "F_RCB", 0); val s = vm.save!!
+        s.auctionDoneThisSeason = false; val a = Auction.start(s, "MEGA"); s.auction = a
+        val u = s.userClub(); Auction.confirmRetention(s, a, u.squad.mapNotNull { s.players[it] }.sortedByDescending { it.overall() }.take(3).map { it.id })
+        val rnd = Random(7)
+        // the user wins a few lots, then the rest is simulated
+        repeat(6) { if (Auction.userBid(s, a) == null) { var g = 0; while (!Auction.tick(s, a, rnd) && g++ < 30) { if (a.curBidder != s.userClubId) Auction.userBid(s, a) } } else Auction.resolveLot(s, a, rnd) }
+        Auction.autoComplete(s, a, rnd)
+        vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); vm.stack.add(Screen.AuctionScr)
+        shot("80_auction_report.png", 1400) { AuctionScreen(vm, preview = 1) }
+    }
+    @Config(sdk = [34], qualifiers = "w740dp-h360dp-land-xxhdpi")
+    @Test fun auctionStageCompact() { val vm = auctionVm(12); shot("81_auction_stage_compact.png", 1600) { AuctionScreen(vm, preview = 1) } }
     @Test fun auctionStage() { val vm = auctionVm(3); shot("70_auction_stage.png", 1600) { AuctionScreen(vm, preview = 1) } }
     @Test fun auctionSold() { val vm = auctionVm(5); shot("71_auction_sold.png", 1400) { AuctionScreen(vm, preview = 2) } }
 

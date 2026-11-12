@@ -119,7 +119,9 @@ class AuctionState(
     var aiVal: MutableMap<String, Double> = mutableMapOf(), var done: Boolean = false,
     /** presentation (Phase 6): bid counter, clubs that raised a paddle on the current lot, and the last hammer result */
     var bidSeq: Int = 0, var lotBidders: MutableList<String> = mutableListOf(),
-    var lastSeq: Int = 0, var lastPid: String = "", var lastClub: String = "", var lastPrice: Double = 0.0
+    var lastSeq: Int = 0, var lastPid: String = "", var lastClub: String = "", var lastPrice: Double = 0.0,
+    /** v2.5 broadcast: players kept by their clubs in the retention phase (price = retention salary) */
+    var retained: MutableList<AuctionSale> = mutableListOf()
 )
 
 class TransferOffer(var id: Int = 0, var pid: String = "", var fromClub: String = "", var fee: Double = 0.0, var swapPid: String = "")

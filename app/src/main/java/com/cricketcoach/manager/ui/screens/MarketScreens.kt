@@ -46,81 +46,9 @@ fun AuctionScreen(vm: GameVM, preview: Int = 0) {
         }
         return
     }
-    ScreenScaffold(vm, "${if (a.type == "MEGA") "Mega" else "Mini"} Auction") {
-        if (a.phase == "LIVE") { AuctionStage(vm, s, a, preview); return@ScreenScaffold }
-        // purse bar
-        Row(Modifier.fillMaxWidth().background(C.Surface).padding(10.dp)) {
-            Column(Modifier.weight(1f)) { Sub("Cap room"); Text(Money.fmt(Career.purse(s, u)), color = C.Gold, fontWeight = FontWeight.Bold) }
-            Column(Modifier.weight(1f)) { Sub("Squad"); Text("${u.squad.size}/25", color = if (u.squad.size < 15) C.Red else C.Text, fontWeight = FontWeight.Bold) }
-            Column(Modifier.weight(1f)) { Sub("Overseas"); Text("${Career.overseasCount(s, u)}/8", color = C.Text, fontWeight = FontWeight.Bold) }
-            Column(Modifier.weight(1f)) { Sub("Lots"); Text("${a.lots.size}", color = C.Text, fontWeight = FontWeight.Bold) }
-        }
-        when (a.phase) {
-            "RETENTION" -> RetentionPanel(vm, s, a)
-            else -> AuctionSummary(vm, s, a)
-        }
-    }
-}
-
-@Composable
-private fun AuctionSummary(vm: GameVM, s: CareerSave, a: AuctionState) {
-    val u = s.userClub()
-    val mine = a.sold.filter { it.club == u.id }.sortedByDescending { it.price }
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(14.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("AUCTION COMPLETE", color = C.Gold, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 30.sp)
-                Sub("You bought ${mine.size} players for ${Money.fmt(mine.sumOf { it.price })}. ${a.unsold.size} players went unsold and are free agents.")
-            }
-            GoldButton("Done") { vm.back() }
-            Spacer(Modifier.width(8.dp))
-            OutlineBtn("Free agents") { vm.replaceTop(Screen.Transfers) }
-        }
-        if (mine.isNotEmpty()) {
-            SectionTitle("Your new signings")
-            Row(Modifier.horizontalScroll(rememberScrollState())) {
-                mine.forEach { sale ->
-                    val p = s.players[sale.pid] ?: return@forEach
-                    Column(Modifier.padding(end = 8.dp).width(112.dp).clip(RoundedCornerShape(12.dp)).background(C.Card).clickable { vm.nav(Screen.Profile(p.id)) }.padding(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally) {
-                        PlayerFace(p.id, p.name, 56.dp)
-                        Text(p.name, color = C.Text, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${Consts.ROLE_NAMES[p.role]} • ${p.overall()}", color = C.Sub, fontSize = 10.sp, maxLines = 1)
-                        Text(Money.fmt(sale.price), color = C.Gold, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    }
-                }
-            }
-        }
-        SectionTitle("Top sales")
-        a.sold.sortedByDescending { it.price }.take(15).forEachIndexed { i, sale ->
-            val c = s.clubs[sale.club]
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${i + 1}", color = C.Sub, fontSize = 12.sp, modifier = Modifier.width(22.dp))
-                ClubBadge(c, 22.dp); Spacer(Modifier.width(6.dp))
-                Text(s.players[sale.pid]?.name ?: "", color = C.Text, fontSize = 13.sp, modifier = Modifier.weight(1f))
-                Text(Money.fmt(sale.price), color = C.Gold, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-            }
-        }
-    }
-}
-
-@Composable
-private fun RetentionPanel(vm: GameVM, s: CareerSave, a: AuctionState) {
-    val u = s.userClub()
-    val picks = remember { mutableStateListOf<String>() }
-    Column(Modifier.padding(12.dp)) {
-        Text("Retention", color = C.Gold, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        Sub("Keep up to 4 players. Retention salaries (slot 1→4): " + (0..3).joinToString { Money.fmt(Auction.retentionCost(s, it, u.division)) } + ". Everyone else enters the auction pool.")
-        Text("Selected: ${picks.size}/4 • cost ${Money.fmt(picks.indices.sumOf { Auction.retentionCost(s, it, u.division) })}", color = C.Text)
-        GoldButton("Confirm retentions & start auction", Modifier.fillMaxWidth()) { vm.confirmRetention(picks.toList()) }
-    }
-    LazyColumn(Modifier.padding(horizontal = 12.dp)) {
-        items(u.squad.mapNotNull { s.players[it] }.sortedByDescending { it.overall() }, key = { it.id }) { p ->
-            val sel = p.id in picks
-            PlayerRow(p, s.year, onClick = { if (sel) picks.remove(p.id) else if (picks.size < 4) picks.add(p.id) else vm.msg("Maximum 4 retentions") }, highlight = sel,
-                extra = if (sel) "RETAIN #${picks.indexOf(p.id) + 1}" else null)
-        }
-    }
+    // live bidding is a full-screen broadcast with its own compact header
+    if (a.phase == "LIVE") { AuctionStage(vm, s, a, preview); return }
+    AuctionBoard(vm, s, a)
 }
 
 /* ======================= Transfers ======================= */
