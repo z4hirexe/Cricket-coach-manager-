@@ -53,7 +53,7 @@ fun Player3DPanel(
     var sc by remember(pid) { mutableStateOf(defaultShowcase(role, bowlSpin)) }
     var live by remember(pid) { mutableStateOf(startIn3d && vm.settings.gfx > 0) }
     val shape = RoundedCornerShape(14.dp)
-    Row(Modifier.fillMaxWidth().height(304.dp).padding(vertical = 4.dp).clip(shape)
+    Row(Modifier.fillMaxWidth().height(332.dp).padding(vertical = 4.dp).clip(shape)
         .background(Brush.verticalGradient(listOf(Color(0xFF0E1E45), Color(0xFF060D22)))).border(1.dp, Color(0x66E9B949), shape)) {
         // ---------------- viewer
         Box(Modifier.weight(1f).fillMaxHeight()) {
@@ -96,7 +96,7 @@ fun Player3DPanel(
             Spec("Build", look.build.name.lowercase().replaceFirstChar { it.uppercase() } + " · ~${look.heightCm} cm")
             Spec("Hair", Hair.NAMES[look.hair] + if (look.hair != Hair.NONE) " · " + Look.HAIR_NAMES[look.hairColIndex].lowercase() else "")
             Spec("Face", Facial.NAMES[look.facial])
-            Spec("Kit", when (sc.gear) { Gear.BATTING -> "Helmet, pads, gloves, bat"; Gear.KEEPING -> "Keeper gloves, pads, cap"; else -> "Shirt #${look.number}, cap, spikes" })
+            Spec("Kit", when (sc.gear) { Gear.BATTING -> "Helmet, pads, gloves, bat"; Gear.KEEPING -> "Keeper gloves, pads, cap"; else -> "Shirt #${look.number}, trousers, spikes" })
             Spacer(Modifier.height(6.dp))
             Text("ANIMATIONS", color = C.Sub, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
             Spacer(Modifier.height(3.dp))
