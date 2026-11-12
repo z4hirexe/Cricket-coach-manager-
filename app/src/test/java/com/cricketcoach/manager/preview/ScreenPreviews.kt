@@ -135,5 +135,20 @@ class ScreenPreviews {
     @Test fun tableDomestic() { val vm = careerVm(days = 8); shot("31_points_table.png") { TableScreen(vm) } }
     @Test fun social() { val vm = careerVm(days = 10); inShell(vm, Screen.Social, "40_cricgram_bengal.png", 2000) { SocialScreen(vm) } }
     @Test fun selection() { val vm = careerVm(Modes.INTL, "N_IND", 0); shot("32_selection_india.png") { SelectionScreen(vm) } }
+    // Phase A: cricket calendar / match schedule centre
+    @Test fun calendarIpl() { val vm = careerVm(Modes.IPL, "F_CSK", 5); inShell(vm, Screen.Calendar, "75_calendar_ipl.png", 1600) { CalendarScreen(vm) } }
+    @Test fun calendarIntl() { val vm = careerVm(Modes.INTL, "N_IND", 2); inShell(vm, Screen.Calendar, "76_calendar_intl.png", 1600) { CalendarScreen(vm) } }
+    @Test fun calendarDomestic() {
+        val vm = careerVm(Modes.DOMESTIC, "S_BEN", 6)
+        val s = vm.save!!
+        // open on the user's next Ranji match so the match cards are visible
+        val next = Schedule.matches(s).filter { it.mine && it.fx?.played == false }.minByOrNull { it.date }?.date
+        inShell(vm, Screen.Calendar, "77_calendar_domestic.png", 1600) { CalendarScreen(vm, next) }
+    }
+    @Test fun calendarPreseasonIpl() {
+        File("src/main/assets/domestic_states.json").bufferedReader().use { Repo.loadDomestic(it) }
+        val vm = vm(); val s = Modes.newCareer(1, "Arjun Sen", Modes.IPL, "F_KKR", 1.0, 1, Random(4)); vm.save = s
+        inShell(vm, Screen.Calendar, "78_calendar_preseason_auction.png", 1600) { CalendarScreen(vm, Schedule.seasonStart(s).minusDays(12)) }
+    }
     @Test fun settings() { val vm = vm(); shot("50_settings.png") { SettingsScreen(vm) } }
 }

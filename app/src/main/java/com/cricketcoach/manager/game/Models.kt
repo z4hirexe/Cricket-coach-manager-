@@ -104,7 +104,9 @@ class Competition(
     var userTeam: String? = null, var division: Int = 0, var season: Int = 1,
     var pointsWin: Int = 2, var pointsDraw: Int = 1, var pointsNR: Int = 1,
     var bat: MutableMap<String, BatAgg> = mutableMapOf(), var bowlS: MutableMap<String, BowlAgg> = mutableMapOf(),
-    var series: Boolean = false, var allowImpact: Boolean = false, var nextFixtureId: Int = 1
+    var series: Boolean = false, var allowImpact: Boolean = false, var nextFixtureId: Int = 1,
+    // v2.5 calendar: ISO start date for side tournaments (league comps derive dates from game days)
+    var startDate: String = ""
 )
 
 class AuctionSale(var pid: String = "", var club: String = "", var price: Double = 0.0)

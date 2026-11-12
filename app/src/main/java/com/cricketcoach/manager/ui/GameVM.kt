@@ -56,6 +56,8 @@ sealed class Screen(val title: String) {
     object Selection : Screen("Squad Selection")
     object Social : Screen("Social Media")
     object Inbox : Screen("Inbox")
+    // v2.5: cricket calendar / match schedule centre
+    object Calendar : Screen("Cricket Calendar")
 }
 
 class PendingMatch(val compId: String, val fixtureId: String)
@@ -589,6 +591,107 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         runDays(true, 500)
     }
 
+    /* ---------------- calendar actions (Phase A) ---------------- */
+    /** Result of a calendar action, used by the calendar UI to open the right view afterwards. */
+    var calendarFocus by mutableStateOf<PendingMatch?>(null)
+
+    /** User fixtures that would be auto-simulated before reaching [f] (shown in a confirmation dialog). */
+    fun userMatchesBefore(compId: String, fxId: String): Int {
+        val s = save ?: return 0
+        val c = compById(compId) ?: return 0; val f = c.fixtures.firstOrNull { it.id == fxId } ?: return 0
+        if (s.tournament?.id == c.id) return c.fixtures.count { !it.played && it.id != f.id && it.day < f.day && (it.home == c.userTeam || it.away == c.userTeam) }
+        return s.league.sumOf { lc -> lc.fixtures.count { !it.played && it.id != f.id && it.day < f.day && lc.userTeam != null && (it.home == lc.userTeam || it.away == lc.userTeam) } } +
+            (if (pending != null && pending?.fixtureId != fxId) 1 else 0)
+    }
+
+    /** Engine loop: advance game days up to [target]; earlier user matches are simulated. */
+    private fun advanceTo(s: CareerSave, target: Int, simUserOnTarget: Boolean): DayOut {
+        var guard = 0
+        while (guard++ < 600) {
+            if (s.phase == "OFFSEASON") return DayOut.SeasonEnd
+            val nd = s.league.flatMap { it.fixtures }.filter { !it.played }.minOfOrNull { it.day } ?: break
+            if (nd > target) break
+            val o = advanceDay(s, nd < target || simUserOnTarget)
+            if (o !is DayOut.Next) return o
+        }
+        return DayOut.Next
+    }
+
+    /** Clears a pending (not yet started) user match by quick-simulating it, so the calendar can move on. */
+    private fun resolvePending(s: CareerSave) {
+        val c = pendingComp(); val f = pendingFixture()
+        if (c != null && f != null && !f.played) {
+            val m = sim
+            if (m != null && m.started && !m.finished) { m.simToEnd(); Career.finishFixture(s, c, f, m) }
+            else if (m != null && m.finished && !matchApplied) Career.finishFixture(s, c, f, m)
+            else if (m == null || !m.finished) Career.quickSim(s, c, f, rnd)
+        }
+        pending = null; sim = null; matchApplied = false; autoPlay = false
+    }
+
+    /**
+     * Calendar "Play" / "Simulate" on any fixture.
+     *  - play = true on a user fixture: advance to that date (earlier user games are simulated) and open the Match Centre.
+     *  - otherwise: advance through that date, simulating the fixture, then focus its result.
+     */
+    fun calendarGo(compId: String, fxId: String, play: Boolean) {
+        val s = save ?: return
+        if (busy) return
+        val c = compById(compId) ?: return
+        val f = c.fixtures.firstOrNull { it.id == fxId } ?: return
+        if (f.played) { calendarFocus = PendingMatch(compId, fxId); return }
+        val isMine = c.userTeam != null && (f.home == c.userTeam || f.away == c.userTeam)
+        // already the pending match
+        if (pending?.fixtureId == fxId) { if (play) nav(Screen.PreMatch) else {
+            prepareSim()?.let { if (!it.finished) it.simToEnd() }; simTick++; applyMatch()
+            pending = null; sim = null; autoPlay = false; calendarFocus = PendingMatch(compId, fxId)
+            if (s.tournament?.id != c.id && Career.leagueFinished(s) && s.phase != "OFFSEASON") { Career.endSeason(s, rnd); nav(Screen.SeasonSummary) }
+            persist()
+        }; return }
+        // side tournament: simple ordered list
+        if (s.tournament?.id == c.id) {
+            if (pending != null && pendingComp()?.id == c.id) resolvePending(s)
+            var g = 0
+            while (g++ < 300) {
+                val nx = CompEngine.nextUnplayed(c) ?: break
+                if (nx.id == f.id || nx.day >= f.day) break
+                Career.quickSim(s, c, nx, rnd)
+            }
+            if (play && isMine) { pending = PendingMatch(c.id, f.id); sim = null; matchApplied = false; persist(); nav(Screen.PreMatch) }
+            else { if (!f.played) Career.quickSim(s, c, f, rnd); calendarFocus = PendingMatch(compId, fxId); persist() }
+            return
+        }
+        if (s.phase == "OFFSEASON") { nav(Screen.SeasonSummary); return }
+        if (s.phase == "PRESEASON") { val err = Career.startSeason(s); if (err != null) { msg(err); return } }
+        if (pending != null) resolvePending(s)
+        busy = true
+        viewModelScope.launch {
+            val out = withContext(Dispatchers.Default) { advanceTo(s, f.day, !(play && isMine)) }
+            busy = false
+            if (save !== s) return@launch
+            when (out) {
+                is DayOut.Match -> {
+                    pending = out.pm; sim = null; matchApplied = false; persist()
+                    if (out.pm.fixtureId == fxId) nav(Screen.PreMatch) else { msg("Match day! Your next match comes first."); nav(Screen.PreMatch) }
+                }
+                is DayOut.SeasonEnd -> { calendarFocus = PendingMatch(compId, fxId); persist(); msg("Season complete.") }
+                else -> { calendarFocus = PendingMatch(compId, fxId); persist() }
+            }
+        }
+    }
+
+    /** Calendar: advance exactly one game day (the existing SIMULATE behaviour). */
+    fun calendarAdvanceDay() = continueAction()
+
+    /** Calendar: simulate every day until the user's next match (opens the Match Centre for it). */
+    fun simToNextUserMatch() {
+        val s = save ?: return
+        if (pending != null) { nav(Screen.PreMatch); return }
+        if (s.phase == "OFFSEASON") { nav(Screen.SeasonSummary); return }
+        if (s.phase == "PRESEASON") { val err = Career.startSeason(s); if (err != null) { msg(err); return } }
+        runDays(false, 600)
+    }
+
     fun beginNextSeason() {
         val s = save ?: return
         Career.beginNextSeason(s)
@@ -669,6 +772,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     fun startTournament(type: String, userTeam: String, format: String?, teams: List<String>, matches: Int, double: Boolean, knockout: String) {
         val s = save ?: return
         Tournaments.create(s, type, userTeam, format, teams, matches, double, knockout)
+        s.tournament?.let { it.startDate = Schedule.today(s).plusDays(1).toString() }
         persist()
     }
 

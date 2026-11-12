@@ -53,7 +53,7 @@ val LocalInShell = compositionLocalOf { false }
 /** Screens that live inside the career shell. Live match, pre-match and the auction stay full-screen. */
 fun Screen.inShell(): Boolean = when (this) {
     Screen.Dashboard, Screen.Inbox, Screen.MyClub, is Screen.Squad, Screen.Database, is Screen.Profile, Screen.Transfers, Screen.Fixtures,
-    Screen.Table, Screen.TournamentsScr, Screen.Statistics, Screen.Finances, Screen.SettingsScr, Screen.Selection, Screen.Social, Screen.SeasonSummary -> true
+    Screen.Table, Screen.TournamentsScr, Screen.Statistics, Screen.Finances, Screen.SettingsScr, Screen.Selection, Screen.Social, Screen.SeasonSummary, Screen.Calendar -> true
     else -> false
 }
 
@@ -61,7 +61,7 @@ private class NavItem(val key: String, val label: String, val glyph: String?, va
 
 private fun selectedKey(s: Screen): String? = when (s) {
     Screen.Dashboard -> "home"; Screen.Inbox -> "inbox"; is Screen.Squad -> "squad"; Screen.Selection -> "selection"; Screen.Transfers -> "transfers"
-    Screen.MyClub -> "club"; Screen.Fixtures -> "fixtures"; Screen.Table -> "table"; Screen.TournamentsScr -> "tournaments"; Screen.Statistics -> "stats"
+    Screen.MyClub -> "club"; Screen.Fixtures -> "fixtures"; Screen.Table -> "table"; Screen.TournamentsScr -> "tournaments"; Screen.Statistics -> "stats"; Screen.Calendar -> "calendar"
     Screen.Social -> "social"; Screen.Finances -> "finances"; Screen.Database -> "database"; Screen.SettingsScr -> "settings"; else -> null
 }
 
@@ -99,7 +99,8 @@ private fun Sidebar(vm: GameVM) {
         NavItem("club", if (club) "My Club" else "Facilities", "stadium", null) { vm.navRoot(Screen.MyClub) },
     )
     val comps = listOf(
-        NavItem("fixtures", "Fixtures", "calendar", null) { vm.navRoot(Screen.Fixtures) },
+        NavItem("calendar", "Calendar", "calendar", null) { vm.navRoot(Screen.Calendar) },
+        NavItem("fixtures", "Fixtures", "table", null) { vm.navRoot(Screen.Fixtures) },
         NavItem("table", if (club) "League Table" else "Points Tables", "table", null) { vm.navRoot(Screen.Table) },
         NavItem("tournaments", "Tournaments", "trophy", null) { vm.navRoot(Screen.TournamentsScr) },
         NavItem("stats", "Player Stats", "chart", null) { vm.navRoot(Screen.Statistics) },
@@ -170,7 +171,7 @@ private fun NavRow(n: NavItem, selected: Boolean) {
 fun calendarLabel(s: com.cricketcoach.manager.game.CareerSave): String = when (s.phase) {
     "PRESEASON" -> "PRE-SEASON ${s.year}"
     "OFFSEASON" -> "OFF-SEASON ${s.year}"
-    else -> "DAY ${s.day} · ${s.year}"
+    else -> com.cricketcoach.manager.game.Schedule.today(s).format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM yyyy", java.util.Locale.ENGLISH)).uppercase()
 }
 
 @Composable
@@ -194,7 +195,7 @@ private fun ShellTopBar(vm: GameVM) {
         }
         // music toggle with a little equaliser
         val on = vm.settings.music && !vm.settings.mute
-        Box(Modifier.height(36.dp).width(64.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF0E1A14)).border(1.dp, if (on) UI.Neon.copy(alpha = 0.7f) else UI.Line, RoundedCornerShape(8.dp))
+        Box(Modifier.height(36.dp).width(64.dp).clip(RoundedCornerShape(8.dp)).background(if (on) Color(0xFF123322) else Color(0xFF111827)).border(1.dp, if (on) UI.Neon else UI.Line, RoundedCornerShape(8.dp))
             .clickable { vm.toggleMusic() }, contentAlignment = Alignment.Center) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("♪", color = if (on) UI.Neon else C.Sub, fontSize = 16.sp, fontWeight = FontWeight.Black)
@@ -204,7 +205,8 @@ private fun ShellTopBar(vm: GameVM) {
         }
         Spacer(Modifier.width(10.dp))
         // calendar
-        Row(Modifier.height(36.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF111827)).border(1.dp, UI.Line, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp),
+        Row(Modifier.height(36.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF111827)).border(1.dp, if (vm.screen == Screen.Calendar) C.Gold else UI.Line, RoundedCornerShape(8.dp))
+            .clickable { GameAudio.click(); vm.navRoot(Screen.Calendar) }.padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Glyph("calendar", UI.Neon, 16.dp); Spacer(Modifier.width(6.dp))
             Text(calendarLabel(s), color = C.Text, fontWeight = FontWeight.Black, fontSize = 12.sp, maxLines = 1)
@@ -212,11 +214,23 @@ private fun ShellTopBar(vm: GameVM) {
         Spacer(Modifier.width(10.dp))
         // simulate / continue
         val label = continueLabel(vm).removeSuffix(" ▶")
+        val inSeason = vm.pending == null && (s.phase == "LEAGUE" || s.phase == "PLAYOFFS")
+        val onCal = vm.screen == Screen.Calendar
+        // SIMULATE opens the cricket calendar (schedule centre); on the calendar it advances one day.
+        val text = when { !inSeason -> label; onCal -> "Advance day"; else -> "Simulate" }
         Row(Modifier.height(38.dp).clip(RoundedCornerShape(9.dp)).background(if (vm.busy) Brush.horizontalGradient(listOf(Color(0xFF334155), Color(0xFF334155))) else UI.SimBrush)
-            .clickable(enabled = !vm.busy) { GameAudio.click(); vm.continueAction() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(4.dp))
-            Text((if (label == "Continue") "Simulate" else label).uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp, maxLines = 1)
+            .clickable(enabled = !vm.busy) { GameAudio.click(); if (inSeason && !onCal) vm.navRoot(Screen.Calendar) else vm.continueAction() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (inSeason && !onCal) Glyph("calendar", Color.White, 16.dp) else Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(5.dp))
+            Text(text.uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp, maxLines = 1)
+        }
+        if (inSeason && !onCal) {
+            // quick one-day advance (the classic SIMULATE behaviour) stays one tap away
+            Spacer(Modifier.width(6.dp))
+            Box(Modifier.size(38.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFF1E293B)).border(1.dp, Color(0xFF3B82F6), RoundedCornerShape(9.dp))
+                .clickable(enabled = !vm.busy) { GameAudio.click(); vm.continueAction() }, contentAlignment = Alignment.Center) {
+                Text("▶▶", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = (-2).sp)
+            }
         }
     }
 }

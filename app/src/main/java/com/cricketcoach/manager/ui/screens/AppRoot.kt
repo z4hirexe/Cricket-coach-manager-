@@ -83,6 +83,7 @@ private fun Screens(vm: GameVM, s: Screen) {
             is Screen.Selection -> SelectionScreen(vm)
             is Screen.Social -> SocialScreen(vm)
             is Screen.Inbox -> InboxScreen(vm)
+            is Screen.Calendar -> CalendarScreen(vm)
         }
     }
 }
