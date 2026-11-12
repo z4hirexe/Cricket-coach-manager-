@@ -68,7 +68,7 @@ object Auction {
         while (st.index < st.lots.size && save.players[st.lots[st.index]]?.clubId?.isNotEmpty() == true) st.index++
         if (st.index >= st.lots.size) { finish(save, st); return }
         val p = cur(save, st)!!
-        st.curBid = Money.basePrice(p.overall(), save.economy); st.curBidder = ""; st.countdown = 0; st.userPassed = false
+        st.curBid = Money.basePrice(p.overall(), save.economy); st.curBidder = ""; st.countdown = 0; st.userPassed = false; st.lotBidders.clear()
         st.aiVal = save.clubs.values.filter { it.kind == Modes.marketKind(save) && !it.isUser && eligible(save, it, p, st.curBid) }
             .associate { it.id to valuation(save, it, p, rnd) }.toMutableMap()
         st.log.add("LOT ${st.index + 1}/${st.lots.size}: ${p.name} (${Consts.ROLE_NAMES[p.role]}, ${p.country}, OVR ${p.overall()}) — base ${Money.fmt(st.curBid)}")
@@ -84,7 +84,7 @@ object Auction {
         val reserve = 0.2 * save.economy * max(0, 15 - u.squad.size - 1)
         if (Career.purse(save, u) - amt < reserve)
             return "You must keep ${Money.fmt(reserve)} of cap room to complete a 15-man squad (max bid now ${Money.fmt(Career.purse(save, u) - reserve)})."
-        st.curBid = amt; st.curBidder = save.userClubId; st.countdown = 0; st.userPassed = false
+        st.curBid = amt; st.curBidder = save.userClubId; st.countdown = 0; st.userPassed = false; noteBid(st, save.userClubId)
         st.log.add("YOU bid ${Money.fmt(amt)}"); trimLog(st)
         return null
     }
@@ -112,7 +112,7 @@ object Auction {
         var r = rnd.nextDouble() * total
         var chosen = cands.keys.first()
         for ((k, v) in cands) { r -= v; if (r <= 0) { chosen = k; break } }
-        st.curBid = amt; st.curBidder = chosen; st.countdown = 0
+        st.curBid = amt; st.curBidder = chosen; st.countdown = 0; noteBid(st, chosen)
         st.log.add("${save.clubs[chosen]?.short} bid ${Money.fmt(amt)}")
         trimLog(st)
         return true
@@ -132,8 +132,15 @@ object Auction {
         while (!st.done && guard++ < 1000) resolveLot(save, st, rnd)
     }
 
+    private fun noteBid(st: AuctionState, club: String) {
+        st.bidSeq++
+        st.lotBidders.remove(club); st.lotBidders.add(club)
+        while (st.lotBidders.size > 12) st.lotBidders.removeAt(0)
+    }
+
     private fun hammer(save: CareerSave, st: AuctionState) {
         val p = cur(save, st) ?: return
+        st.lastSeq++; st.lastPid = p.id; st.lastClub = st.curBidder; st.lastPrice = st.curBid
         if (st.curBidder.isNotEmpty()) {
             val c = save.clubs[st.curBidder]!!
             p.clubId = c.id; c.squad.add(p.id); p.salary = st.curBid; p.contractYears = if (st.type == "MEGA") 3 else 2

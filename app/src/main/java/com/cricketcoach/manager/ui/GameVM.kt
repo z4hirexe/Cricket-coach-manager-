@@ -712,10 +712,29 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         persist(); nav(Screen.AuctionScr)
     }
     fun confirmRetention(ids: List<String>) { val s = save ?: return; val a = s.auction ?: return; Auction.confirmRetention(s, a, ids); persist() }
-    fun auctionBid() { val s = save ?: return; val a = s.auction ?: return; msg(Auction.userBid(s, a)); bump() }
-    fun auctionTick() { val s = save ?: return; val a = s.auction ?: return; val n = a.sold.size; if (Auction.tick(s, a, rnd)) { if (a.sold.size > n) GameAudio.play("hammer"); persist() } else bump() }
-    fun auctionPass() { val s = save ?: return; val a = s.auction ?: return; val n = a.sold.size; Auction.resolveLot(s, a, rnd); if (a.sold.size > n) GameAudio.play("hammer"); persist() }
-    fun auctionAuto() { val s = save ?: return; val a = s.auction ?: return; Auction.autoComplete(s, a, rnd); persist() }
+    fun auctionBid() {
+        val s = save ?: return; val a = s.auction ?: return
+        val err = Auction.userBid(s, a)
+        if (err == null) GameAudio.auctionPaddle() else GameAudio.play("error", 0.7f)
+        msg(err); bump()
+    }
+    /** Sound cue for whatever the last auction step did (rival paddle, going once/twice, SOLD / UNSOLD). */
+    private fun auctionCue(s: CareerSave, a: AuctionState, bidSeq: Int, countdown: Int, lastSeq: Int) {
+        when {
+            a.lastSeq != lastSeq -> if (a.lastClub.isNotEmpty()) GameAudio.auctionSold(a.lastClub == s.userClubId) else GameAudio.auctionUnsold()
+            a.bidSeq != bidSeq && a.curBidder != s.userClubId -> GameAudio.auctionRivalBid()
+            a.countdown != countdown && a.countdown > 0 -> GameAudio.auctionGoing(a.countdown)
+        }
+    }
+    fun auctionTick() {
+        val s = save ?: return; val a = s.auction ?: return
+        val b = a.bidSeq; val c = a.countdown; val l = a.lastSeq
+        val hammered = Auction.tick(s, a, rnd)
+        auctionCue(s, a, b, c, l)
+        if (hammered) persist() else bump()
+    }
+    fun auctionPass() { val s = save ?: return; val a = s.auction ?: return; val b = a.bidSeq; val c = a.countdown; val l = a.lastSeq; Auction.resolveLot(s, a, rnd); auctionCue(s, a, b, c, l); persist() }
+    fun auctionAuto() { val s = save ?: return; val a = s.auction ?: return; Auction.autoComplete(s, a, rnd); GameAudio.play("sold"); persist() }
 
     /* ---------------- generic actions ---------------- */
     fun act(f: (CareerSave) -> String?) { val s = save ?: return; msg(f(s)); persist() }

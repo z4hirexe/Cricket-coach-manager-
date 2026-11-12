@@ -131,6 +131,12 @@ class Settings(ctx: Context, val userKey: String = SaveManager.GUEST) {
     var volCrowd: Float get() = sp.getFloat("volCrowd", 0.7f); set(v) = sp.edit().putFloat("volCrowd", v).apply()
     var volBat: Float get() = sp.getFloat("volBat", 0.9f); set(v) = sp.edit().putFloat("volBat", v).apply()
     var volMusic: Float get() = sp.getFloat("volMusic", 0.5f); set(v) = sp.edit().putFloat("volMusic", v).apply()
+    /** Stadium ambience layers (crowd bed / chant / tension) and the auction-room murmur. */
+    var volAmbience: Float get() = sp.getFloat("volAmb", 0.7f); set(v) = sp.edit().putFloat("volAmb", v).apply()
+    /** Menus, buttons, auction gavel & paddles, coins. */
+    var volUi: Float get() = sp.getFloat("volUi", 0.8f); set(v) = sp.edit().putFloat("volUi", v).apply()
+    /** Dynamic crowd: chants after boundaries, nervous hush in tight chases, dhol & bugle stings. */
+    var crowdReact: Boolean get() = sp.getBoolean("crowdReact", true); set(v) = sp.edit().putBoolean("crowdReact", v).apply()
     var mute: Boolean get() = sp.getBoolean("mute", false); set(v) = sp.edit().putBoolean("mute", v).apply()
     /** Commentary language: "EN", "HI" (Hindi) or "MIX" (alternating); style: 0 Classic, 1 Excited, 2 Analytical */
     var comLang: String get() = sp.getString("comLang", "EN") ?: "EN"; set(v) = sp.edit().putString("comLang", v).apply()
@@ -152,7 +158,7 @@ class Settings(ctx: Context, val userKey: String = SaveManager.GUEST) {
     var xp: Int get() = sp.getInt("xp", 0); set(v) = sp.edit().putInt("xp", v.coerceAtLeast(0)).apply()
     var profileDirty: Boolean get() = sp.getBoolean("profDirty", false); set(v) = sp.edit().putBoolean("profDirty", v).apply()
 
-    private val syncKeys = listOf("speed", "economy", "difficulty", "autosave", "volume", "volCom", "volCrowd", "volBat", "volMusic", "mute",
+    private val syncKeys = listOf("speed", "economy", "difficulty", "autosave", "volume", "volCom", "volCrowd", "volBat", "volMusic", "volAmb", "volUi", "crowdReact", "mute",
         "comLang", "comStyle", "comExpert", "comOverCards", "view3d", "cam", "gfx", "photos")
 
     /** Settings that follow the account across devices. */
@@ -174,7 +180,7 @@ class Settings(ctx: Context, val userKey: String = SaveManager.GUEST) {
             when {
                 p.isBoolean -> e.putBoolean(k, p.asBoolean)
                 p.isString -> e.putString(k, p.asString)
-                k in setOf("economy", "volume", "volCom", "volCrowd", "volBat", "volMusic") -> e.putFloat(k, p.asFloat)
+                k in setOf("economy", "volume", "volCom", "volCrowd", "volBat", "volMusic", "volAmb", "volUi") -> e.putFloat(k, p.asFloat)
                 else -> e.putInt(k, p.asInt)
             }
         }

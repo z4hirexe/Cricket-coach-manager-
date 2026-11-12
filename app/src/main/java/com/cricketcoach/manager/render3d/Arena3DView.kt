@@ -90,3 +90,12 @@ fun Title3DView(starId: String, country: String, kit: Kit, quality: Int, modifie
         AnimatedVisibility(loading, exit = fadeOut()) { Box(Modifier.fillMaxSize().background(Color(0xFF050B09))) }
     }
 }
+
+/**
+ * Phase 6/7: a player "on the podium" - the floodlit 3D stadium close-up with the player in his team kit playing shots.
+ * Used by the auction lot card and the profile's 3D view. Falls back to [fallback] if Filament can't start.
+ */
+@Composable
+fun Player3DShowcase(pid: String, country: String, primary: Long, secondary: Long, quality: Int, modifier: Modifier = Modifier, fallback: @Composable () -> Unit) {
+    Title3DView(pid, country, Kit(primary.toInt(), secondary.toInt(), false), quality.coerceIn(Gfx.MEDIUM, Gfx.HIGH), modifier, fallback)
+}

@@ -97,6 +97,29 @@ class ScreenPreviews {
         repeat(9 * 6 + 2) { if (!m.finished) { m.nextBall(); vm.updateCommentary(m) } }
         shot(name) { Box(Modifier.fillMaxSize().background(com.cricketcoach.manager.ui.C.Bg)) { Row(Modifier.fillMaxSize()) { Box(Modifier.weight(1f)) { CommentaryFeed(vm) } } } }
     }
+    /** Phase 6: IPL mini-auction stage mid-bidding (clock stopped so the frame is deterministic). */
+    private fun auctionVm(hammered: Int): GameVM {
+        val vm = careerVm(Modes.IPL, "F_CSK", 0)
+        val s = vm.save!!
+        s.auctionDoneThisSeason = false
+        val a = Auction.start(s, "MINI"); s.auction = a
+        val rnd = Random(12)
+        repeat(hammered) { Auction.resolveLot(s, a, rnd) }
+        // a few live steps so the paddle wall and the ticker have something to show
+        var g = 0
+        while (a.lotBidders.size < 3 && g++ < 40) { if (Auction.tick(s, a, rnd)) break }
+        if (a.curBidder != s.userClubId) Auction.userBid(s, a)
+        Auction.tick(s, a, rnd)
+        vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); vm.stack.add(Screen.AuctionScr)
+        return vm
+    }
+    @Test fun auctionStage() { val vm = auctionVm(3); shot("70_auction_stage.png", 1600) { AuctionScreen(vm, preview = 1) } }
+    @Test fun auctionSold() { val vm = auctionVm(5); shot("71_auction_sold.png", 1400) { AuctionScreen(vm, preview = 2) } }
+
+    /** Phase 7: redesigned player profile (hero, radar, condition, form) for a real star and a career-mode view. */
+    @Test fun profileStar() { val vm = careerVm(Modes.INTL, "N_IND", 2); inShell(vm, Screen.Profile("ba607b88"), "72_profile_kohli.png", 1600) { ProfileScreen(vm, "ba607b88") } }
+    @Test fun profileBowler() { val vm = careerVm(Modes.IPL, "F_MI", 2); inShell(vm, Screen.Profile("462411b3"), "73_profile_bumrah.png", 1600) { ProfileScreen(vm, "462411b3") } }
+
     @Test fun commentaryEnglish() = commentaryShot("EN", "60_commentary_en.png")
     @Test fun commentaryHinglish() = commentaryShot("HG", "61_commentary_hinglish.png")
 

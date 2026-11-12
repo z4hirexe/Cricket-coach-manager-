@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -326,7 +327,28 @@ fun SettingsScreen(vm: GameVM) {
             mix("Commentary", { st.volCommentary }, { st.volCommentary = it }) { GameAudio.speak(if (st.comLang == "HI") "क्या शानदार शॉट है!" else "What a shot that is!", if (st.comLang == "HI") "HI" else "EN") }
             mix("Crowd", { st.volCrowd }, { st.volCrowd = it }) { GameAudio.play("cheer") }
             mix("Bat & Ball", { st.volBat }, { st.volBat = it }) { GameAudio.play("batbig") }
+            mix("Stadium ambience", { st.volAmbience }, { st.volAmbience = it }) { GameAudio.play("ooh", 0.6f) }
+            mix("Menus & auction", { st.volUi }, { st.volUi = it }) { GameAudio.play("gavel") }
             mix("Music", { st.volMusic }, { st.volMusic = it }) { }
+            var react by remember { mutableStateOf(st.crowdReact) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(react, { react = it; st.crowdReact = it; vm.saveSettingsToCloud(); if (it) { GameAudio.play("roar"); GameAudio.playLater(650, "dhol", 0.75f) } },
+                    colors = SwitchDefaults.colors(checkedTrackColor = C.Gold))
+                Spacer(Modifier.width(8.dp))
+                Column { Text("Dynamic crowd", color = C.Text); Sub("Chants after boundaries, dhol & bugle, a nervous hush in tight finishes") }
+            }
+            Sub("Sound test")
+            Row(Modifier.horizontalScroll(rememberScrollState())) {
+                listOf("Six" to { GameAudio.onBat("SIX"); GameAudio.playLater(250, "roar"); GameAudio.playLater(900, "dhol", 0.75f) },
+                    "Four" to { GameAudio.onBat("FOUR"); GameAudio.playLater(250, "cheer"); GameAudio.playLater(750, "bugle", 0.55f) },
+                    "Caught behind" to { GameAudio.onBat("WICKET", "c †x b y"); GameAudio.playLater(200, "catch"); GameAudio.playLater(350, "wicket") },
+                    "Bowled" to { GameAudio.play("stumps"); GameAudio.playLater(120, "wicket") },
+                    "LBW appeal" to { GameAudio.play("pad"); GameAudio.playLater(150, "appeal") },
+                    "Beaten!" to { GameAudio.play("glove", 0.6f); GameAudio.playLater(100, "ooh") },
+                    "SOLD!" to { GameAudio.auctionSold(true) }).forEach { (l, f) ->
+                    OutlineBtn(l) { f() }; Spacer(Modifier.width(6.dp))
+                }
+            }
 
             SectionTitle("Commentary")
             var lang by remember { mutableStateOf(st.comLang) }

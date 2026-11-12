@@ -315,7 +315,7 @@ fun Stadium3DView(ev: BallEv?, batColor: Color, bowlColor: Color, camMode: Int, 
         while (p < 1f) {
             val now = withFrameNanos { it }
             p = ((now - start) / 1_000_000f / dur).coerceAtMost(1f)
-            if (sound && !impact && p >= 0.39f) { impact = true; GameAudio.onBat(ev.kind) }
+            if (sound && !impact && p >= 0.39f) { impact = true; GameAudio.onBat(ev.kind, ev.how) }
             if (sound && !outcome && p >= 0.5f) { outcome = true; GameAudio.onOutcome(ev.kind, ev.how, ev.milestone) }
         }
         onDone()

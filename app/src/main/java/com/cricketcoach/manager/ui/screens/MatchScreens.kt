@@ -195,7 +195,8 @@ fun LiveMatchScreen(vm: GameVM) {
     // ball-by-ball commentary (English / Hindi, situation-aware); 2D mode: sound + voice straight away, 3D: at the animation moment
     LaunchedEffect(m.events.size) {
         val line = vm.updateCommentary(m)
-        if (!view3d) { m.lastEv?.let { GameAudio.onBat(it.kind); GameAudio.onOutcome(it.kind, it.how, it.milestone) }; line?.let { vm.speakBall(it.evId) } }
+        if (!view3d) { m.lastEv?.let { GameAudio.onBat(it.kind, it.how); GameAudio.onOutcome(it.kind, it.how, it.milestone) }; line?.let { vm.speakBall(it.evId) } }
+        GameAudio.setMood(com.cricketcoach.manager.audio.CrowdMood.of(m))
     }
     LaunchedEffect(m.innings.size) { if (m.innings.size > 1 && !m.finished) GameAudio.play("horn", 0.7f) }
     LaunchedEffect(m.finished) { if (m.finished) { GameAudio.play("horn"); GameAudio.play("applause"); if (vm.comLines.none { it.kind == "RESULT" }) GameAudio.speak(m.resultText) } }
@@ -224,7 +225,7 @@ fun LiveMatchScreen(vm: GameVM) {
                 val wear = remember(m.events.size) { val tot = m.innings.sumOf { it.balls }; val cap = if (fmt == "TEST") 2700f else (m.cfg.overs * 12f).coerceAtLeast(60f); (0.08f + 0.92f * tot / cap).coerceIn(0f, 1f) }
                 Match3DView(ev, remember(ev?.id, inn?.bowlTeam) { castFor(m, ev, s.players) }, cam, dur, replayEv != null, vm.settings.gfx, light, fmt == "TEST",
                     Modifier.fillMaxSize(), playKey = playKey, pitchWear = wear, rate = speedX.toFloat(),
-                    onImpact = { e -> GameAudio.onBat(e.kind) }, onOutcome = { e -> GameAudio.onOutcome(e.kind, e.how, e.milestone); vm.speakBall(e.id) },
+                    onImpact = { e -> GameAudio.onBat(e.kind, e.how) }, onOutcome = { e -> GameAudio.onOutcome(e.kind, e.how, e.milestone); vm.speakBall(e.id) },
                     onDone = { animBusy = false }, fallback = legacy)
             } else if (view3d) legacy()
             else WagonWheel(m.events.filter { it.inn == m.innings.size - 1 }, Modifier.fillMaxSize().padding(top = 60.dp, bottom = 40.dp))

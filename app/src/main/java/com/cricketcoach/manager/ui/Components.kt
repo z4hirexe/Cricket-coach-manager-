@@ -50,6 +50,12 @@ import com.cricketcoach.manager.game.GPlayer
 import kotlin.math.cos
 import kotlin.math.sin
 
+/** Condensed broadcast display face (Barlow Condensed, SIL Open Font Licence) for heroes, tickers and big numbers. */
+val Display = androidx.compose.ui.text.font.FontFamily(
+    androidx.compose.ui.text.font.Font(com.cricketcoach.manager.R.font.barlow_condensed_bold, FontWeight.Bold),
+    androidx.compose.ui.text.font.Font(com.cricketcoach.manager.R.font.barlow_condensed_semibold, FontWeight.SemiBold)
+)
+
 object C {
     // Cricket Manager Pro: dark navy + metallic gold
     val Bg = Color(0xFF050A18)
