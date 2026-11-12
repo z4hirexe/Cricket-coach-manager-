@@ -289,43 +289,45 @@ fun SocialProfileScreen(vm: GameVM, pid: String) {
     val body: @Composable () -> Unit = {
         Row(Modifier.fillMaxSize()) {
             Column(Modifier.weight(0.56f).fillMaxHeight().padding(start = 10.dp, end = 6.dp)) {
-                // header card
-                val shape = RoundedCornerShape(16.dp)
-                Column(Modifier.fillMaxWidth().padding(vertical = 8.dp).clip(shape)
-                    .background(Brush.linearGradient(listOf(prim.copy(alpha = 0.55f), Color(0xFF0B1430), Color(0xFF070D20)))).border(1.dp, Color(0x66E9B949), shape).padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        PlayerFace(pid, a.name, 74.dp, if (a.verified) C.Gold else UI.Line)
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
+                LazyColumn(Modifier.fillMaxSize()) {
+                    item(key = "hdr") {
+                        // header card
+                        val shape = RoundedCornerShape(16.dp)
+                        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp).clip(shape)
+                            .background(Brush.linearGradient(listOf(prim.copy(alpha = 0.55f), Color(0xFF0B1430), Color(0xFF070D20)))).border(1.dp, Color(0x66E9B949), shape).padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(a.username, color = Color.White, fontWeight = FontWeight.Black, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                                if (a.verified) { Spacer(Modifier.width(4.dp)); VerifiedTick(16.dp) }
+                                PlayerFace(pid, a.name, 64.dp, if (a.verified) C.Gold else UI.Line)
+                                Spacer(Modifier.width(14.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(a.username, color = Color.White, fontWeight = FontWeight.Black, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                                        if (a.verified) { Spacer(Modifier.width(4.dp)); VerifiedTick(16.dp) }
+                                    }
+                                    Text(a.name + if (!a.real) "  ·  FICTIONAL" else "", color = C.Sub, fontSize = 11.sp)
+                                    Spacer(Modifier.height(6.dp))
+                                    Row {
+                                        ProfileCount(a.posts.toLong(), "posts")
+                                        ProfileCount(a.followers, "followers", est = a.estimated)
+                                        ProfileCount(a.following.toLong(), "following")
+                                    }
+                                }
                             }
-                            Text(a.name + if (!a.real) "  ·  FICTIONAL" else "", color = C.Sub, fontSize = 11.sp)
+                            Spacer(Modifier.height(8.dp))
+                            Text(a.bio, color = C.Text, fontSize = 12.sp)
+                            Spacer(Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                FollowButton(vm, s, pid)
+                                Spacer(Modifier.width(8.dp))
+                                OutlineBtn("Player profile") { vm.nav(Screen.Profile(pid)) }
+                                Spacer(Modifier.weight(1f))
+                                if (club != null) TeamFlag(club, 34.dp)
+                            }
                             Spacer(Modifier.height(6.dp))
-                            Row {
-                                ProfileCount(a.posts.toLong(), "posts")
-                                ProfileCount(a.followers, "followers", est = a.estimated)
-                                ProfileCount(a.following.toLong(), "following")
-                            }
+                            Text("Followers: in-game estimate, not verified data · In-game account, not affiliated with the real player.", color = C.Sub, fontSize = 9.sp, lineHeight = 11.sp)
                         }
+                        Text("POSTS", color = C.Gold, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.5.sp)
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Text(a.bio, color = C.Text, fontSize = 12.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        FollowButton(vm, s, pid)
-                        Spacer(Modifier.width(8.dp))
-                        OutlineBtn("Player profile") { vm.nav(Screen.Profile(pid)) }
-                        Spacer(Modifier.weight(1f))
-                        if (club != null) TeamFlag(club, 34.dp)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text("Followers: estimated (in-game model, not verified real data). In-game account - not affiliated with the real player.", color = C.Sub, fontSize = 9.sp)
-                }
-                Text("POSTS", color = C.Gold, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.5.sp)
-                if (posts.isEmpty()) EmptyNote("No posts yet in this career. Big performances, signings and trophies make players post.")
-                else LazyColumn(Modifier.fillMaxSize()) {
+                    if (posts.isEmpty()) item(key = "none") { Box(Modifier.height(140.dp)) { EmptyNote("No posts yet in this career. Big performances, signings and trophies make players post.") } }
                     items(posts, key = { it.id }) { p -> LocalPostCard(vm, s, p, p.id == sel) { sel = p.id } }
                     item { Spacer(Modifier.height(12.dp)) }
                 }
@@ -440,11 +442,18 @@ private fun AuthorLine(name: String, handle: String, verified: Boolean, kind: St
             Text(name.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp)
         }
         Spacer(Modifier.width(8.dp))
-        Text(handle, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 170.dp))
-        if (verified) { Spacer(Modifier.width(3.dp)); Icon(Icons.Filled.CheckCircle, "verified", tint = Color(0xFF3B82F6), modifier = Modifier.size(13.dp)) }
-        Spacer(Modifier.width(6.dp))
-        Text(kind, color = kindColor(kind), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.border(1.dp, kindColor(kind).copy(alpha = 0.6f), RoundedCornerShape(4.dp)).padding(horizontal = 4.dp, vertical = 1.dp))
+        Column(Modifier.weight(1f, fill = false)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(handle, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (verified) { Spacer(Modifier.width(3.dp)); Icon(Icons.Filled.CheckCircle, "verified", tint = Color(0xFF3B82F6), modifier = Modifier.size(13.dp)) }
+            }
+            Text(kindLabel(kind), color = kindColor(kind), fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp, maxLines = 1, softWrap = false)
+        }
     }
+}
+
+private fun kindLabel(kind: String) = when (kind) {
+    "FIVEFOR" -> "FIVE-FOR"; "HATTRICK" -> "HAT-TRICK"; "NEWS" -> "POST"; else -> kind
 }
 
 @Composable

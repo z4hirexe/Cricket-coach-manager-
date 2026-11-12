@@ -205,15 +205,15 @@ object Stumps {
     /* ------------------------------------------------------------------ player posts */
 
     private val OPEN = mapOf(
-        "WIN" to listOf("What a team effort today! 💪", "Two points in the bag. Onto the next one 🙌", "Proud of this group. Great win! 🏏", "Big win, bigger smiles 😁"),
-        "LOSS" to listOf("Not our day. We'll come back stronger. 🙏", "Tough one to take. Back to work tomorrow.", "Thank you for the support. We learn and move on.", "Gutted, but this team will bounce back 💪"),
-        "FIFTY" to listOf("Felt good out there today 🏏", "Happy to contribute for the team. 50 and counting!", "Fifty up - wish I'd carried on, but a win's a win.", "Good to spend time in the middle 🙌"),
-        "CENTURY" to listOf("Special feeling. Thank you all for the love! 💯", "One of those days when everything clicked 🏏💯", "Dedicating this hundred to the team and the fans ❤️", "Hard work pays off. Hundred! 🙏"),
-        "FIVEFOR" to listOf("Ball came out nicely today 🎯", "Five-for! Grateful for the field-setting and the catches 🙌", "Days like these make all the hard yards worth it 🔥", "Big thanks to my captain and the boys 🙏"),
+        "WIN" to listOf("Job done ✅ Thanks for the noise tonight!", "That is how we play our cricket 🔥", "What a team effort today! 💪", "Two points in the bag. Onto the next one 🙌", "Proud of this group. Great win! 🏏", "Big win, bigger smiles 😁"),
+        "LOSS" to listOf("Credit to the opposition. We go again.", "Head up, eyes forward. Next game 🏏", "Not our day. We'll come back stronger. 🙏", "Tough one to take. Back to work tomorrow.", "Thank you for the support. We learn and move on.", "Gutted, but this team will bounce back 💪"),
+        "FIFTY" to listOf("Building something here 🧱🏏", "Half-century and a lesson or two. On we go!", "Felt good out there today 🏏", "Happy to contribute for the team. 50 and counting!", "Fifty up - wish I'd carried on, but a win's a win.", "Good to spend time in the middle 🙌"),
+        "CENTURY" to listOf("Raise the bat moment 🏏🙌 Love you all!", "Patience. Process. Hundred. 💯", "Not out and smiling 😄💯", "Special feeling. Thank you all for the love! 💯", "One of those days when everything clicked 🏏💯", "Dedicating this hundred to the team and the fans ❤️", "Hard work pays off. Hundred! 🙏"),
+        "FIVEFOR" to listOf("Kept it simple, hit the deck hard 🎯", "Five in the book! Team effort though 🙌", "Ball came out nicely today 🎯", "Five-for! Grateful for the field-setting and the catches 🙌", "Days like these make all the hard yards worth it 🔥", "Big thanks to my captain and the boys 🙏"),
         "HATTRICK" to listOf("HAT-TRICK!!! Still can't believe it 🤯🎯", "Three in three! What a feeling 🔥🔥🔥", "Dreamt about this as a kid. Hat-trick! 🙏"),
         "AUCTION" to listOf("Excited to join %s! Can't wait to get started 🙌", "New colours, same hunger. Let's go %s! 💪", "Thank you %s for the faith. See you soon, fans! 🏏"),
         "TRANSFER" to listOf("New chapter with %s! Let's do this 💪", "Happy to be part of %s. Can't wait to play in front of you all 🙌"),
-        "TROPHY" to listOf("CHAMPIONS!!! 🏆 What a journey with this team ❤️", "We did it! 🏆 Thank you everyone who believed in us", "Trophy in hand. Memories for life 🏆🙏"),
+        "TROPHY" to listOf("Silverware! 🏆 This one is for the fans", "CHAMPIONS!!! 🏆 What a journey with this team ❤️", "We did it! 🏆 Thank you everyone who believed in us", "Trophy in hand. Memories for life 🏆🙏"),
         "MILESTONE" to listOf("Grateful for every run and every wicket on this journey 🙏", "A milestone I'll never forget - thank you all ❤️", "Numbers don't tell the whole story, but this one's special 🏏"),
     )
 
