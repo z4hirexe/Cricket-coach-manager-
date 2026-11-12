@@ -23,7 +23,8 @@ import kotlin.random.Random
 
 /** Phase F: every control on the fullscreen match rail really drives the match (Compose UI test on Robolectric). */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [34], qualifiers = "w891dp-h411dp-land-xxhdpi")
+// own SDK sandbox so nothing static (audio mixer, loopers) can leak into the preview renders
+@Config(sdk = [33], qualifiers = "w891dp-h411dp-land-xxhdpi")
 class LiveBroadcastUiTest {
     @get:Rule val compose = createComposeRule()
 
@@ -43,16 +44,18 @@ class LiveBroadcastUiTest {
         m.doToss("N_IND", "BAT")
         vm.sim = m
         vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Live)
+        compose.mainClock.autoAdvance = false     // the screen has looping animations (LIVE dot, on-air meter)
         compose.setContent { CcmTheme { LiveMatchScreen(vm) } }
-        compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(500)
         return vm to m
     }
-    private fun tap(desc: String) { compose.onNodeWithContentDescription(desc).performClick(); compose.waitForIdle() }
+    private fun tap(desc: String) { compose.onNodeWithContentDescription(desc).performClick(); compose.mainClock.advanceTimeBy(400) }
 
     @Test fun railControlsDriveTheMatch() {
         val (vm, m) = setup("T20")
         // Ball
         tap("Ball"); assertEquals(1, m.events.size)
+        compose.onNodeWithContentDescription("Over").assertIsEnabled()
         // Over: completes the current over
         val b0 = m.cur!!.balls
         tap("Over"); assertTrue("over played: $b0 -> ${m.cur!!.balls}", m.cur!!.balls >= b0 + 5 || m.innings.size > 1)
@@ -61,16 +64,14 @@ class LiveBroadcastUiTest {
         tap("Defend"); assertEquals(0, m.club("N_IND").aggression)
         tap("Normal"); assertEquals(1, m.club("N_IND").aggression)
         // Auto on / off
-        compose.mainClock.autoAdvance = false
         tap("Auto"); assertTrue(vm.autoPlay)
         tap("Pause"); assertFalse(vm.autoPlay)
-        compose.mainClock.autoAdvance = true
         // Panels open and close
         tap("Commentary"); compose.onNodeWithContentDescription("Close panel").assertExists()
         tap("Highlights"); assertEquals(2, compose.onAllNodesWithText("HIGHLIGHTS").fetchSemanticsNodes().size)   // rail label + panel title
         tap("Scorecard"); assertEquals(2, compose.onAllNodesWithText("SCORECARD").fetchSemanticsNodes().size)
         tap("Wagon"); compose.onNodeWithText("Manhattan").assertExists()
-        compose.onNodeWithText("Manhattan").performClick(); compose.waitForIdle(); tap("Wagon")
+        compose.onNodeWithText("Manhattan").performClick(); compose.mainClock.advanceTimeBy(300); tap("Wagon")
         compose.onAllNodesWithContentDescription("Close panel").assertCountEquals(0)
         // TV scoreboard shows the batting side's score and the bowler's figures
         assertTrue(compose.onAllNodesWithText(m.cur!!.scoreText()).fetchSemanticsNodes().isNotEmpty())
