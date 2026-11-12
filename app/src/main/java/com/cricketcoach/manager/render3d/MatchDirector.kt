@@ -125,7 +125,9 @@ class MatchDirector(private val a: Arena3D) {
         hitBall = shot != "bat_leave" && shot != "bat_miss"
         val dirA = Math.toRadians(ang.toDouble())
         val dx = (offSign * sin(dirA)).toFloat(); val dz = cos(dirA).toFloat()
-        var dist = when (e.kind) { "FOUR" -> 66f; "SIX" -> 78f + 10f * r(9); "DOT" -> 2f + 4f * r(9); else -> (e.dist.coerceIn(0.05f, 1.2f) * 62f) }
+        // real oval: distance to the rope along this shot's direction
+        val bd = Arena3D.boundaryDist(contact[0], contact[2], dx, dz)
+        var dist = when (e.kind) { "FOUR" -> bd + 2.2f; "SIX" -> bd + 6f + 12f * r(9); "DOT" -> 2f + 4f * r(9); else -> min(e.dist.coerceIn(0.05f, 1.2f) * 62f, bd - 3f) }
         if (wicket == "caught") {
             // ball goes to the nearest fielder (or keeper/slip when edged)
             var best = 0; var bd = 1e9f
@@ -290,11 +292,11 @@ class MatchDirector(private val a: Arena3D) {
         for (act in a.actors) act.update(dt)
         val ang = idleT * 0.05f
         if (cast == null) a.lookAt(60f * sin(ang), 24f, 10.06f + 60f * cos(ang), 0f, 0f, 10.06f, 40f)
-        else when (cam) { 3 -> a.lookAt(0f, 1.8f, -7f, 0f, 1.2f, 20f, 30f); else -> a.lookAt(0f, 6.5f, 20.12f + 42f, 0f, 1.0f, 1.5f, 15f) }
+        else when (cam) { 3 -> a.lookAt(0f, 1.8f, -7f, 0f, 1.2f, 20f, 30f); else -> a.lookAt(0f, 11f, 92f, 0f, 1.0f, 2.5f, 11f) }
     }
 
     // smoothed follow camera
-    private val ce = floatArrayOf(0f, 6.5f, 60f); private val ct = floatArrayOf(0f, 1f, 2f); private var cfov = 15f
+    private val ce = floatArrayOf(0f, 11f, 92f); private val ct = floatArrayOf(0f, 1f, 2f); private var cfov = 15f
     private fun camera(dt: Float, e: BallEv) {
         val k = 1f - exp(-dt * 4f)
         val follow = t > tImp + 0.35f && hitBall
@@ -304,7 +306,7 @@ class MatchDirector(private val a: Arena3D) {
             mode == 3 && !follow -> { ex = 0f; ey = 1.8f; ez = -7f; tx = 0f; ty = 1.3f; tz = 18f; fov = 30f }
             mode == 1 -> { ex = bp[0] * 0.5f; ey = 22f + (if (follow) 10f else 0f); ez = (bp[2] - 14f).coerceIn(-30f, 30f); tx = bp[0]; ty = 0f; tz = bp[2]; fov = 50f }
             mode == 2 -> { ex = -offSign * 34f; ey = 3.2f; ez = 10f; tx = bp[0] * 0.6f; ty = 1f; tz = if (follow) bp[2] else 6f; fov = if (follow) 34f else 24f }
-            !follow -> { ex = 0f; ey = 6.5f; ez = 20.12f + 42f; tx = 0f; ty = 1.0f; tz = 2f; fov = 14f }
+            !follow -> { ex = 0f; ey = 11f; ez = 92f; tx = 0f; ty = 1.0f; tz = 2.5f; fov = 10.5f }   // TV gantry above the far sight screen
             else -> { ex = 0f; ey = 30f; ez = 20.12f + 48f; tx = bp[0]; ty = 0f; tz = bp[2]; fov = 38f }
         }
         val snap = (t < 0.05f)

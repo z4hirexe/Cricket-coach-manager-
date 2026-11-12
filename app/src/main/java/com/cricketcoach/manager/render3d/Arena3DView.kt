@@ -47,7 +47,7 @@ private fun rememberHost(quality: Int): Host? {
 @Composable
 fun Match3DView(
     ev: BallEv?, cast: Cast?, camMode: Int, durationMs: Int, replay: Boolean, quality: Int, lighting: Int, redBall: Boolean,
-    modifier: Modifier = Modifier, playKey: Int = 0, onImpact: (BallEv) -> Unit = {}, onOutcome: (BallEv) -> Unit = {}, onDone: () -> Unit = {},
+    modifier: Modifier = Modifier, playKey: Int = 0, pitchWear: Float = 0.1f, onImpact: (BallEv) -> Unit = {}, onOutcome: (BallEv) -> Unit = {}, onDone: () -> Unit = {},
     fallback: @Composable () -> Unit
 ) {
     val host = rememberHost(quality)
@@ -62,6 +62,7 @@ fun Match3DView(
     }
     LaunchedEffect(lighting) { host.arena.setLighting(lighting) }
     LaunchedEffect(redBall) { host.arena.setBallColor(redBall) }
+    LaunchedEffect((pitchWear * 50).toInt()) { host.arena.setPitchWear(pitchWear) }
     val castKey = cast?.let { "${it.strikerId}|${it.nonStrikerId}|${it.bowlerId}|${it.keeperId}|${it.batKit.primary}|${it.bowlKit.primary}" }
     LaunchedEffect(castKey) { cast?.let { d.setup(it) } }
     LaunchedEffect(ev?.id, replay, playKey, castKey) {

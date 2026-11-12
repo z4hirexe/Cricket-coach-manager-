@@ -220,8 +220,9 @@ fun LiveMatchScreen(vm: GameVM) {
             if (view3d && vm.settings.gfx >= Gfx.MEDIUM) {
                 val fmt = m.cfg.format
                 val light = when { fmt == "TEST" && (m.cfg.weather == "Overcast" || m.cfg.weather == "Cloudy") -> Lighting.OVERCAST; fmt == "TEST" -> Lighting.DAY; fmt == "ODI" -> Lighting.DUSK; else -> Lighting.NIGHT }
+                val wear = remember(m.events.size) { val tot = m.innings.sumOf { it.balls }; val cap = if (fmt == "TEST") 2700f else (m.cfg.overs * 12f).coerceAtLeast(60f); (0.08f + 0.92f * tot / cap).coerceIn(0f, 1f) }
                 Match3DView(ev, remember(ev?.id, inn?.bowlTeam) { castFor(m, ev, s.players) }, cam, dur, replayEv != null, vm.settings.gfx, light, fmt == "TEST",
-                    Modifier.fillMaxSize(), playKey = playKey,
+                    Modifier.fillMaxSize(), playKey = playKey, pitchWear = wear,
                     onImpact = { e -> GameAudio.onBat(e.kind) }, onOutcome = { e -> GameAudio.onOutcome(e.kind, e.how, e.milestone); vm.comLines.firstOrNull { it.evId == e.id }?.let { GameAudio.speak(it.text, it.lang) } },
                     onDone = { animBusy = false }, fallback = legacy)
             } else if (view3d) legacy()

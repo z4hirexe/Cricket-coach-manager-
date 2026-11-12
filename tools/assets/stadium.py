@@ -97,7 +97,7 @@ def arc_band(m, d0, y0, d1, y1, a0, a1, segs, u_len, v0=0.0, v1=1.0, c=None):
         a = a0 + (a1 - a0) * j / segs; p0 = ring(d0, a); p1 = ring(d1, a)
         if prev is not None: s += np.linalg.norm((p0 + p1) / 2 - prev)
         prev = (p0 + p1) / 2
-        v += [(p0[0], y0, p0[1]), (p1[0], y1, p1[1])]; uv += [(s / u_len, v1), (s / u_len, v0)]
+        v += [(p0[0], y0, p0[1]), (p1[0], y1, p1[1])]; uv += [(-s / u_len, v1), (-s / u_len, v0)]   # u runs left->right seen from the field
     for j in range(segs):
         a, b, cc, d = 2 * j, 2 * j + 1, 2 * j + 2, 2 * j + 3
         f += [(a, b, cc), (b, d, cc)]
@@ -166,7 +166,7 @@ def build(out, meta_out=None):
     mat("big_screen", (1, 1, 1, 1), 0, 0.3, tex=TX["screen"], emissive=(1.0, 1.0, 1.0), emissive_tex=TX["screen"])
     mat("sight_screen", (0.95, 0.95, 0.95, 1), 0, 0.8)
     mat("stump", (0.93, 0.88, 0.74, 1), 0, 0.45); mat("ball", (0.62, 0.06, 0.06, 1), 0, 0.3); mat("seam", (0.95, 0.92, 0.85, 1), 0, 0.5)
-    mat("plaza", (1, 1, 1, 1), 0, 0.9, tex=TX["plaza"])
+    mat("plaza", (0.62, 0.62, 0.62, 1), 0, 0.9, tex=TX["plaza"])
     mat("ground_far", (0.55, 0.6, 0.5, 1), 0, 0.95, tex=TX["grass"])
     mat("tree", (0.16, 0.30, 0.12, 1), 0, 0.9); mat("trunk", (0.30, 0.22, 0.15, 1), 0, 0.9)
     mat("city", (1, 1, 1, 1), 0.2, 0.6, tex=TX["city"], emissive=(1.0, 1.0, 1.0), emissive_tex=TX["cityE"])

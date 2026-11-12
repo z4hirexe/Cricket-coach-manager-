@@ -44,9 +44,9 @@ def grass(n=1024, seed=11):
     big = fbm(n, n, 3, 2, seed + 2)
     k = 0.80 + 0.22 * (bl - 0.5) * 2 * 0.5 + 0.10 * (clump - 0.5) + 0.06 * (big - 0.5) + 0.05 * (streak - 0.5)
     img = np.zeros((n, n, 3))
-    img[..., 0] = (0.27 + 0.05 * (clump - 0.5)) * k
-    img[..., 1] = 0.45 * k
-    img[..., 2] = (0.15 - 0.03 * (big - 0.5)) * k
+    img[..., 0] = (0.29 + 0.05 * (clump - 0.5)) * k
+    img[..., 1] = 0.44 * k
+    img[..., 2] = (0.14 - 0.03 * (big - 0.5)) * k
     dry = (fbm(n, n, 4, 8, seed + 3) > 0.78) * 0.12
     img[..., 0] += dry * 0.25; img[..., 1] += dry * 0.12
     specks = r.random((n, n)) > 0.9975
@@ -81,7 +81,7 @@ def pitch(w=384, h=2496, seed=21):
     tf = np.asarray(Image.fromarray((tuft * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.9)), float) / 255
     img = img * (1 - tf[..., None] * 0.8) + np.array([0.52, 0.55, 0.30])[None, None] * tf[..., None] * 0.8
     # blend strip edge into the square's grass
-    grassc = np.array([0.24, 0.43, 0.15]) * (0.9 + 0.15 * mott[..., None])
+    grassc = np.array([0.21, 0.32, 0.105]) * (0.9 + 0.15 * mott[..., None])
     e = np.clip((np.abs(X) - 1.42) / 0.36, 0, 1)
     e = np.maximum(e, np.clip((-1.7 - Z) / 0.7, 0, 1)); e = np.maximum(e, np.clip((Z - 21.82) / 0.7, 0, 1))
     e = np.clip(e + (fbm(h, w, 4, 12, seed + 9, tile=False) - 0.5) * 0.5 * (e > 0) * (e < 1), 0, 1)
@@ -175,13 +175,13 @@ def crowd_tile(w=1024, h=512, rows=8, seed=3, seat=(30, 70, 150), fill=0.86, mem
                 shirt = tuple(int(np.clip(v * r.uniform(0.82, 1.08), 0, 255)) for v in shirt)
                 stand = r.random() < 0.05
                 lift = rh * (0.22 if stand else 0.0)
-                tw = sw * r.uniform(0.70, 0.86); ty0 = y0 + rh * 0.30 - lift; ty1 = y0 + rh * 0.78
+                tw = sw * r.uniform(0.78, 0.94); ty0 = y0 + rh * 0.24 - lift; ty1 = y0 + rh * 0.84
                 # torso with fake volume: darker flanks
                 d.rounded_rectangle([cx - tw / 2, ty0, cx + tw / 2, ty1], int(tw * 0.3), fill=shirt)
                 dk = tuple(int(v * 0.72) for v in shirt)
                 d.rectangle([cx - tw / 2 + 1, ty0 + rh * 0.12, cx - tw / 2 + tw * 0.16, ty1], fill=dk)
                 d.rectangle([cx + tw / 2 - tw * 0.16, ty0 + rh * 0.12, cx + tw / 2 - 1, ty1], fill=dk)
-                sk = SKIN[r.integers(len(SKIN))]; hr = sw * r.uniform(0.20, 0.25); hy = ty0 - hr * 0.55
+                sk = SKIN[r.integers(len(SKIN))]; hr = sw * r.uniform(0.24, 0.29); hy = ty0 - hr * 0.55
                 d.ellipse([cx - hr * 0.55, ty0 - hr * 0.2, cx + hr * 0.55, ty0 + hr * 0.5], fill=tuple(int(v * 0.85) for v in sk))  # neck
                 d.ellipse([cx - hr, hy - hr, cx + hr, hy + hr * 1.12], fill=sk)
                 hv = r.random()
@@ -208,8 +208,8 @@ def crowd_tile(w=1024, h=512, rows=8, seed=3, seat=(30, 70, 150), fill=0.86, mem
 
 def crowd_atlas():
     """4 tiles stacked vertically (v bands of 0.25): blue seats, orange/yellow section, members (whites/blazers), dense mixed."""
-    tiles = [crowd_tile(seed=3, seat=(30, 70, 150), fill=0.9), crowd_tile(seed=4, seat=(200, 120, 30), fill=0.85),
-             crowd_tile(seed=5, seat=(235, 235, 235), fill=0.8, members=True), crowd_tile(seed=6, seat=(150, 30, 40), fill=0.93)]
+    tiles = [crowd_tile(seed=3, seat=(30, 70, 150), fill=0.95), crowd_tile(seed=4, seat=(200, 120, 30), fill=0.93),
+             crowd_tile(seed=5, seat=(235, 235, 235), fill=0.88, members=True), crowd_tile(seed=6, seat=(150, 30, 40), fill=0.97)]
     at = Image.new("RGB", (1024, 2048))
     for i, t in enumerate(tiles): at.paste(t, (0, i * 512))
     return at

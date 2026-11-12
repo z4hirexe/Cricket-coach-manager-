@@ -175,10 +175,9 @@ class Arena3D(private val ctx: Context, var quality: Int) {
         for (n in listOf("sky_day", "sky_dusk", "sky_night")) stadium.getFirstEntityByName(n).let { e ->
             val rm = engine.renderableManager; if (rm.hasComponent(e)) { val ri = rm.getInstance(e); rm.setCastShadows(ri, false); rm.setReceiveShadows(ri, false); rm.setPriority(ri, 0) }
         }
-        for (n in listOf("roof", "stands", "floodlight_towers", "floodlight_lamps", "pavilion", "ad_boards")) {
-            val e = stadium.getFirstEntityByName(n); val rm = engine.renderableManager
-            if (e != 0 && rm.hasComponent(e)) rm.setCastShadows(rm.getInstance(e), n == "floodlight_towers")
-        }
+        // flat ground never casts (avoids acne / wasted shadow-map space); it only receives
+        for (n in FLAT) { val e = stadium.getFirstEntityByName(n); val rm = engine.renderableManager
+            if (e != 0 && rm.hasComponent(e)) { val ri = rm.getInstance(e); rm.setCastShadows(ri, false); rm.setReceiveShadows(ri, true) } }
         ball = stadium.getFirstEntityByName("ball")
         for (end in listOf("bat", "bowl")) { for (i in 0..2) stumps["stump_${end}_$i"] = stadium.getFirstEntityByName("stump_${end}_$i"); for (i in 0..1) stumps["bail_${end}_$i"] = stadium.getFirstEntityByName("bail_${end}_$i") }
         val n = 26
@@ -227,14 +226,32 @@ class Arena3D(private val ctx: Context, var quality: Int) {
         view.ambientOcclusionOptions = view.ambientOcclusionOptions.apply { enabled = high; radius = 0.4f; intensity = 1.0f }
         view.setShadowingEnabled(true)
         view.bloomOptions = view.bloomOptions.apply { enabled = high && lighting != Lighting.DAY; strength = 0.12f; levels = 6; threshold = true }
+        // big structures cast shadows across the outfield on MEDIUM/HIGH; LOW keeps only players/stumps casting and drops the city/trees
+        val rm = engine.renderableManager
+        for (n in BIG_CASTERS) { val e = stadium.getFirstEntityByName(n); if (e != 0 && rm.hasComponent(e)) rm.setCastShadows(rm.getInstance(e), q >= Gfx.MEDIUM) }
+        stadium.getFirstEntityByName("surroundings").let { e -> if (e != 0) { if (q >= Gfx.MEDIUM) scene.addEntity(e) else scene.removeEntity(e) } }
         rebuildSun()
+        applyFog()
+    }
+
+    private fun applyFog() {
+        val fo = view.fogOptions
+        fo.enabled = quality >= Gfx.MEDIUM
+        fo.distance = 80f; fo.heightFalloff = 0.004f; fo.height = 0f; fo.cutOffDistance = 2000f
+        when (lighting) {
+            Lighting.DUSK -> { fo.density = 0.0012f; fo.maximumOpacity = 0.35f; fo.color = floatArrayOf(0.55f, 0.40f, 0.38f) }
+            Lighting.NIGHT -> { fo.density = 0.0015f; fo.maximumOpacity = 0.40f; fo.color = floatArrayOf(0.03f, 0.04f, 0.07f) }
+            Lighting.OVERCAST -> { fo.density = 0.0018f; fo.maximumOpacity = 0.45f; fo.color = floatArrayOf(0.62f, 0.65f, 0.70f) }
+            else -> { fo.density = 0.0011f; fo.maximumOpacity = 0.32f; fo.color = floatArrayOf(0.62f, 0.72f, 0.85f) }
+        }
+        view.fogOptions = fo
     }
 
     private fun rebuildSun() {
         engine.lightManager.destroy(sun)
         val so = LightManager.ShadowOptions().apply {
-            mapSize = if (quality >= Gfx.HIGH) 2048 else 1024; shadowCascades = if (quality >= Gfx.HIGH) 2 else 1
-            shadowFar = 90f; stable = false; constantBias = 0.002f; normalBias = 1.2f
+            mapSize = if (quality >= Gfx.HIGH) 2048 else 1024; shadowCascades = when (quality) { Gfx.HIGH -> 3; Gfx.MEDIUM -> 2; else -> 1 }
+            shadowFar = when (quality) { Gfx.HIGH -> 220f; Gfx.MEDIUM -> 140f; else -> 70f }; stable = false; constantBias = 0.002f; normalBias = 1.2f
         }
         LightManager.Builder(LightManager.Type.DIRECTIONAL).color(1f, 1f, 1f).intensity(3f).direction(0.3f, -0.8f, 0.5f)
             .castShadows(true).shadowOptions(so).build(engine, sun)
@@ -251,7 +268,7 @@ class Arena3D(private val ctx: Context, var quality: Int) {
         val lm = engine.lightManager; val li = lm.getInstance(sun)
         // sky/ground SH (band 0 = average, band 1 y = sky minus ground), pre-scaled for Filament's irradiance evaluation
         val (skyC, gndC, key, keyCol, dir, lamp) = when (mode) {
-            Lighting.DAY -> L6(floatArrayOf(0.55f, 0.66f, 0.85f), floatArrayOf(0.22f, 0.28f, 0.16f), 3.2f, floatArrayOf(1f, 0.96f, 0.88f), floatArrayOf(0.35f, -0.82f, 0.45f), 0f)
+            Lighting.DAY -> L6(floatArrayOf(0.55f, 0.66f, 0.85f), floatArrayOf(0.22f, 0.28f, 0.16f), 3.2f, floatArrayOf(1f, 0.96f, 0.88f), floatArrayOf(0.62f, -0.58f, 0.52f), 0f)
             Lighting.OVERCAST -> L6(floatArrayOf(0.55f, 0.58f, 0.62f), floatArrayOf(0.20f, 0.24f, 0.17f), 1.1f, floatArrayOf(0.9f, 0.92f, 0.95f), floatArrayOf(0.2f, -0.95f, 0.25f), 0f)
             Lighting.DUSK -> L6(floatArrayOf(0.40f, 0.36f, 0.45f), floatArrayOf(0.20f, 0.17f, 0.12f), 2.2f, floatArrayOf(1f, 0.70f, 0.45f), floatArrayOf(-0.75f, -0.35f, 0.55f), 1.5f)
             else -> L6(floatArrayOf(0.16f, 0.18f, 0.24f), floatArrayOf(0.10f, 0.13f, 0.09f), 2.6f, floatArrayOf(0.95f, 0.97f, 1f), floatArrayOf(0.15f, -0.9f, 0.4f), 6f)
@@ -262,16 +279,29 @@ class Arena3D(private val ctx: Context, var quality: Int) {
         for (c in 0..2) { sh[c] = (skyC[c] + gndC[c]) * 0.5f; sh[3 + c] = (skyC[c] - gndC[c]) * 0.5f }
         ibl?.let { scene.indirectLight = null; engine.destroyIndirectLight(it) }
         ibl = IndirectLight.Builder().irradiance(3, sh).intensity(1f).build(engine).also { scene.indirectLight = it }
-        stadiumMats["flood_lamp"]?.let { m ->
-            if (m.material.hasParameter("emissiveFactor")) m.setParameter("emissiveFactor", Colors.RgbType.LINEAR, 1f, 0.97f, 0.9f)
-            if (m.material.hasParameter("emissiveStrength")) m.setParameter("emissiveStrength", max(0.15f, lamp))
+        // emissive surfaces (LED boards, ribbons, lamps, glass boxes, city windows) follow the time of day - same table as tools/assets/render_hq.py
+        val table = EMISSIVE[mode] ?: EMISSIVE.getValue(Lighting.DAY)
+        for ((name, base) in EMISSIVE_BASE) stadiumMats[name]?.let { m ->
+            if (m.material.hasParameter("emissiveFactor")) { val k = table[name] ?: table.getValue("*")
+                m.setParameter("emissiveFactor", Colors.RgbType.LINEAR, base[0] * k, base[1] * k, base[2] * k) }
         }
-        stadiumMats["ad_boards"]?.let { m -> if (m.material.hasParameter("emissiveStrength")) m.setParameter("emissiveStrength", if (mode == Lighting.NIGHT) 2.2f else 1f) }
+        applyFog()
         view.bloomOptions = view.bloomOptions.apply { enabled = this@Arena3D.quality >= Gfx.HIGH && mode != Lighting.DAY && mode != Lighting.OVERCAST }
     }
     private data class L6(val a: FloatArray, val b: FloatArray, val c: Float, val d: FloatArray, val e: FloatArray, val f: Float)
 
-    fun setBallColor(red: Boolean) { stadiumMats["ball"]?.let { if (red) it.color(0.45f, 0.03f, 0.03f) else it.color(0.92f, 0.92f, 0.88f) } }
+    /** Red ball (Tests) -> white sight screens; white ball -> black sight screens, as in real cricket. */
+    fun setBallColor(red: Boolean) {
+        stadiumMats["ball"]?.let { if (red) it.color(0.45f, 0.03f, 0.03f) else it.color(0.92f, 0.92f, 0.88f) }
+        stadiumMats["sight_screen"]?.let { if (red) it.color(0.90f, 0.90f, 0.90f) else it.color(0.012f, 0.012f, 0.014f) }
+    }
+
+    /** Pitch wear 0..1 (footholes, follow-through rough, ball marks) grows as the match ages. */
+    var pitchWear = -1f; private set
+    fun setPitchWear(k: Float) {
+        val w = k.coerceIn(0f, 1f); if (abs(w - pitchWear) < 0.01f) return; pitchWear = w
+        stadiumMats["pitch_wear"]?.let { m -> if (m.material.hasParameter("baseColorFactor")) m.setParameter("baseColorFactor", Colors.RgbaType.LINEAR, 1f, 1f, 1f, w) }
+    }
 
     fun setTransform(entity: Int, x: Float, y: Float, z: Float, yawDeg: Float = 0f, sx: Float = 1f, pitchDeg: Float = 0f, rollDeg: Float = 0f) {
         val ti = tm.getInstance(entity); if (ti == 0) return
@@ -315,6 +345,28 @@ class Arena3D(private val ctx: Context, var quality: Int) {
     }
 
     companion object {
+        /** stadium.glb v2 geometry (see tools/assets/stadium.py): boundary rope ellipse around (0, CZ). */
+        const val CZ = 10.06f; const val BX = 63f; const val BZ = 69f
+        /** distance along (dx,dz) from (x0,z0) to the rope */
+        fun boundaryDist(x0: Float, z0: Float, dx: Float, dz: Float): Float {
+            val l = sqrt(dx * dx + dz * dz).coerceAtLeast(1e-4f); val ux = dx / l; val uz = dz / l
+            val a = (ux / BX).pow(2) + (uz / BZ).pow(2); val b = 2f * (x0 * ux / (BX * BX) + (z0 - CZ) * uz / (BZ * BZ))
+            val c = (x0 / BX).pow(2) + ((z0 - CZ) / BZ).pow(2) - 1f
+            return (-b + sqrt((b * b - 4 * a * c).coerceAtLeast(0f))) / (2 * a)
+        }
+        private val FLAT = listOf("outfield", "pitch", "pitch_square", "pitch_wear", "field_markings", "boundary_rope")
+        private val BIG_CASTERS = listOf("stands", "roof", "pavilion", "floodlight_towers", "sight_screens", "big_screen", "facade")
+        private val EMISSIVE_BASE = mapOf(
+            "flood_lamp" to floatArrayOf(1f, 0.97f, 0.9f), "ad_boards" to floatArrayOf(0.85f, 0.85f, 0.85f), "ribbon" to floatArrayOf(0.9f, 0.9f, 0.9f),
+            "rope" to floatArrayOf(0.25f, 0.25f, 0.25f), "vip_glass" to floatArrayOf(0.35f, 0.3f, 0.25f), "facade" to floatArrayOf(1f, 1f, 1f),
+            "pavilion_front" to floatArrayOf(0.25f, 0.22f, 0.18f), "roof_led" to floatArrayOf(1f, 0.95f, 0.85f), "big_screen" to floatArrayOf(1f, 1f, 1f),
+            "city" to floatArrayOf(1f, 1f, 1f))
+        private val EMISSIVE = mapOf(
+            Lighting.DAY to mapOf("*" to 0.6f, "flood_lamp" to 0.15f, "facade" to 0f, "city" to 0f, "pavilion_front" to 0.2f, "vip_glass" to 0.35f, "roof_led" to 0.2f),
+            Lighting.OVERCAST to mapOf("*" to 0.7f, "flood_lamp" to 0.6f, "facade" to 0.1f, "city" to 0.1f, "pavilion_front" to 0.4f, "vip_glass" to 0.5f, "roof_led" to 0.6f),
+            Lighting.DUSK to mapOf("*" to 1.0f, "flood_lamp" to 1.5f, "facade" to 0.6f, "city" to 0.5f, "pavilion_front" to 0.8f, "vip_glass" to 0.8f, "roof_led" to 1.2f),
+            Lighting.NIGHT to mapOf("*" to 1.3f, "flood_lamp" to 6.0f, "facade" to 1.2f, "city" to 1.0f, "pavilion_front" to 1.4f, "vip_glass" to 1.3f, "roof_led" to 3.0f,
+                "ad_boards" to 1.6f, "ribbon" to 1.6f))
         @Volatile private var libs = false
         fun initLibs() { if (!libs) { Filament.init(); Gltfio.init(); libs = true } }
     }
