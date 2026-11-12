@@ -77,10 +77,19 @@ object GameAudio {
     fun channel(name: String): Float {
         val s = settings ?: return 0.8f
         if (s.mute) return 0f
-        return s.volume * when (name) {
-            in BAT -> s.volBat; in CROWD -> s.volCrowd; "music" -> if (s.music) s.volMusic else 0f; "voice" -> s.volCommentary
-            "ambience" -> s.volAmbience; else -> s.volUi
-        }
+        return mix(s.volume, name, s.volBat, s.volCrowd, s.volMusic, s.volCommentary, s.volAmbience, s.volUi,
+            s.muteBat, s.muteCrowd, s.muteMusic || !s.music, s.muteCom, s.muteUi)
+    }
+
+    /** Pure mixer maths (unit-tested): master x channel, a muted channel is silent. Stadium ambience follows the Crowd channel. */
+    fun mix(master: Float, name: String, bat: Float, crowd: Float, music: Float, com: Float, amb: Float, ui: Float,
+            mBat: Boolean, mCrowd: Boolean, mMusic: Boolean, mCom: Boolean, mUi: Boolean): Float = master * when (name) {
+        in BAT -> if (mBat) 0f else bat
+        in CROWD -> if (mCrowd) 0f else crowd
+        "music" -> if (mMusic) 0f else music
+        "voice" -> if (mCom) 0f else com
+        "ambience" -> if (mCrowd) 0f else amb * (0.4f + 0.6f * crowd)
+        else -> if (mUi) 0f else ui
     }
 
     /** Plays an SFX. [jitter] adds a small random pitch change so repeated sounds never feel copy-pasted. */

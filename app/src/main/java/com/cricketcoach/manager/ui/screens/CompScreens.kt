@@ -144,7 +144,7 @@ private fun TournamentHub(vm: GameVM, s: CareerSave, tour: Competition) {
             else -> TopPerformers(vm, s, tour.bat, tour.bowlS)
         }
     }
-    detail?.let { FixtureDetail(s, it) { detail = null } }
+    detail?.let { FixtureDetail(s, it, vm) { detail = null } }
     if (confirmClose) AlertDialog(onDismissRequest = { confirmClose = false }, containerColor = C.Surface, title = { Text("Abandon tournament?") },
         text = { Text("Results already played stay in the record books.") },
         confirmButton = { TextButton(onClick = { confirmClose = false; vm.closeTournament() }) { Text("Abandon", color = C.Red) } },

@@ -25,7 +25,7 @@ import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 sealed class Screen(val title: String) {
-    object Main : Screen("Cricket Manager Pro")
+    object Main : Screen(Brand.FULL)
     object Career : Screen("Career Mode")
     object NewCareer : Screen("New Career")
     object Dashboard : Screen("Dashboard")
@@ -62,6 +62,13 @@ sealed class Screen(val title: String) {
     data class SocialProfile(val pid: String) : Screen("Stumpstagram")
     // v2.5 Phase E: tournament squad registration
     data class SquadRegistration(val compId: String) : Screen("Squad Registration")
+    // v2.6 mega overhaul: Yorker (text/photo social network), match report, about, new-game hub
+    object YorkerHome : Screen("Yorker")
+    data class YorkerProfile(val key: String) : Screen("Yorker")
+    data class YorkerThread(val postId: Int) : Screen("Yorker")
+    data class MatchReport(val compId: String, val fxId: String) : Screen("Match Report")
+    object About : Screen("About")
+    object NewGame : Screen("New Game")
 }
 
 class PendingMatch(val compId: String, val fixtureId: String)
@@ -136,6 +143,22 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     fun unreadNews(): Int { val s = save ?: return 0; if (s.news.isEmpty()) return 0; val i = s.news.indexOf(s.newsSeen); return if (i >= 0) i else minOf(s.news.size, 99) }
     fun markNewsRead() { val s = save ?: return; val top = s.news.firstOrNull() ?: return; if (s.newsSeen != top) { s.newsSeen = top; bump() } }
     fun toggleMusic() { settings.music = !settings.music; com.cricketcoach.manager.audio.GameAudio.refresh(); bump() }
+    /** Yorker posts newer than the last time the feed was opened. */
+    fun yorkerUnread(): Int { val s = save ?: return 0; return s.yorker.posts.count { it.id > s.yorker.seenId }.coerceAtMost(99) }
+    fun markYorkerRead() { val s = save ?: return; val top = s.yorker.posts.maxOfOrNull { it.id } ?: return; if (s.yorker.seenId != top) { s.yorker.seenId = top; bump() } }
+    /** Open the result card + scorecard of any played fixture (explicit open only - other teams' matches never auto-open). */
+    fun openReport(compId: String, fxId: String) = nav(Screen.MatchReport(compId, fxId))
+
+    /**
+     * Pause menu > Exit Match (after confirmation). Nothing is lost: the started match stays in memory as the pending
+     * fixture and the career is saved; "Resume match" in the Match Centre / Calendar continues from the same ball.
+     */
+    fun exitMatch() {
+        autoPlay = false
+        persist()
+        navRoot(Screen.Calendar)
+        if (sim?.started == true && sim?.finished != true) msg("Match paused - resume it from the Match Centre or Calendar.")
+    }
     fun bump() { tick++ }
     fun msg(s: String?) { if (s != null) toast = s }
 
@@ -586,6 +609,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         val s = save ?: return
         if (busy) return
         busy = true
+        val resultBefore = s.lastResult
         viewModelScope.launch {
             val out = withContext(Dispatchers.Default) {
                 var o: DayOut = DayOut.Next; var n = 0
@@ -594,6 +618,8 @@ class GameVM(app: Application) : AndroidViewModel(app) {
             }
             busy = false
             if (save !== s) return@launch
+            // Settings > Notifications: toast the user's simulated result (never for a match that is about to be played)
+            if (settings.notifyResults && out !is DayOut.Match && s.lastResult.isNotEmpty() && s.lastResult != resultBefore) msg(s.lastResult)
             when (out) {
                 is DayOut.SeasonEnd -> { persist(); nav(Screen.SeasonSummary) }
                 is DayOut.Match -> { pending = out.pm; sim = null; matchApplied = false; persist(); nav(Screen.PreMatch) }

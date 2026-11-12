@@ -38,10 +38,10 @@ import com.cricketcoach.manager.ui.*
  * confirm team sheet -> toss -> play.  Plus the tournament Squad Registration screen.
  * ===================================================================================================== */
 
-private val Navy = Color(0xFF0A1530)
-private val NavyHi = Color(0xFF13234A)
-private val Line = Color(0x333D5A99)
-private val Ok = Color(0xFF43C66B)
+private val Navy = Color(0xFF0A1224)
+private val NavyHi = Color(0xFF16233F)
+private val Line = Color(0xFF1E2B47)
+private val Ok = Color(0xFF3DBE7A)
 private val Warn = Color(0xFFFBBF24)
 
 private fun formOf(s: CareerSave, team: String): List<Char> =

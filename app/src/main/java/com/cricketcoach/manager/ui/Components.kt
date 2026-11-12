@@ -57,12 +57,12 @@ val Display = androidx.compose.ui.text.font.FontFamily(
 )
 
 object C {
-    // Cricket Manager Pro: dark navy + metallic gold
-    val Bg = Color(0xFF050A18)
-    val Surface = Color(0xFF0A1530)
-    val Card = Color(0xFF0F1D3D)
-    val CardHi = Color(0xFF172B57)
-    val Green = Color(0xFF2D6BFF)      // primary action (royal blue)
+    // Cricket Manager Pro 2027: navy / gold / white design system (see DS in Brand.kt)
+    val Bg = Color(0xFF060B1A)
+    val Surface = Color(0xFF0A1224)
+    val Card = Color(0xFF101A31)
+    val CardHi = Color(0xFF16233F)
+    val Green = Color(0xFF4F8EF7)      // secondary action accent (single cool accent)
     val Positive = Color(0xFF43C66B)
     val Grass = Color(0xFF2E7D32)
     val Gold = Color(0xFFE9B949)
@@ -72,8 +72,9 @@ object C {
     val Sub = Color(0xFF9AACCF)
     val Red = Color(0xFFEF5350)
     val Blue = Color(0xFF5B9BFF)
-    val GoldBrush get() = Brush.verticalGradient(listOf(GoldLight, Gold, GoldDeep))
-    val BlueBrush get() = Brush.verticalGradient(listOf(Color(0xFF4D86FF), Color(0xFF2D6BFF), Color(0xFF1A3F99)))
+    // flat fills (no decorative gradients)
+    val GoldBrush get() = SolidColor(Gold)
+    val BlueBrush get() = SolidColor(Color(0xFF16233F))
 }
 
 private val scheme = darkColorScheme(
@@ -101,13 +102,13 @@ fun ScreenScaffold(vm: GameVM, title: String, actions: @Composable RowScope.() -
         topBar = {
             val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
             if (landscape) {
-                Row(Modifier.fillMaxWidth().height(44.dp).background(Brush.horizontalGradient(listOf(Color(0xFF0D1C40), C.Surface, Color(0xFF0D1C40))))
-                    .drawBehind { drawLine(Brush.horizontalGradient(listOf(Color.Transparent, C.Gold, Color.Transparent)), androidx.compose.ui.geometry.Offset(0f, size.height - 1f), androidx.compose.ui.geometry.Offset(size.width, size.height - 1f), 2f) }
+                Row(Modifier.fillMaxWidth().height(46.dp).background(DS.Navy2)
+                    .drawBehind { drawLine(DS.Line, androidx.compose.ui.geometry.Offset(0f, size.height - 1f), androidx.compose.ui.geometry.Offset(size.width, size.height - 1f), 2f) }
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (vm.stack.size > 1) IconButton(onClick = { GameAudio.click(); vm.back() }, modifier = Modifier.size(38.dp)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = C.Text) }
-                    Image(painterResource(com.cricketcoach.manager.R.drawable.logo_cmp), null, Modifier.size(34.dp).padding(start = 2.dp))
-                    Text(title.uppercase(), color = C.Gold, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, letterSpacing = 1.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                    BrandMark(30.dp, Modifier.padding(start = 4.dp))
+                    Text(title.uppercase(), color = DS.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 17.sp, letterSpacing = 1.2.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 10.dp))
                     actions()
                     if (vm.stack.size > 2) IconButton(onClick = { GameAudio.click(); vm.goHome() }, modifier = Modifier.size(38.dp)) { Icon(Icons.Filled.Home, "Home", tint = C.Text) }
                 }
@@ -125,8 +126,8 @@ fun ScreenScaffold(vm: GameVM, title: String, actions: @Composable RowScope.() -
         }
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
-            Image(painterResource(com.cricketcoach.manager.R.drawable.stadium_bg), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.16f)
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xCC050A18), Color(0xF2050A18)))))
+            Image(painterResource(com.cricketcoach.manager.R.drawable.stadium_bg), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop, alpha = 0.10f)
+            Box(Modifier.fillMaxSize().background(Color(0xE6060B1A)))
             Column(Modifier.fillMaxSize(), content = content)
         }
     }
@@ -135,39 +136,42 @@ fun ScreenScaffold(vm: GameVM, title: String, actions: @Composable RowScope.() -
 @Composable
 fun CcmCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, highlight: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     val m = modifier.fillMaxWidth().padding(vertical = 4.dp)
-    val colors = CardDefaults.cardColors(containerColor = (if (highlight) C.CardHi else C.Card).copy(alpha = 0.92f))
-    val border = if (highlight) BorderStroke(1.dp, C.Gold.copy(alpha = 0.7f)) else BorderStroke(1.dp, Color(0x223D5A99))
-    if (onClick != null) Card(onClick = onClick, modifier = m, colors = colors, border = border, shape = RoundedCornerShape(14.dp)) { Column(Modifier.padding(12.dp), content = content) }
-    else Card(modifier = m, colors = colors, border = border, shape = RoundedCornerShape(14.dp)) { Column(Modifier.padding(12.dp), content = content) }
+    val colors = CardDefaults.cardColors(containerColor = if (highlight) C.CardHi else C.Card)
+    val border = if (highlight) BorderStroke(1.dp, C.Gold.copy(alpha = 0.7f)) else BorderStroke(1.dp, DS.Line)
+    if (onClick != null) Card(onClick = onClick, modifier = m, colors = colors, border = border, shape = DS.Card) { Column(Modifier.padding(12.dp), content = content) }
+    else Card(modifier = m, colors = colors, border = border, shape = DS.Card) { Column(Modifier.padding(12.dp), content = content) }
 }
 
 @Composable
 fun GoldButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(onClick = { GameAudio.click(); onClick() }, enabled = enabled, modifier = modifier.clip(RoundedCornerShape(10.dp)).background(if (enabled) C.GoldBrush else SolidColor(Color(0x33E9B949))), shape = RoundedCornerShape(10.dp),
+    Button(onClick = { GameAudio.click(); onClick() }, enabled = enabled, modifier = modifier.heightIn(min = DS.BtnH).clip(DS.Btn).background(if (enabled) C.GoldBrush else SolidColor(Color(0x33E9B949))), shape = DS.Btn,
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color(0xFF1A1200), disabledContainerColor = Color.Transparent)) {
-        Text(text.uppercase(), fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, textAlign = TextAlign.Center)
+        Text(text.uppercase(), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 0.8.sp, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 fun GreenButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(onClick = { GameAudio.click(); onClick() }, enabled = enabled, modifier = modifier.clip(RoundedCornerShape(10.dp)).background(if (enabled) C.BlueBrush else SolidColor(Color(0x332D6BFF))), shape = RoundedCornerShape(10.dp),
+    Button(onClick = { GameAudio.click(); onClick() }, enabled = enabled, modifier = modifier.heightIn(min = DS.BtnH).clip(DS.Btn).background(if (enabled) C.BlueBrush else SolidColor(Color(0x3316233F))).border(1.dp, DS.Line, DS.Btn), shape = DS.Btn,
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.White, disabledContainerColor = Color.Transparent)) {
-        Text(text.uppercase(), fontWeight = FontWeight.Bold, letterSpacing = 1.sp, textAlign = TextAlign.Center)
+        Text(text.uppercase(), fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 0.8.sp, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 fun OutlineBtn(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
-    OutlinedButton(onClick = { GameAudio.click(); onClick() }, enabled = enabled, modifier = modifier, shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, C.Gold.copy(alpha = if (enabled) 0.8f else 0.3f))) {
-        Text(text, color = if (enabled) C.Gold else C.Sub, textAlign = TextAlign.Center)
+    OutlinedButton(onClick = { GameAudio.click(); onClick() }, enabled = enabled, modifier = modifier.heightIn(min = DS.BtnH), shape = DS.Btn,
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+        border = BorderStroke(1.dp, C.Gold.copy(alpha = if (enabled) 0.6f else 0.3f))) {
+        Text(text, color = if (enabled) C.Gold else C.Sub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) =
-    Text(text.uppercase(), color = C.Gold, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, letterSpacing = 2.sp, modifier = modifier.padding(top = 12.dp, bottom = 4.dp))
+    Text(text.uppercase(), color = C.Gold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.6.sp, modifier = modifier.padding(top = 12.dp, bottom = 4.dp))
 
 @Composable
 fun Sub(text: String, modifier: Modifier = Modifier, size: Int = 12) = Text(text, color = C.Sub, fontSize = size.sp, modifier = modifier)

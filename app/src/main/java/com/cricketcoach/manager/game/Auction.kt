@@ -199,6 +199,7 @@ object Auction {
             st.sold.add(AuctionSale(p.id, c.id, st.curBid))
             st.log.add("🔨 SOLD! ${p.name} to ${c.name} for ${Money.fmt(st.curBid)}")
             if (c.isUser) { save.addNews("Auction: signed ${p.name} for ${Money.fmt(st.curBid)}"); Social.onSigning(save, p, "AUCTION", st.curBid) }
+            else if (p.overall() >= 76 || (Stumps.account(save, p.id)?.followers ?: 0L) >= 3_000_000L) Yorker.auctionSale(save, p, c, st.curBid)
         } else {
             st.unsold.add(p.id)
             st.log.add("UNSOLD: ${p.name}")

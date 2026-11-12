@@ -52,7 +52,7 @@ private fun AuthFrame(vm: GameVM, title: String, sub: String, content: @Composab
         Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout.union(WindowInsets.systemBars)).imePadding().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f).padding(end = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Image(painterResource(R.drawable.logo_cmp), "Cricket Manager Pro", Modifier.size(150.dp))
+                Image(painterResource(R.drawable.logo_cmp), com.cricketcoach.manager.ui.Brand.FULL, Modifier.size(150.dp))
                 Spacer(Modifier.height(6.dp))
                 Text("YOUR CAREER. YOUR ACCOUNT.", color = C.Gold, fontWeight = FontWeight.Black, fontSize = 13.sp, letterSpacing = 2.sp, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(6.dp))

@@ -83,13 +83,13 @@ class SaveManager(private val ctx: Context, val userKey: String = GUEST) :
     fun load(slot: Int): CareerSave? {
         val f = fileFor(slot)
         if (!f.exists()) return null
-        return try { gson.fromJson(gunzip(f.readBytes()), CareerSave::class.java) } catch (e: Exception) { null }
+        return try { com.cricketcoach.manager.game.SaveMigration.migrate(gson.fromJson(gunzip(f.readBytes()), CareerSave::class.java)) } catch (e: Exception) { null }
     }
 
     fun rawJson(slot: Int): String? = fileFor(slot).takeIf { it.exists() }?.let { gunzip(it.readBytes()) }
 
     fun importJson(slot: Int, json: String): CareerSave? = try {
-        val s = gson.fromJson(json, CareerSave::class.java); s.slot = slot; save(s); s
+        val s = com.cricketcoach.manager.game.SaveMigration.migrate(gson.fromJson(json, CareerSave::class.java)); s.slot = slot; save(s); s
     } catch (e: Exception) { null }
 
     fun list(): List<SaveMeta> {
@@ -138,6 +138,27 @@ class Settings(ctx: Context, val userKey: String = SaveManager.GUEST) {
     /** Dynamic crowd: chants after boundaries, nervous hush in tight chases, dhol & bugle stings. */
     var crowdReact: Boolean get() = sp.getBoolean("crowdReact", true); set(v) = sp.edit().putBoolean("crowdReact", v).apply()
     var mute: Boolean get() = sp.getBoolean("mute", false); set(v) = sp.edit().putBoolean("mute", v).apply()
+    // v2.6 per-channel mutes (Audio settings). Music is controlled ONLY from Settings > Audio.
+    var muteCom: Boolean get() = sp.getBoolean("muteCom", false); set(v) = sp.edit().putBoolean("muteCom", v).apply()
+    var muteCrowd: Boolean get() = sp.getBoolean("muteCrowd", false); set(v) = sp.edit().putBoolean("muteCrowd", v).apply()
+    var muteBat: Boolean get() = sp.getBoolean("muteBat", false); set(v) = sp.edit().putBoolean("muteBat", v).apply()
+    var muteMusic: Boolean get() = sp.getBoolean("muteMusic", false); set(v) = sp.edit().putBoolean("muteMusic", v).apply()
+    var muteUi: Boolean get() = sp.getBoolean("muteUi", false); set(v) = sp.edit().putBoolean("muteUi", v).apply()
+    // v2.6 display / match / notification settings (all wired to real behaviour)
+    /** Hide the Android status + navigation bars (swipe to reveal). */
+    var immersive: Boolean get() = sp.getBoolean("immersive", true); set(v) = sp.edit().putBoolean("immersive", v).apply()
+    /** Keep the screen awake while a match is on screen. */
+    var keepScreenOn: Boolean get() = sp.getBoolean("keepOn", true); set(v) = sp.edit().putBoolean("keepOn", v).apply()
+    /** Interface text size: 0 compact (90%), 1 standard, 2 large (112%). */
+    var uiScale: Int get() = sp.getInt("uiScale", 1); set(v) = sp.edit().putInt("uiScale", v.coerceIn(0, 2)).apply()
+    /** Auto-play stops after every wicket so you can change tactics. */
+    var autoPauseWicket: Boolean get() = sp.getBoolean("autoPauseWk", false); set(v) = sp.edit().putBoolean("autoPauseWk", v).apply()
+    /** Pop-up toast with your result / important news after simulated days. */
+    var notifyResults: Boolean get() = sp.getBoolean("notifyRes", true); set(v) = sp.edit().putBoolean("notifyRes", v).apply()
+    /** Unread badges for Inbox / Yorker in the sidebar. */
+    var notifySocial: Boolean get() = sp.getBoolean("notifySocial", true); set(v) = sp.edit().putBoolean("notifySocial", v).apply()
+    /** Date format: "IN" = 12 Nov 2026, "US" = Nov 12, 2026. */
+    var dateStyle: String get() = sp.getString("dateStyle", "IN") ?: "IN"; set(v) = sp.edit().putString("dateStyle", v).apply()
     /** Commentary language: "EN", "HI" (Hindi) or "MIX" (alternating); style: 0 Classic, 1 Excited, 2 Analytical */
     var comLang: String get() = sp.getString("comLang", "EN") ?: "EN"; set(v) = sp.edit().putString("comLang", v).apply()
     var comStyle: Int get() = sp.getInt("comStyle", 0); set(v) = sp.edit().putInt("comStyle", v).apply()
@@ -159,7 +180,8 @@ class Settings(ctx: Context, val userKey: String = SaveManager.GUEST) {
     var profileDirty: Boolean get() = sp.getBoolean("profDirty", false); set(v) = sp.edit().putBoolean("profDirty", v).apply()
 
     private val syncKeys = listOf("speed", "economy", "difficulty", "autosave", "volume", "volCom", "volCrowd", "volBat", "volMusic", "volAmb", "volUi", "crowdReact", "mute",
-        "comLang", "comStyle", "comExpert", "comOverCards", "view3d", "cam", "gfx", "photos")
+        "comLang", "comStyle", "comExpert", "comOverCards", "view3d", "cam", "gfx", "photos",
+        "muteCom", "muteCrowd", "muteBat", "muteMusic", "muteUi", "immersive", "keepOn", "uiScale", "autoPauseWk", "notifyRes", "notifySocial", "dateStyle", "playSpeed")
 
     /** Settings that follow the account across devices. */
     fun toJson(): JsonObject {

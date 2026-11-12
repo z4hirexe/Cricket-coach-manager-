@@ -7,7 +7,8 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 
 object Career {
-    const val START_YEAR = 2027
+    /** v2.6: careers start in the 2026 season (the product brand stays "2027"). Old saves keep their own year. */
+    const val START_YEAR = 2026
     const val LEAGUE_DAYS = 14
     const val USER_ID = "C_USER"
     const val RETIRE_CUTOFF = "2025-01-01"

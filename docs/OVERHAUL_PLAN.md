@@ -97,3 +97,26 @@ Procedurally generated humans cannot match motion-captured, artist-sculpted, lic
   instead of silently auto-registering (Sim-to-season-end still auto-registers).
 - **Camera**: 2D broadcast follow camera keeps its aim inside the rope and low (sixes no longer tilt into the sky / floodlights).
 - Previews 103-106. Remaining: no real-device GPU test from the sandbox; `bowl_spin` keeps a 1.85 cm residual body lift baked into the GLB.
+
+## Mega phase H - Cricket Manager Pro 2027(TM) (2.6.0-beta2, vc18)
+- **Brand / design system** (`ui/Brand.kt`): "Cricket Manager Pro 2027(TM)" lockup (white name, gold 2027, small TM upper-right) on splash,
+  loading, menu, settings, match centre, About and the app label; original coach-portrait logo; one navy/gold/white palette, one type scale,
+  compact `DsButton` (34-40 dp, >= 40 dp tap areas), flat `DsCard`, `DsSegmented`, `DsSwitchRow`, `DsVolumeRow`, `DsConfirm`, `DsTag`.
+- **Loading**: cinematic original batter art (bat on shoulders), stadium-light glow, animated % bar, rotating cricket tips, fade into the menu.
+- **Main menu**: only New Game / Load Game / Settings / About (Continue lives inside New/Load), stadium background, portrait + landscape.
+- **Settings**: General, Language, Commentary Language, Audio (Master/Commentary/Crowd/Bat & Ball/Music/Menu SFX sliders + mute), Graphics
+  (device-supported options only), Display, Match Settings, Notifications, Account, Data & Save. The top-bar music chip is gone.
+- **Match Centre**: stadium-first fullscreen, TV scoreboard, one compact scrollable bottom bar (Ball, Over, Innings, Auto/Pause, Sim end,
+  Declare only in Tests, Commentary, Scorecard, Highlights, Wagon, Camera, 2D/3D); Back opens the pause menu (Resume / Settings / Exit match with
+  confirmation, match kept at the current ball).
+- **Calendar**: SIMULATE opens it; other teams' fixtures are 46 dp compact rows; results open a result card (`ResultCard`) and only "Full
+  scorecard" opens the separate Match Report screen (`MatchReportScreen`, innings tabs, SR / economy). One date formatter `Schedule.fmt`.
+- **Dates**: new careers start in 2026; the IPL 2026 league + playoff slots use the official published schedule (`OfficialSchedule`, labelled,
+  results always simulated); everything else is labelled generated / fictional. Old saves keep their year (`SaveMigration`, dataVersion 2).
+- **Stumpstagram**: photo posts (century, fifty, hat-trick, five-for, win, trophy, signing) from original faceless art with the kit recoloured to
+  the team (`PhotoArt.tint`); comment totals shown (e.g. 20.4K) but loaded 20 at a time from `CommentGen` (unique per post, context aware);
+  coach comments / replies with player answers (`Stumps.userComment`).
+- **Yorker** (`game/Yorker.kt`, `ui/screens/YorkerScreens.kt`): original X-style network (own name and stumps-and-ball mark) - Home, Trending,
+  Following, Search, profiles, text + photo posts, likes, replies, reposts, follow; automatic match updates, auction sales, transfers, titles.
+  Followers are labelled est.; fictional players, teams and media accounts are never verified.
+- Tests: `MegaPhaseTest` (11), pause-menu UI test, ScheduleTest (official IPL 2026). Previews 200-224.

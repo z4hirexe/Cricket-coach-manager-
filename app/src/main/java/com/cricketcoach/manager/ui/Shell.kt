@@ -1,5 +1,8 @@
 package com.cricketcoach.manager.ui
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -36,16 +39,17 @@ import com.cricketcoach.manager.ui.screens.continueLabel
 
 /** Accent palette of the v2.2 "manager office" UI (dark charcoal + neon accents, gold brand). */
 object UI {
-    val Panel = Color(0xFF0B111C)
-    val Side = Color(0xFF080D16)
-    val Line = Color(0xFF1C2638)
-    val Neon = Color(0xFF4ADE80)
-    val NeonDeep = Color(0xFF166534)
-    val Cyan = Color(0xFF22D3EE)
-    val Amber = Color(0xFFFBBF24)
-    val Pink = Color(0xFFEC4899)
-    val Violet = Color(0xFF7C5CFF)
-    val SimBrush get() = Brush.horizontalGradient(listOf(Color(0xFF3B82F6), Color(0xFF7C5CFF)))
+    // v2.6 design system: accents mapped onto the navy / gold / white palette (DS in Brand.kt)
+    val Panel = Color(0xFF0A1224)
+    val Side = Color(0xFF070D1C)
+    val Line = Color(0xFF1E2B47)
+    val Neon = Color(0xFFE9B949)       // primary accent = brand gold
+    val NeonDeep = Color(0xFF3A2C0A)
+    val Cyan = Color(0xFF7FB2FF)       // single cool accent
+    val Amber = Color(0xFFF3D27A)
+    val Pink = Color(0xFFE88A9A)
+    val Violet = Color(0xFF8E9CC8)
+    val SimBrush get() = Brush.horizontalGradient(listOf(Color(0xFFE9B949), Color(0xFFE9B949)))
 }
 
 /** True when a screen is drawn inside the shell (sidebar + top bar). ScreenScaffold then skips its own top bar. */
@@ -54,7 +58,8 @@ val LocalInShell = compositionLocalOf { false }
 /** Screens that live inside the career shell. Live match, pre-match and the auction stay full-screen. */
 fun Screen.inShell(): Boolean = when (this) {
     Screen.Dashboard, Screen.Inbox, Screen.MyClub, is Screen.Squad, Screen.Database, is Screen.Profile, Screen.Transfers, Screen.Fixtures,
-    Screen.Table, Screen.TournamentsScr, Screen.Statistics, Screen.Finances, Screen.SettingsScr, Screen.Selection, Screen.Social, is Screen.SocialProfile, Screen.SeasonSummary, Screen.Calendar -> true
+    Screen.Table, Screen.TournamentsScr, Screen.Statistics, Screen.Finances, Screen.SettingsScr, Screen.Selection, Screen.Social, is Screen.SocialProfile, Screen.SeasonSummary, Screen.Calendar,
+    Screen.YorkerHome, is Screen.YorkerProfile, is Screen.MatchReport -> true
     else -> false
 }
 
@@ -72,7 +77,7 @@ private class NavItem(val key: String, val label: String, val glyph: String?, va
 private fun selectedKey(s: Screen): String? = when (s) {
     Screen.Dashboard -> "home"; Screen.Inbox -> "inbox"; is Screen.Squad -> "squad"; Screen.Selection -> "selection"; Screen.Transfers -> "transfers"
     Screen.MyClub -> "club"; Screen.Fixtures -> "fixtures"; Screen.Table -> "table"; Screen.TournamentsScr -> "tournaments"; Screen.Statistics -> "stats"; Screen.Calendar -> "calendar"
-    Screen.Social, is Screen.SocialProfile -> "social"; Screen.Finances -> "finances"; Screen.Database -> "database"; Screen.SettingsScr -> "settings"; else -> null
+    Screen.Social, is Screen.SocialProfile -> "social"; Screen.YorkerHome, is Screen.YorkerProfile -> "yorker"; Screen.Finances -> "finances"; Screen.Database -> "database"; Screen.SettingsScr -> "settings"; else -> null
 }
 
 @Composable
@@ -116,7 +121,8 @@ private fun Sidebar(vm: GameVM) {
         NavItem("tournaments", "Tournaments", "trophy", null) { vm.navRoot(Screen.TournamentsScr) },
         NavItem("stats", "Player Stats", "chart", null) { vm.navRoot(Screen.Statistics) },
     )
-    val media = listOf(NavItem("social", "Stumpstagram", "social", null, badge = 0) { vm.navRoot(Screen.Social) })
+    val media = listOf(NavItem("social", "Stumpstagram", "social", null, badge = 0) { vm.navRoot(Screen.Social) },
+        NavItem("yorker", "Yorker", "chat", null, badge = if (vm.settings.notifySocial) vm.yorkerUnread() else 0) { vm.navRoot(Screen.YorkerHome) })
     val office = listOf(
         NavItem("finances", "Finances", "coins", null) { vm.navRoot(Screen.Finances) },
         NavItem("database", "Player Database", "search", null) { vm.navRoot(Screen.Database) },
@@ -134,7 +140,7 @@ private fun Sidebar(vm: GameVM) {
                 Text(u.short, color = C.Text, fontWeight = FontWeight.Black, fontSize = 16.sp, maxLines = 1)
                 Text(Modes.label(s.mode).uppercase(), color = C.Sub, fontSize = 9.sp, letterSpacing = 0.8.sp, maxLines = 1, softWrap = false)
             }
-            Box(Modifier.size(30.dp).clip(RoundedCornerShape(8.dp)).background(UI.NeonDeep.copy(alpha = 0.55f)).border(1.dp, UI.Neon, RoundedCornerShape(8.dp))
+            Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(DS.Navy3).border(1.dp, UI.Line, RoundedCornerShape(8.dp))
                 .clickable { GameAudio.click(); vm.navRoot(Screen.SettingsScr) }, contentAlignment = Alignment.Center) {
                 Icon(I.Settings, "Settings", tint = UI.Neon, modifier = Modifier.size(18.dp))
             }
@@ -162,7 +168,7 @@ private fun NavRow(n: NavItem, selected: Boolean) {
     val shape = RoundedCornerShape(10.dp)
     val tint = if (selected) Color.White else Color(0xFF9AA6BA)
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp).height(38.dp).clip(shape)
-        .then(if (selected) Modifier.background(Brush.horizontalGradient(listOf(Color(0xFF1F7A3A), Color(0xFF14532D)))).border(1.dp, UI.Neon, shape) else Modifier)
+        .then(if (selected) Modifier.background(DS.Navy4).drawBehind { drawRect(DS.Gold, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height)) } else Modifier)
         .clickable { GameAudio.click(); n.go() }.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
             if (n.icon != null) Icon(n.icon, null, tint = if (selected) UI.Neon else tint, modifier = Modifier.size(20.dp))
@@ -172,7 +178,7 @@ private fun NavRow(n: NavItem, selected: Boolean) {
         Text(n.label.uppercase(), color = tint, fontWeight = if (selected) FontWeight.Black else FontWeight.SemiBold, fontSize = 12.sp, letterSpacing = 1.sp,
             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         if (n.badge > 0) Box(Modifier.size(20.dp).clip(CircleShape).background(UI.Neon), contentAlignment = Alignment.Center) {
-            Text(if (n.badge > 9) "9+" else "${n.badge}", color = Color(0xFF052E16), fontSize = 10.sp, fontWeight = FontWeight.Black)
+            Text(if (n.badge > 9) "9+" else "${n.badge}", color = DS.GoldInk, fontSize = 10.sp, fontWeight = FontWeight.Black)
         }
         if (n.star) Icon(Icons.Filled.Star, null, tint = UI.Amber, modifier = Modifier.size(16.dp))
     }
@@ -195,7 +201,7 @@ private fun ShellTopBar(vm: GameVM) {
         .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.End))
         .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         // manager
-        Box(Modifier.size(38.dp).clip(CircleShape).background(Brush.linearGradient(listOf(Color(u.primary), Color(0xFF111827)))).border(1.5.dp, C.Gold.copy(alpha = 0.8f), CircleShape),
+        Box(Modifier.size(38.dp).clip(CircleShape).background(Color(u.primary)).border(1.5.dp, C.Gold.copy(alpha = 0.8f), CircleShape),
             contentAlignment = Alignment.Center) {
             Text(s.manager.split(' ').mapNotNull { it.firstOrNull()?.uppercase() }.take(2).joinToString(""), color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
         }
@@ -204,17 +210,6 @@ private fun ShellTopBar(vm: GameVM) {
             Text(s.manager.uppercase(), color = C.Text, fontWeight = FontWeight.Black, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("${u.name.uppercase()} · LVL ${vm.level} · ${vm.coins} COINS", color = C.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        // music toggle with a little equaliser
-        val on = vm.settings.music && !vm.settings.mute
-        Box(Modifier.height(36.dp).width(64.dp).clip(RoundedCornerShape(8.dp)).background(if (on) Color(0xFF123322) else Color(0xFF111827)).border(1.dp, if (on) UI.Neon else UI.Line, RoundedCornerShape(8.dp))
-            .clickable { vm.toggleMusic() }, contentAlignment = Alignment.Center) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("♪", color = if (on) UI.Neon else C.Sub, fontSize = 16.sp, fontWeight = FontWeight.Black)
-                Spacer(Modifier.width(5.dp))
-                Equalizer(on)
-            }
-        }
-        Spacer(Modifier.width(10.dp))
         // calendar
         Row(Modifier.height(36.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF111827)).border(1.dp, if (vm.screen == Screen.Calendar) C.Gold else UI.Line, RoundedCornerShape(8.dp))
             .clickable { GameAudio.click(); vm.navRoot(Screen.Calendar) }.padding(horizontal = 10.dp),
@@ -229,34 +224,20 @@ private fun ShellTopBar(vm: GameVM) {
         // SIMULATE opens the cricket calendar (schedule centre); on the calendar it advances one day.
         // Always: SIMULATE opens the calendar first; on the calendar the same button runs the next step.
         val text = if (onCal) com.cricketcoach.manager.ui.screens.calendarStepLabel(vm) else "Simulate"
-        Row(Modifier.height(38.dp).clip(RoundedCornerShape(9.dp)).background(if (vm.busy) Brush.horizontalGradient(listOf(Color(0xFF334155), Color(0xFF334155))) else UI.SimBrush)
+        Row(Modifier.height(40.dp).clip(DS.Btn).background(if (vm.busy) Color(0xFF334155) else DS.Gold)
+            .semantics { contentDescription = text }
             .clickable(enabled = !vm.busy) { GameAudio.click(); if (!onCal) vm.navRoot(Screen.Calendar) else vm.continueAction() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (!onCal) Glyph("calendar", Color.White, 16.dp) else Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(18.dp))
+            if (!onCal) Glyph("calendar", DS.GoldInk, 16.dp) else Icon(Icons.Filled.PlayArrow, null, tint = DS.GoldInk, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(5.dp))
-            Text(text.uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp, maxLines = 1)
+            Text(text.uppercase(), color = DS.GoldInk, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp, maxLines = 1, softWrap = false)
         }
         if (inSeason && !onCal) {
             // quick one-day advance (the classic SIMULATE behaviour) stays one tap away
             Spacer(Modifier.width(6.dp))
-            Box(Modifier.size(38.dp).clip(RoundedCornerShape(9.dp)).background(Color(0xFF1E293B)).border(1.dp, Color(0xFF3B82F6), RoundedCornerShape(9.dp))
+            Box(Modifier.size(40.dp).clip(DS.Btn).background(DS.Navy3).border(1.dp, UI.Line, DS.Btn).semantics { contentDescription = "Advance one day" }
                 .clickable(enabled = !vm.busy) { GameAudio.click(); vm.continueAction() }, contentAlignment = Alignment.Center) {
                 Text("▶▶", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = (-2).sp)
             }
-        }
-    }
-}
-
-@Composable
-private fun Equalizer(on: Boolean) {
-    val tr = rememberInfiniteTransition(label = "eq")
-    val ph by tr.animateFloat(0f, 6.283f, infiniteRepeatable(tween(1400, easing = LinearEasing)), label = "eqp")
-    val cols = listOf(UI.Cyan, Color(0xFF60A5FA), UI.Violet, UI.Pink, UI.Amber)
-    Canvas(Modifier.size(26.dp, 16.dp)) {
-        val bw = size.width / 9f
-        for (i in 0 until 5) {
-            val v = if (on) 0.35f + 0.65f * (0.5f + 0.5f * kotlin.math.sin(ph + i * 1.3f)) else 0.25f
-            val h = size.height * v
-            drawRoundRect(if (on) cols[i] else Color(0xFF475569), Offset(i * bw * 1.9f, size.height - h), androidx.compose.ui.geometry.Size(bw, h), androidx.compose.ui.geometry.CornerRadius(bw / 2))
         }
     }
 }

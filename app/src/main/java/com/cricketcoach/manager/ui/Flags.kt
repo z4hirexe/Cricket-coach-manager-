@@ -185,6 +185,11 @@ fun Glyph(kind: String, tint: Color, size: Dp = 20.dp) {
             "calendar" -> { drawRoundRect(tint, Offset(w * 0.1f, h * 0.18f), Size(w * 0.8f, h * 0.72f), androidx.compose.ui.geometry.CornerRadius(w * 0.08f), style = Stroke(sw)); drawRect(tint, Offset(w * 0.1f, h * 0.18f), Size(w * 0.8f, h * 0.18f)); for (i in 0..2) for (j in 0..1) drawRect(tint, Offset(w * (0.22f + i * 0.21f), h * (0.48f + j * 0.18f)), Size(w * 0.12f, h * 0.1f)) }
             "table" -> { for (i in 0..3) drawRect(tint, Offset(w * 0.1f, h * (0.15f + i * 0.2f)), Size(w * 0.8f, h * 0.1f)); drawRect(tint.copy(alpha = 0.5f), Offset(w * 0.1f, h * 0.15f), Size(w * 0.18f, h * 0.7f)) }
             "social" -> { drawRoundRect(tint, Offset(w * 0.1f, h * 0.1f), Size(w * 0.8f, h * 0.8f), androidx.compose.ui.geometry.CornerRadius(w * 0.24f), style = Stroke(sw)); drawCircle(tint, w * 0.17f, Offset(w * 0.5f, h * 0.5f), style = Stroke(sw)); drawCircle(tint, w * 0.05f, Offset(w * 0.72f, h * 0.28f)) }
+            "chat" -> {  // Yorker mark: three stumps with a ball at the base
+                for (i in 0..2) drawLine(tint, Offset(w * (0.34f + i * 0.16f), h * 0.14f), Offset(w * (0.34f + i * 0.16f), h * 0.72f), sw * 1.1f)
+                drawLine(tint, Offset(w * 0.3f, h * 0.14f), Offset(w * 0.7f, h * 0.14f), sw * 0.9f)
+                drawCircle(tint, w * 0.11f, Offset(w * 0.26f, h * 0.8f))
+            }
             "search" -> { drawCircle(tint, w * 0.25f, Offset(w * 0.42f, h * 0.42f), style = Stroke(sw)); drawLine(tint, Offset(w * 0.6f, h * 0.6f), Offset(w * 0.88f, h * 0.88f), sw * 1.4f) }
             "xi" -> { drawOval(tint, Offset(w * 0.08f, h * 0.08f), Size(w * 0.84f, h * 0.84f), style = Stroke(sw)); for ((x, y) in listOf(0.5f to 0.25f, 0.3f to 0.45f, 0.7f to 0.45f, 0.38f to 0.7f, 0.62f to 0.7f)) drawCircle(tint, w * 0.06f, Offset(w * x, h * y)); drawRect(tint, Offset(w * 0.46f, h * 0.38f), Size(w * 0.08f, h * 0.24f)) }
             "exit" -> { drawRect(tint, Offset(w * 0.12f, h * 0.12f), Size(w * 0.45f, h * 0.76f), style = Stroke(sw)); drawLine(tint, Offset(w * 0.4f, h * 0.5f), Offset(w * 0.92f, h * 0.5f), sw); drawLine(tint, Offset(w * 0.75f, h * 0.33f), Offset(w * 0.92f, h * 0.5f), sw); drawLine(tint, Offset(w * 0.75f, h * 0.67f), Offset(w * 0.92f, h * 0.5f), sw) }

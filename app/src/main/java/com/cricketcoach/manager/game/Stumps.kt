@@ -34,7 +34,7 @@ class PlayerAccount(
 }
 
 /**
- * Stumpstagram — the in-game social network (formerly CricGram).
+ * Stumpstagram — the in-game photo social network.
  *  - Every real player in the database has an account (username, avatar = photo/initials, bio, followers, following,
  *    posts, verified badge).  Followers come from a popularity model (international + IPL caps, runs/wickets,
  *    hundreds / five-fors, fan-base size of the country, current IPL contract) and are labelled ESTIMATED.
@@ -236,6 +236,59 @@ object Stumps {
     fun followerGain(followers: Long, kind: String, perf: Double): Int =
         (followers * 0.0015 * perfFactor(kind, perf) + 40 * perfFactor(kind, perf)).toInt().let { if (kind == "LOSS") -it / 3 else it }
 
+    /* ------------------------------------------------------------------ v2.6 photos + comments */
+
+    /** Photo moment for a post kind ("" = text / poster post). Keys map to the bundled artwork (ph_<key>). */
+    fun photoFor(kind: String): String = when (kind) {
+        "CENTURY" -> "century"; "FIFTY" -> "fifty"; "HATTRICK" -> "hattrick"; "FIVEFOR" -> "fivefor"; "WIN" -> "win"
+        "TROPHY", "TITLE" -> "trophy"; "AUCTION", "TRANSFER", "SIGNING" -> "signing"; else -> ""
+    }
+    val PHOTO_KINDS = listOf("century", "fifty", "hattrick", "fivefor", "win", "trophy", "signing")
+
+    fun commentSeed(p: SocialPost): Long = p.id.toLong() * 1_000_003L + p.handle.hashCode()
+
+    /** Context for the generated comments of a post (player, team, opponent, headline stat). */
+    fun commentCtx(save: CareerSave?, p: SocialPost): CommentGen.Ctx {
+        val pid = p.pid.ifEmpty { p.authorPid }
+        val kind = when (p.kind) { "TITLE" -> "TROPHY"; "RECORD", "FORM" -> "MILESTONE"; "POST" -> "NEWS"; else -> p.kind }
+        return CommentGen.Ctx(kind, save?.players?.get(pid)?.name ?: Repo.byId[pid]?.name ?: "", save?.clubs?.get(p.club)?.short ?: "", save?.clubs?.get(p.opp)?.short ?: "", p.stat)
+    }
+
+    /** Comments the generator can still supply for this post (total minus stored ones, capped by uniqueness). */
+    fun generatedTotal(save: CareerSave?, p: SocialPost): Int =
+        minOf(max(0, p.commentCount - p.comments.size), CommentGen.capacity(commentCtx(save, p)))
+
+    /** One page of generated (not stored) comments, newest-first pagination for the comment sheet. */
+    fun commentPage(save: CareerSave?, p: SocialPost, from: Int, n: Int): List<SocialComment> {
+        val total = generatedTotal(save, p)
+        if (from >= total) return emptyList()
+        return CommentGen.page(commentSeed(p), commentCtx(save, p), from, minOf(n, total - from))
+    }
+
+    /**
+     * The coach comments (or replies to comment [replyTo]: >0 stored comment id, <0 generated comment -(i+1)).
+     * On a player's post the player answers: always to the first comment of the coach on that post, then about 60%.
+     */
+    fun userComment(save: CareerSave, p: SocialPost, text: String, replyTo: Int = 0): SocialComment {
+        val handle = "@coach_${save.manager.filter { it.isLetterOrDigit() }.lowercase().take(12)}"
+        val c = SocialComment("${save.manager} (Coach)", handle, text.trim().take(220), 0, id = save.nextId++, replyTo = replyTo, mine = true, day = save.day)
+        p.comments.add(c); p.commentCount++
+        val author = p.authorPid
+        if (author.isNotEmpty()) {
+            val mineBefore = p.comments.count { it.mine } - 1
+            val chance = (abs((c.id.toLong() * 2654435761L) % 100)).toInt()
+            if (mineBefore == 0 || chance < 60) {
+                val acc = account(save, author)
+                if (acc != null) {
+                    p.comments.add(SocialComment(acc.name, acc.handle, CommentGen.playerReply(c.id.toLong() * 7919 + p.id, save.manager), 1 + chance * 3,
+                        id = save.nextId++, replyTo = c.id, pid = author, day = save.day))
+                    p.commentCount++
+                }
+            }
+        }
+        return c
+    }
+
     /* ------------------------------------------------------------------ player posts */
 
     private val OPEN = mapOf(
@@ -259,6 +312,9 @@ object Stumps {
         val p = Social.post(save, a, text, kind, likes, rnd, 3, poster)
         p.authorPid = pid
         p.commentCount = max(p.comments.size, commentsFor(likes))
+        // v2.6 photo post: original moment artwork, kit recoloured to the player's team
+        p.photo = photoFor(kind)
+        if (p.club.isEmpty()) p.club = save.players[pid]?.clubId ?: ""
         save.stumps.posts[pid] = (save.stumps.posts[pid] ?: 0) + 1
         bump(save, pid, followerGain(acc.followers, kind, perf))
         return p

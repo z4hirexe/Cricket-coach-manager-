@@ -9,9 +9,9 @@ import kotlin.random.Random
  */
 object Social {
     data class Account(val name: String, val handle: String, val verified: Boolean)
-    val OFFICIAL = Account("Cricket Manager Pro News", "@CMP_News", true)
-    val STATS = Account("Stats Corner", "@StatsCorner", true)
-    val INSIDER = Account("Dressing Room Insider", "@DR_Insider", true)
+    val OFFICIAL = Account("CMP 2027 Newsroom", "@CMP_Newsroom", false)
+    val STATS = Account("Stats Corner", "@StatsCorner", false)
+    val INSIDER = Account("Dressing Room Insider", "@DR_Insider", false)
     private val FANS = listOf("cover_drive_99", "yorker_queen", "stumped_again", "spin_doctor_21", "the_third_man", "silly_point_7",
         "longon_larry", "doosra_daily", "nightwatchman", "reverse_sweep_raj", "pitch_report", "duck_or_glory", "chinaman_chintu",
         "gully_cricket_guru", "boundary_rope", "hat_trick_hero", "maiden_over_mia", "powerplay_pandit", "inswing_iyer", "stands_se_live",
@@ -33,6 +33,7 @@ object Social {
         val n = if (poster != null) comments + 2 + rnd.nextInt(3) else comments
         val used = HashSet<String>()
         repeat(n) { var c = fanComment(kind, rnd, name); var k = 0; while (!used.add(c.text) && k++ < 6) c = fanComment(kind, rnd, name); p.comments.add(c) }
+        p.comments.forEachIndexed { i, c -> c.id = SaveMigration.storedCommentId(p.id, i) }
         save.posts.add(0, p)
         while (save.posts.size > MAX_POSTS) save.posts.removeAt(save.posts.size - 1)
         return p
@@ -141,10 +142,12 @@ object Social {
         }
         Stumps.onMatch(save, comp, fx, sim, rnd)
         for (p in save.posts) { if (p.id < firstNew) break; p.matchKey = key }
+        Yorker.onMatch(save, comp, fx, sim, rnd)
     }
 
     fun onTitle(save: CareerSave, comp: Competition, rnd: Random = Random.Default) {
         val champ = comp.champion?.let { save.clubs[it] } ?: return
+        Yorker.onTitle(save, comp, champ, rnd)
         if (champ.id == save.userClubId) {
             save.pendingCoins += 250; save.pendingXp += 200
             save.followers += max(5000, (save.followers * 0.08).toInt())
@@ -165,6 +168,7 @@ object Social {
             Poster(p.id, u.id, "", if (kind == "AUCTION") "SOLD!" else "SIGNED", if (fee > 0) Money.fmt(fee) else "FREE",
                 listOf("ROLE|${Consts.ROLE_NAMES[p.role] ?: p.role}", "OVERALL|${p.overall()}", "AGE|${p.age(save.year)}", "FROM|${p.country}")))
         Stumps.onSigning(save, p, u.name, kind, fee, rnd)
+        Yorker.onSigning(save, p, u, kind, fee, rnd)
     }
 
     /** User's own post from the compose box. */

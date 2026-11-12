@@ -18,7 +18,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Supabase project used by Cricket Manager Pro. The publishable key is PUBLIC by design: every table is protected by
+ * Supabase project used by Cricket Manager Pro 2027. The publishable key is PUBLIC by design: every table is protected by
  * Row Level Security, so a signed-in user can only ever read/write their own profile, saves and avatar.
  * The service-role / secret key is never shipped in the app.
  */

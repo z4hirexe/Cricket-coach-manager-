@@ -30,7 +30,7 @@ fun AppRoot(vm: GameVM) {
                 val s = vm.screen
                 val needsSave = s !is Screen.Main && s !is Screen.Career && s !is Screen.NewCareer && s !is Screen.SettingsScr && s !is Screen.Database && s !is Screen.Profile &&
                     s !is Screen.Login && s !is Screen.SignUp && s !is Screen.Forgot && s !is Screen.ResetPassword && s !is Screen.Account &&
-                    s !is Screen.CareerType && s !is Screen.ChooseTeam && s !is Screen.NewTeam && s !is Screen.Social
+                    s !is Screen.CareerType && s !is Screen.ChooseTeam && s !is Screen.NewTeam && s !is Screen.Social && s !is Screen.About && s !is Screen.NewGame
                 val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
                 if (needsSave && vm.save == null) { LaunchedEffect(Unit) { vm.goHome() } }
                 else if (landscape && vm.save != null && s.inShell()) GameShell(vm) { Screens(vm, s) }
@@ -86,47 +86,92 @@ private fun Screens(vm: GameVM, s: Screen) {
             is Screen.Calendar -> CalendarScreen(vm)
             is Screen.SocialProfile -> SocialProfileScreen(vm, scr.pid)
             is Screen.SquadRegistration -> SquadRegistrationScreen(vm, scr.compId)
+            is Screen.YorkerHome -> YorkerScreen(vm)
+            is Screen.YorkerProfile -> YorkerProfileScreen(vm, scr.key)
+            is Screen.YorkerThread -> YorkerThreadScreen(vm, scr.postId)
+            is Screen.MatchReport -> MatchReportScreen(vm, scr.compId, scr.fxId)
+            is Screen.About -> AboutScreen(vm)
+            is Screen.NewGame -> NewGameScreen(vm)
         }
     }
 }
 
 private val TIPS = listOf(
-    "SCOUTING OPPOSITION WEAKNESSES", "ROLLING THE PITCH", "PAINTING THE CREASES", "CHECKING THE WEATHER FORECAST", "STUDYING THE BATTING ORDER",
-    "SETTING DEATH-OVER FIELDS", "POLISHING THE NEW BALL", "BRIEFING THE DRESSING ROOM", "REVIEWING LAST SEASON'S FOOTAGE", "LOADING THE VERIFIED PLAYER DATABASE"
+    "Pace bowlers lose sharpness when fitness drops below 70 - rotate them in long tours.",
+    "Spinners extract more turn from day 3 onwards in red-ball matches.",
+    "A set batter is worth protecting: avoid sending a nightwatchman late in the day.",
+    "Registration windows close before the first fixture - lock your best 15 early.",
+    "In T20s, two quiet overs at the death win more matches than one great powerplay.",
+    "Auction tip: keep 20% of your purse for the accelerated rounds.",
+    "Form matters: players in red form rarely turn it around in a single match.",
+    "Dew in evening games helps the chasing side - think twice before batting first.",
+    "Your batting order changes the 3D field: left-right pairs force bowlers to adjust.",
+    "Overseas slots are limited in the IPL - pick quality over quantity."
 )
 
-/** Cinematic loading screen: manager's desk, logo, progress bar and rotating tips. */
+/** Short status lines under the loading bar (what is being prepared). */
+private val STEPS = listOf("Loading player database", "Preparing squads", "Building the cricket calendar", "Warming up the commentators", "Rolling the pitch", "Switching on the floodlights")
+
+/**
+ * Loading screen (v2.6): black studio with the original batter artwork (bat on shoulders, stadium rim light), the 2027
+ * lockup, an animated progress bar with percentage, rotating cricket tips and a fade into the menu. The art is anchored
+ * to the right so the subject stays in frame on tall phones and wide tablets alike.
+ */
 @Composable
 fun Splash(loading: Boolean = true, onDone: () -> Unit = {}) {
     val prog = remember { androidx.compose.animation.core.Animatable(0f) }
+    val fade = remember { androidx.compose.animation.core.Animatable(0f) }
+    val out = remember { androidx.compose.animation.core.Animatable(1f) }
     var tip by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) { while (true) { delay(1300); tip = (tip + 1) % TIPS.size } }
-    LaunchedEffect(Unit) { prog.animateTo(0.86f, androidx.compose.animation.core.tween(1700, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+    LaunchedEffect(Unit) { while (true) { delay(2600); tip = (tip + 1) % TIPS.size } }
+    LaunchedEffect(Unit) { fade.animateTo(1f, androidx.compose.animation.core.tween(900)) }
+    LaunchedEffect(Unit) { prog.animateTo(0.86f, androidx.compose.animation.core.tween(1900, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
     LaunchedEffect(loading) {
         if (!loading) {
             while (prog.isRunning && prog.value < 0.86f) delay(30)
-            prog.animateTo(1f, androidx.compose.animation.core.tween(350)); delay(180); onDone()
+            prog.animateTo(1f, androidx.compose.animation.core.tween(380)); delay(160)
+            out.animateTo(0f, androidx.compose.animation.core.tween(320)); onDone()
         }
     }
-    val logoScale by androidx.compose.animation.core.animateFloatAsState(if (prog.value > 0.05f) 1f else 0.85f, androidx.compose.animation.core.tween(900), label = "logo")
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
-        androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.cricketcoach.manager.R.drawable.loading_desk), null, Modifier.fillMaxSize(),
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop)
-        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.radialGradient(listOf(Color(0x00000000), Color(0x22000000), Color(0xCC000000)), radius = 1400f)))
-        androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.cricketcoach.manager.R.drawable.logo_cmp), "Cricket Manager Pro",
-            Modifier.align(Alignment.Center).padding(bottom = 40.dp).size(210.dp).graphicsLayer { scaleX = logoScale; scaleY = logoScale })
-        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 26.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(Modifier.fillMaxWidth(0.72f), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f).height(6.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp)).background(Color(0x33FFFFFF))) {
-                    Box(Modifier.fillMaxWidth(prog.value).fillMaxHeight().clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp))
-                        .background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xFF0EA5E9), Color(0xFF22D3EE), Color(0xFFA5F3FC)))))
-                }
-                Spacer(Modifier.width(14.dp))
-                Text("${(prog.value * 100).toInt()}%", color = Color(0xFF22D3EE), fontWeight = FontWeight.Black, fontSize = 16.sp, modifier = Modifier.width(52.dp))
+    val drift = androidx.compose.animation.core.rememberInfiniteTransition(label = "drift")
+    val z by drift.animateFloat(1.0f, 1.05f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(16000), androidx.compose.animation.core.RepeatMode.Reverse), label = "z")
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black).graphicsLayer { alpha = out.value }) {
+        val landscape = maxWidth > maxHeight
+        androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.cricketcoach.manager.R.drawable.loading_hero), null,
+            Modifier.fillMaxSize().graphicsLayer { alpha = fade.value; scaleX = z; scaleY = z; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.75f, 0.4f) },
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop, alignment = if (landscape) Alignment.CenterEnd else androidx.compose.ui.BiasAlignment(0.55f, 0f))
+        // keep the left side (logo + bar) readable: black falloff, no colour gradients
+        Box(Modifier.fillMaxSize().background(if (landscape) androidx.compose.ui.graphics.Brush.horizontalGradient(0f to Color(0xF2000000), 0.42f to Color(0xB3000000), 0.7f to Color(0x00000000))
+            else androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color(0x00000000), 0.55f to Color(0x66000000), 1f to Color(0xF2000000))))
+        val p = prog.value
+        Column(Modifier.align(if (landscape) Alignment.CenterStart else Alignment.BottomCenter).padding(start = if (landscape) 40.dp else 24.dp, end = 24.dp, bottom = if (landscape) 0.dp else 40.dp)
+            .widthIn(max = 420.dp).graphicsLayer { alpha = fade.value }, horizontalAlignment = Alignment.Start) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                BrandMark(46.dp)
+                Spacer(Modifier.width(12.dp))
+                BrandStack(size = if (landscape) 26.sp else 22.sp, center = false)
             }
-            Spacer(Modifier.height(12.dp))
-            Text("LOADING: ${TIPS[tip]}...", color = Color(0xFFE2E8F0), fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 2.5.sp)
+            Spacer(Modifier.height(if (landscape) 28.dp else 20.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f).height(4.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp)).background(Color(0x26FFFFFF))) {
+                    Box(Modifier.fillMaxWidth(p).fillMaxHeight().clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp)).background(DS.Gold))
+                }
+                Spacer(Modifier.width(12.dp))
+                Text("${(p * 100).toInt()}%", color = DS.Gold, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.width(46.dp), maxLines = 1, softWrap = false)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(STEPS[(p * (STEPS.size - 1)).toInt().coerceIn(0, STEPS.size - 1)].uppercase() + "…", color = DS.Sub, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp, maxLines = 1)
+            Spacer(Modifier.height(16.dp))
+            Row(verticalAlignment = Alignment.Top) {
+                Text("TIP", color = DS.GoldInk, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp)).background(DS.Gold).padding(horizontal = 5.dp, vertical = 1.dp))
+                Spacer(Modifier.width(8.dp))
+                AnimatedContent(tip, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "tip") { i ->
+                    Text(TIPS[i], color = DS.White.copy(alpha = 0.85f), fontSize = 12.sp, lineHeight = 16.sp, maxLines = 2)
+                }
+            }
         }
+        Text(Brand.EDITION.uppercase() + " • v" + Brand.VERSION, color = Color(0x66FFFFFF), fontSize = 9.sp, letterSpacing = 1.sp,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 10.dp))
     }
 }
 
@@ -134,14 +179,14 @@ fun Splash(loading: Boolean = true, onDone: () -> Unit = {}) {
 @Composable
 private fun BusyOverlay() {
     var tip by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) { while (true) { delay(1100); tip = (tip + 1) % TIPS.size } }
+    LaunchedEffect(Unit) { while (true) { delay(1100); tip = (tip + 1) % STEPS.size } }
     Box(Modifier.fillMaxSize().background(Color(0xB3000000)), contentAlignment = Alignment.Center) {
-        Column(Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).background(Color(0xF00B111C)).padding(horizontal = 28.dp, vertical = 18.dp),
+        Column(Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).background(Color(0xF00A1224)).padding(horizontal = 28.dp, vertical = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(color = Color(0xFF22D3EE), strokeWidth = 3.dp)
+            CircularProgressIndicator(color = DS.Gold, strokeWidth = 3.dp)
             Spacer(Modifier.height(10.dp))
             Text("SIMULATING", color = C.Text, fontWeight = FontWeight.Black, letterSpacing = 3.sp)
-            Text(TIPS[tip].lowercase().replaceFirstChar { it.uppercase() } + "…", color = C.Sub, fontSize = 11.sp)
+            Text(STEPS[tip % STEPS.size] + "…", color = C.Sub, fontSize = 11.sp)
         }
     }
 }

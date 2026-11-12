@@ -43,8 +43,8 @@ import java.util.Locale
  *  Month grid + date agenda with match cards (Play / Simulate / Details) and off-field events.
  * ============================================================================================ */
 
-private val Navy = Color(0xFF07112A)
-private val NavyHi = Color(0xFF0E1E45)
+private val Navy = Color(0xFF0A1224)
+private val NavyHi = Color(0xFF16233F)
 private val GoldLine = Color(0x66E9B949)
 
 fun calColor(cat: String): Color = when (cat) {
@@ -118,7 +118,7 @@ fun CalendarScreen(vm: GameVM, initialDate: LocalDate? = null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Info, null, tint = C.Gold.copy(alpha = 0.8f), modifier = Modifier.size(12.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(Schedule.DISCLAIMER, color = C.Sub, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(Schedule.sourceNote(s), color = C.Sub, fontSize = 9.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 11.sp)
                 }
             }
             Spacer(Modifier.width(10.dp))
@@ -139,7 +139,7 @@ fun CalendarScreen(vm: GameVM, initialDate: LocalDate? = null) {
                 val matches = day.filter { it.isMatch }.sortedWith(compareByDescending<Schedule.Entry> { it.mine }.thenBy { Schedule.startTime(s, it.comp!!, it.fx!!) })
                 val events = day.filter { !it.isMatch }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(selected.format(DATE_FMT).uppercase(), fontFamily = Display, color = C.Text, fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = 1.sp, modifier = Modifier.weight(1f))
+                    Text(Schedule.fmt(selected, vm.settings.dateStyle, dow = true).uppercase(), fontFamily = Display, color = C.Text, fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = 1.sp, modifier = Modifier.weight(1f))
                     if (selected == today) SmallPill("TODAY", C.Gold, filled = true) {}
                     if (s.phase == "LEAGUE" || s.phase == "PLAYOFFS") { Spacer(Modifier.width(4.dp)); Text("Game day ${Schedule.dayOf(s, selected).coerceAtLeast(0)}", color = C.Sub, fontSize = 10.sp) }
                 }
@@ -147,7 +147,10 @@ fun CalendarScreen(vm: GameVM, initialDate: LocalDate? = null) {
                 LazyColumn(Modifier.weight(1f)) {
                     items(events) { e -> EventRow(vm, s, e) }
                     items(matches, key = { it.fx!!.id }) { e ->
-                        MatchCard(vm, s, e,
+                        // other teams' fixtures stay compact; the full card (and live view) is only for the user's own matches
+                        if (!e.mine) CompactMatchRow(vm, s, e, onDetails = { detail = e },
+                            onSim = { val n = vm.userMatchesBefore(e.comp!!.id, e.fx!!.id); if (n > 0) confirm = Triple(e, false, n) else vm.calendarGo(e.comp.id, e.fx.id, false) })
+                        else MatchCard(vm, s, e,
                             onPlay = { val n = vm.userMatchesBefore(e.comp!!.id, e.fx!!.id); if (n > 0) confirm = Triple(e, true, n) else vm.calendarGo(e.comp.id, e.fx.id, true) },
                             onSim = { val n = vm.userMatchesBefore(e.comp!!.id, e.fx!!.id); if (n > 0) confirm = Triple(e, false, n) else vm.calendarGo(e.comp.id, e.fx.id, false) },
                             onDetails = { detail = e })
@@ -172,14 +175,14 @@ fun CalendarScreen(vm: GameVM, initialDate: LocalDate? = null) {
     val de = detail
     val df = de?.fx
     if (de != null && df != null) {
-        if (df.played && df.res != null) FixtureDetail(s, df) { detail = null }
+        if (df.played && df.res != null) FixtureDetail(s, df, vm) { detail = null }
         else MatchPreviewDialog(vm, s, de, onClose = { detail = null },
             onPlay = { detail = null; vm.calendarGo(de.comp!!.id, df.id, true) }, onSim = { detail = null; vm.calendarGo(de.comp!!.id, df.id, false) })
     }
     confirm?.let { (e, play, n) ->
         AlertDialog(onDismissRequest = { confirm = null }, containerColor = C.Surface,
             title = { Text(if (play) "Jump to this match?" else "Simulate to this date?", color = C.Gold, fontWeight = FontWeight.Bold) },
-            text = { Text("$n of your earlier match${if (n == 1) "" else "es"} will be simulated automatically before ${e.title} on ${e.date.format(DATE_FMT)}.", color = C.Text) },
+            text = { Text("$n of your earlier match${if (n == 1) "" else "es"} will be simulated automatically before ${e.title} on ${Schedule.fmt(e.date, vm.settings.dateStyle)}.", color = C.Text) },
             confirmButton = { TextButton({ confirm = null; vm.calendarGo(e.comp!!.id, e.fx!!.id, play) }) { Text("CONTINUE", color = C.Gold, fontWeight = FontWeight.Bold) } },
             dismissButton = { TextButton({ confirm = null }) { Text("CANCEL", color = C.Sub) } })
     }
@@ -244,8 +247,8 @@ private fun MatchCard(vm: GameVM, s: CareerSave, e: Schedule.Entry, onPlay: () -
     val accent = calColor(e.cats.first())
     val shape = RoundedCornerShape(12.dp)
     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp).clip(shape)
-        .background(Brush.horizontalGradient(listOf(Color(0xFF102452), Color(0xFF0A1636))))
-        .border(1.dp, if (e.mine) C.Gold.copy(alpha = 0.75f) else Color(0x223D5A99), shape)
+        .background(Color(0xFF101A31))
+        .border(1.dp, if (e.mine) C.Gold.copy(alpha = 0.75f) else Color(0xFF1E2B47), shape)
         .clickable { GameAudio.click(); onDetails() }) {
         Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
         Column(Modifier.weight(1f).padding(horizontal = 9.dp, vertical = 7.dp)) {
@@ -286,6 +289,36 @@ private fun MatchCard(vm: GameVM, s: CareerSave, e: Schedule.Entry, onPlay: () -
                 CardBtn(if (f.played) "Scorecard" else "View details", ghost = true) { onDetails() }
             }
         }
+    }
+}
+
+/** One-line card for a fixture that does not involve the user: teams, competition, time or result, status. */
+@Composable
+private fun CompactMatchRow(vm: GameVM, s: CareerSave, e: Schedule.Entry, onDetails: () -> Unit, onSim: () -> Unit) {
+    val c = e.comp!!; val f = e.fx!!
+    val h = s.clubs[f.home]; val a = s.clubs[f.away]
+    val accent = calColor(e.cats.first())
+    val shape = RoundedCornerShape(9.dp)
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp).heightIn(min = 46.dp).clip(shape).background(Color(0xFF0D1629)).border(1.dp, Color(0xFF1A2640), shape)
+        .clickable { GameAudio.click(); onDetails() }, verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(3.dp).height(46.dp).background(accent))
+        Spacer(Modifier.width(8.dp))
+        TeamFlag(h, 18.dp); Spacer(Modifier.width(4.dp)); TeamFlag(a, 18.dp)
+        Spacer(Modifier.width(8.dp))
+        Column(Modifier.weight(1f).padding(vertical = 4.dp)) {
+            Text(androidx.compose.ui.text.buildAnnotatedString {
+                pushStyle(androidx.compose.ui.text.SpanStyle(color = if (f.res?.winner == f.home) C.GoldLight else C.Text, fontWeight = FontWeight.Bold)); append(h?.short ?: "?"); pop()
+                pushStyle(androidx.compose.ui.text.SpanStyle(color = C.Sub)); append(" v "); pop()
+                pushStyle(androidx.compose.ui.text.SpanStyle(color = if (f.res?.winner == f.away) C.GoldLight else C.Text, fontWeight = FontWeight.Bold)); append(a?.short ?: "?"); pop()
+                pushStyle(androidx.compose.ui.text.SpanStyle(color = C.Sub, fontSize = 9.5.sp)); append("   ${c.name.substringBefore(" (")} · ${f.stage}"); pop()
+            }, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(f.res?.text ?: "${Schedule.startTime(s, c, f)} · ${Schedule.venue(s, f)}", color = if (f.res != null) C.Positive.copy(alpha = 0.9f) else C.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (!f.played) Text("SIM", color = C.Sub, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp,
+            modifier = Modifier.padding(horizontal = 4.dp).clip(RoundedCornerShape(6.dp)).border(1.dp, Color(0xFF26355E), RoundedCornerShape(6.dp))
+                .clickable(enabled = !vm.busy) { GameAudio.click(); onSim() }.padding(horizontal = 8.dp, vertical = 6.dp))
+        else MiniTag("RESULT", C.Positive)
+        Spacer(Modifier.width(8.dp))
     }
 }
 

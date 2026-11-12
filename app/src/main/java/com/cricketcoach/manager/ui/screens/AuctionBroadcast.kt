@@ -63,9 +63,9 @@ import kotlinx.coroutines.launch
  * All artwork is drawn in code; no official logos or likenesses.
  */
 
-private val Navy0 = Color(0xFF040A1C)
-private val Navy1 = Color(0xFF0A1636)
-private val Navy2 = Color(0xFF12224D)
+private val Navy0 = Color(0xFF060B1A)
+private val Navy1 = Color(0xFF0A1224)
+private val Navy2 = Color(0xFF16233F)
 private val GoldEdge = Brush.linearGradient(listOf(Color(0xFFFFE7A6), Color(0xFFB8862B), Color(0x66B8862B)))
 
 /** Live bidding stage. [preview] 0 = normal, 1 = clock stopped (screenshots), 2 = clock stopped + SOLD stamp shown. */

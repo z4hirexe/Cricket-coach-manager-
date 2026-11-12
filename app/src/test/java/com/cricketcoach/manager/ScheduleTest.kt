@@ -49,8 +49,18 @@ class ScheduleTest {
         assertTrue(ev.any { it.cat == Schedule.TRANSFER && it.endDate.isAfter(it.date) })
         assertTrue(ev.any { it.cat == Schedule.TRAINING })
         assertTrue(ev.any { it.cat == Schedule.EVENT && it.title.contains("opener") })
-        assertEquals(LocalDate.of(s.year, 3, 22), Schedule.seasonStart(s))
+        // v2.6: new careers start in 2026 and the IPL uses the official 2026 fixture list (opener 28 Mar, RCB v SRH)
+        assertEquals(2026, s.year)
+        assertEquals(LocalDate.of(2026, 3, 28), Schedule.seasonStart(s))
         assertTrue(Schedule.DISCLAIMER.contains("fictional", ignoreCase = true))
+        val ipl = s.league.first { it.key == "IPL" }
+        assertEquals(OfficialSchedule.IPL_2026_SOURCE, ipl.source)
+        assertEquals(70, ipl.fixtures.size)
+        val opener = ipl.fixtures.first()
+        assertEquals("2026-03-28", opener.date); assertEquals("F_RCB", opener.home); assertEquals("F_SRH", opener.away)
+        assertTrue(opener.venue.contains("Chinnaswamy"))
+        assertEquals(LocalDate.of(2026, 5, 24), Schedule.dateOf(s, ipl.fixtures.maxOf { it.day }))
+        assertTrue(Schedule.sourceNote(s).contains("Official IPL 2026"))
         // categories
         assertTrue(Schedule.matches(s).all { Schedule.IPL in it.cats })
         // no training day on a match day of the user

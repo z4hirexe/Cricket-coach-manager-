@@ -11,6 +11,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -71,9 +73,9 @@ import kotlin.math.sin
  * Broadcast-inspired (navy + metallic gold), not a copy of any real broadcaster's graphics.
  */
 
-private val Navy = Color(0xF20A1430)
-private val NavyDeep = Color(0xF2060C1F)
-private val Hair = Color(0x33E9C46A)
+private val Navy = Color(0xF20A1224)
+private val NavyDeep = Color(0xF2060B1A)
+private val Hair = Color(0x33E9B949)
 private val Live = Color(0xFFE5484D)
 
 /* ===================================================================================================== immersive */
@@ -86,12 +88,12 @@ private fun Context.findActivity(): Activity? {
 
 /** Hides the system bars (swipe to peek) and keeps the screen awake while a match is on. */
 @Composable
-private fun BroadcastImmersive() {
+private fun BroadcastImmersive(keepOn: Boolean = true) {
     val view = LocalView.current
-    DisposableEffect(Unit) {
+    DisposableEffect(keepOn) {
         val w = view.context.findActivity()?.window
-        w?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        // bars are already hidden app-wide (MainActivity.immersive); only re-assert if they are currently showing
+        if (keepOn) w?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // the match is always fullscreen (maximum stadium space); the app-wide Display > Fullscreen setting covers the menus
         if (w != null && android.os.Build.FINGERPRINT != "robolectric") {
             val insets = androidx.core.view.ViewCompat.getRootWindowInsets(view)
             if (insets?.isVisible(WindowInsetsCompat.Type.systemBars()) == true) WindowCompat.getInsetsController(w, view).apply {
@@ -106,7 +108,7 @@ private fun BroadcastImmersive() {
 /* ===================================================================================================== icons */
 
 /** Small line icons drawn in code so the whole rail shares one consistent style. */
-enum class RIcon { BALL, OVER, INNINGS, PLAY, PAUSE, SIMEND, DECLARE, DEFEND, NORMAL, ATTACK, MIC, STAR, LIST, WAGON }
+enum class RIcon { BALL, OVER, INNINGS, PLAY, PAUSE, SIMEND, DECLARE, DEFEND, NORMAL, ATTACK, MIC, STAR, LIST, WAGON, CAM, VIEW }
 
 @Composable
 private fun RailGlyph(icon: RIcon, color: Color, size: Dp = 16.dp) {
@@ -140,6 +142,41 @@ private fun DrawScope.drawGlyph(icon: RIcon, col: Color) {
         RIcon.WAGON -> { drawCircle(col, w * 0.42f, style = Stroke(sw * 0.8f))
             for (a in listOf(-120.0, -60.0, -20.0, 40.0, 110.0, 170.0)) { val r = Math.toRadians(a); val l = w * (0.24f + 0.16f * ((a.toInt() + 200) % 3) / 2f)
                 drawLine(col, Offset(w / 2, h * 0.62f), Offset(w / 2 + l * cos(r).toFloat(), h * 0.62f + l * sin(r).toFloat()), sw * 0.8f, StrokeCap.Round) } }
+        RIcon.CAM -> {   // broadcast camera body + lens
+            drawRoundRect(col, Offset(w * 0.08f, h * 0.3f), androidx.compose.ui.geometry.Size(w * 0.6f, h * 0.42f), androidx.compose.ui.geometry.CornerRadius(w * 0.08f), style = st)
+            drawPath(Path().apply { moveTo(w * 0.7f, h * 0.44f); lineTo(w * 0.94f, h * 0.3f); lineTo(w * 0.94f, h * 0.72f); lineTo(w * 0.7f, h * 0.58f); close() }, col, style = st)
+        }
+        RIcon.VIEW -> {  // cube (2D / 3D switch)
+            val a = Offset(w * 0.5f, h * 0.12f); val b = Offset(w * 0.86f, h * 0.32f); val c = Offset(w * 0.86f, h * 0.72f); val d = Offset(w * 0.5f, h * 0.9f)
+            val e = Offset(w * 0.14f, h * 0.72f); val f = Offset(w * 0.14f, h * 0.32f); val o = Offset(w * 0.5f, h * 0.52f)
+            drawPath(Path().apply { moveTo(a.x, a.y); lineTo(b.x, b.y); lineTo(c.x, c.y); lineTo(d.x, d.y); lineTo(e.x, e.y); lineTo(f.x, f.y); close() }, col, style = st)
+            drawLine(col, f, o, sw, StrokeCap.Round); drawLine(col, b, o, sw, StrokeCap.Round); drawLine(col, o, d, sw, StrokeCap.Round)
+        }
+    }
+}
+
+@Composable
+private fun BarDiv() = Box(Modifier.padding(horizontal = 3.dp).width(1.dp).height(26.dp).background(Hair))
+
+/** Pause menu: Resume / Settings / Exit Match (exit asks for confirmation; nothing is lost). */
+@Composable
+private fun PauseMenu(m: MatchSim, onResume: () -> Unit, onSettings: () -> Unit, onExit: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(Color(0xB3020610)).clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { },
+        contentAlignment = Alignment.Center) {
+        Column(Modifier.width(300.dp).clip(RoundedCornerShape(14.dp)).background(DS.Navy2).border(1.dp, DS.Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp)).padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("MATCH PAUSED", color = DS.Gold, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+            Spacer(Modifier.height(4.dp))
+            val inn = m.cur
+            Text("${m.home.short} v ${m.away.short}", color = DS.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 1)
+            if (inn != null) Text("${m.club(inn.batTeam).short} ${inn.scoreText()} (${inn.oversText()} ov)", color = DS.Sub, fontSize = 12.sp, maxLines = 1)
+            Spacer(Modifier.height(14.dp))
+            DsButton("Resume", Modifier.fillMaxWidth()) { onResume() }
+            Spacer(Modifier.height(8.dp))
+            DsButton("Settings", Modifier.fillMaxWidth(), kind = DsKind.SECONDARY) { onSettings() }
+            Spacer(Modifier.height(8.dp))
+            DsButton("Exit match", Modifier.fillMaxWidth(), kind = DsKind.DANGER) { onExit() }
+        }
     }
 }
 
@@ -149,7 +186,7 @@ private val LocalRailH = compositionLocalOf { 42.dp }
 
 @Composable
 private fun RailBtn(label: String, icon: RIcon, modifier: Modifier = Modifier, active: Boolean = false, accent: Color = C.Gold, enabled: Boolean = true, narrow: Boolean = false, onClick: () -> Unit) {
-    val bg = when { active -> Brush.verticalGradient(listOf(accent, accent.copy(alpha = 0.78f))); else -> Brush.verticalGradient(listOf(Color(0xFF18264C), Color(0xFF101B3A))) }
+    val bg = if (active) accent else Color(0xFF13203F)
     val fg = when { !enabled -> C.Sub.copy(alpha = 0.4f); active -> Color(0xFF0B1226); else -> C.Text }
     Column(modifier.height(LocalRailH.current).clip(RoundedCornerShape(9.dp)).background(bg)
         .border(BorderStroke(1.dp, if (active) accent else Color(0x29E9C46A)), RoundedCornerShape(9.dp))
@@ -225,7 +262,7 @@ fun TvScoreboard(m: MatchSim, modifier: Modifier = Modifier) {
     val teamCol = batClub?.let { Color(it.primary) } ?: C.Green
     Column(modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
         .drawBehind { drawLine(Brush.horizontalGradient(listOf(Color.Transparent, C.Gold, C.GoldLight, C.Gold, Color.Transparent)), Offset(0f, 0f), Offset(size.width, 0f), 3f) }) {
-        Row(Modifier.fillMaxWidth().height(52.dp).background(Brush.verticalGradient(listOf(Color(0xF5142350), Navy))), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(52.dp).background(Color(0xF50E1A33)), verticalAlignment = Alignment.CenterVertically) {
             // team slab
             Row(Modifier.fillMaxHeight().width(82.dp).background(Brush.horizontalGradient(listOf(teamCol, teamCol.copy(alpha = 0.55f), Color.Transparent))).padding(start = 8.dp),
                 verticalAlignment = Alignment.CenterVertically) {
@@ -308,7 +345,7 @@ private fun VDiv() = Box(Modifier.width(1.dp).fillMaxHeight(0.7f).background(Hai
 /* ===================================================================================================== screen */
 
 @Composable
-fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
+fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = false) {
     val s = vm.save ?: return
     val m = vm.sim
     @Suppress("UNUSED_VARIABLE") val tk = vm.simTick
@@ -326,7 +363,13 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
     var wagonInn by remember { mutableIntStateOf(-1) }
     var speedX by remember { mutableIntStateOf(vm.settings.playSpeed.let { if (it in SPEEDS) it else 1 }) }
     val dur = (vm.settings.simSpeedMs * 6 / speedX).coerceIn(500, 4200)
-    BroadcastImmersive()
+    /** v2.6 pause menu (Resume / Settings / Exit Match). There is no Back button during a match: system Back opens this menu. */
+    var paused by remember { mutableStateOf(initialPaused) }
+    var confirmExit by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = true) {
+        when { confirmExit -> confirmExit = false; m.finished -> vm.leaveMatch(); panel != 0 -> panel = 0; else -> { vm.autoPlay = false; paused = !paused } }
+    }
+    BroadcastImmersive(vm.settings.keepScreenOn)
     DisposableEffect(Unit) { GameAudio.setScene(GameAudio.Scene.MATCH); onDispose { GameAudio.setScene(GameAudio.Scene.MENU) } }
     // ball-by-ball commentary (English / Hindi, situation-aware); 2D mode: sound + voice straight away, 3D: at the animation moment
     LaunchedEffect(m.events.size) {
@@ -344,6 +387,8 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
             val before = m.events.size
             vm.stepBall()
             if (view3d && m.events.size > before) animBusy = true
+            // Settings > Match > Pause auto-play after a wicket
+            if (vm.settings.autoPauseWicket && m.events.size > before && m.lastEv?.kind == "WICKET" && !m.finished) { vm.autoPlay = false; vm.msg("Wicket! Auto-play paused - change your plans or press Auto.") }
         }
     }
     fun step(f: () -> Unit) { replayEv = null; val before = m.events.size; f(); if (view3d && m.events.size > before) animBusy = true }
@@ -354,9 +399,11 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
     val bowlCol = inn?.let { Color(m.club(it.bowlTeam).primary) } ?: C.Blue
 
     BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF040A18))) {
-        val railW = if (maxWidth < 780.dp) 128.dp else 144.dp
+        // v2.6: no side rail - the stadium gets the full width; controls sit in a compact bar under the scoreboard
+        val railW = 0.dp
         val panelW = (maxWidth * 0.42f).coerceIn(280.dp, 380.dp)
-        val railBtnH = if (maxHeight < 400.dp) 36.dp else 42.dp
+        val railBtnH = if (maxHeight < 400.dp) 38.dp else 42.dp
+        val bottomH = 73.dp + railBtnH + 10.dp
 
         /* ---- stadium: full-bleed, behind everything ---- */
         Box(Modifier.fillMaxSize()) {
@@ -381,9 +428,9 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout)) {
             // top-left match bug
             Row(Modifier.align(Alignment.TopStart).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(38.dp).clip(CircleShape).background(Navy).border(1.dp, Hair, CircleShape).semantics { contentDescription = "Back" }
-                    .clickable(role = Role.Button) { GameAudio.click(); vm.autoPlay = false; vm.back() }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = C.Text, modifier = Modifier.size(18.dp))
+                Box(Modifier.size(38.dp).clip(CircleShape).background(Navy).border(1.dp, Hair, CircleShape).semantics { contentDescription = if (m.finished) "Leave match" else "Pause menu" }
+                    .clickable(role = Role.Button) { GameAudio.click(); vm.autoPlay = false; if (m.finished) vm.leaveMatch() else paused = true }, contentAlignment = Alignment.Center) {
+                    if (m.finished) Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = C.Text, modifier = Modifier.size(18.dp)) else RailGlyph(RIcon.PAUSE, C.Text, 15.dp)
                 }
                 Spacer(Modifier.width(8.dp))
                 Row(Modifier.clip(RoundedCornerShape(10.dp)).background(Navy).border(1.dp, Hair, RoundedCornerShape(10.dp)).padding(start = 4.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
@@ -404,10 +451,17 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
             }
             // top-right view controls (left of the rail)
             Row(Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = railW + 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                val camNames = listOf("TV", "Aerial", "Side", "Bat")
                 if (replayEv != null) ViewPill("● LIVE", Live, true) { replayEv = null }
-                if (view3d) ViewPill("CAM ${camNames[cam].uppercase()}") { cam = (cam + 1) % 4; vm.settings.camMode = cam }
-                ViewPill(if (view3d) "2D" else "3D") { view3d = !view3d; vm.settings.view3d = view3d; animBusy = false }
+                if (!m.finished) Row(Modifier.padding(start = 4.dp).height(30.dp).clip(RoundedCornerShape(8.dp)).background(Navy).border(1.dp, Hair, RoundedCornerShape(8.dp)).padding(2.dp)) {
+                    val agg = m.club(me).aggression
+                    for ((v, l) in listOf(0 to "Defend", 1 to "Normal", 2 to "Attack")) {
+                        val acc = when (v) { 0 -> Color(0xFF7FB2FF); 1 -> C.Gold; else -> Color(0xFFF59E5B) }
+                        Box(Modifier.fillMaxHeight().clip(RoundedCornerShape(6.dp)).background(if (agg == v) acc else Color.Transparent).semantics { contentDescription = l }
+                            .clickable(role = Role.Button) { GameAudio.click(); vm.setAggression(v) }.padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+                            Text(l.uppercase(), color = if (agg == v) Color(0xFF0B1226) else C.Sub, fontSize = 8.5.sp, fontWeight = FontWeight.Black, maxLines = 1, softWrap = false)
+                        }
+                    }
+                }
                 ViewPill("${speedX}x", C.Gold, speedX > 1) { speedX = SPEEDS[(SPEEDS.indexOf(speedX) + 1) % SPEEDS.size]; vm.settings.playSpeed = speedX }
                 m.winProbability()?.let { wp ->
                     val chasing = inn?.let { m.club(it.batTeam).short } ?: ""
@@ -424,7 +478,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
             }
 
             /* ---- slide-in panel ---- */
-            AnimatedVisibility(panel != 0, Modifier.align(Alignment.TopEnd).padding(top = 64.dp, end = railW + 6.dp, bottom = 102.dp),
+            AnimatedVisibility(panel != 0, Modifier.align(Alignment.TopEnd).padding(top = 48.dp, end = 8.dp, bottom = bottomH + 26.dp),
                 enter = slideInHorizontally(tween(220)) { it / 2 } + fadeIn(tween(220)), exit = slideOutHorizontally(tween(180)) { it / 2 } + fadeOut(tween(180))) {
                 val shown = panel.takeIf { it != 0 } ?: 1
                 Column(Modifier.width(panelW).fillMaxHeight().clip(RoundedCornerShape(12.dp)).background(Color(0xEE081127)).border(1.dp, Hair, RoundedCornerShape(12.dp))) {
@@ -501,51 +555,34 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
                     Text(vm.comLines.firstOrNull { it.evId == ev.id && it.kind == ev.kind }?.text ?: ev.text, color = C.Text, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 TvScoreboard(m, Modifier.fillMaxWidth())
-            }
-
-            /* ---- right: control rail ---- */
-            CompositionLocalProvider(LocalRailH provides railBtnH) {
-            Column(Modifier.align(Alignment.CenterEnd).width(railW).fillMaxHeight()
-                .background(Brush.horizontalGradient(listOf(Color(0xCC07102A), Color(0xF2081127))))
-                .drawBehind { drawLine(Brush.verticalGradient(listOf(Color.Transparent, C.Gold.copy(alpha = 0.6f), Color.Transparent)), Offset(0f, 0f), Offset(0f, size.height), 2f) }
-                .padding(horizontal = 6.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
+                // compact match controls right under the scoreboard
+                val camNames = listOf("TV", "Aerial", "Side", "Bat")
                 val live = !m.finished
-                RailLabel("PLAY")
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    RailBtn("Ball", RIcon.BALL, Modifier.weight(1f), enabled = live) { step { vm.stepBall() } }
-                    RailBtn("Over", RIcon.OVER, Modifier.weight(1f), enabled = live) { step { vm.stepOver() } }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    RailBtn("Innings", RIcon.INNINGS, Modifier.weight(1f), enabled = live) { step { vm.stepInnings() } }
-                    RailBtn(if (vm.autoPlay) "Pause" else "Auto", if (vm.autoPlay) RIcon.PAUSE else RIcon.PLAY, Modifier.weight(1f), active = vm.autoPlay, enabled = live) { vm.autoPlay = !vm.autoPlay }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    RailBtn("Sim end", RIcon.SIMEND, Modifier.weight(1f), enabled = live) { step { vm.simRest() } }
-                    if (m.isTest) RailBtn("Declare", RIcon.DECLARE, Modifier.weight(1f), enabled = live && m.canDeclare()) { vm.declare() }
-                }
-                RailLabel("APPROACH")
-                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    val agg = m.club(me).aggression
-                    for ((v, l, ic) in listOf(Triple(0, "Defend", RIcon.DEFEND), Triple(1, "Normal", RIcon.NORMAL), Triple(2, "Attack", RIcon.ATTACK))) {
-                        val acc = when (v) { 0 -> Color(0xFF38BDF8); 1 -> C.Gold; else -> Color(0xFFF97316) }
-                        RailBtn(l, ic, Modifier.weight(1f), active = agg == v, accent = acc, enabled = live, narrow = railW < 140.dp) { vm.setAggression(v) }
+                CompositionLocalProvider(LocalRailH provides railBtnH) {
+                    Row(Modifier.fillMaxWidth().background(NavyDeep).horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 5.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val w = Modifier.width(if (railBtnH < 40.dp) 56.dp else 62.dp)
+                        RailBtn("Ball", RIcon.BALL, w, enabled = live) { step { vm.stepBall() } }
+                        RailBtn("Over", RIcon.OVER, w, enabled = live) { step { vm.stepOver() } }
+                        RailBtn("Innings", RIcon.INNINGS, w, enabled = live) { step { vm.stepInnings() } }
+                        RailBtn(if (vm.autoPlay) "Pause" else "Auto", if (vm.autoPlay) RIcon.PAUSE else RIcon.PLAY, w, active = vm.autoPlay, enabled = live) { vm.autoPlay = !vm.autoPlay }
+                        RailBtn("Sim end", RIcon.SIMEND, w, enabled = live) { step { vm.simRest() } }
+                        if (m.isTest) RailBtn("Declare", RIcon.DECLARE, w, enabled = live && m.canDeclare()) { vm.declare() }
+                        BarDiv()
+                        RailBtn("Commentary", RIcon.MIC, w, active = panel == 1) { toggle(1) }
+                        RailBtn("Scorecard", RIcon.LIST, w, active = panel == 3) { toggle(3) }
+                        RailBtn("Highlights", RIcon.STAR, w, active = panel == 2) { toggle(2) }
+                        RailBtn("Wagon", RIcon.WAGON, w, active = panel == 4) { toggle(4) }
+                        BarDiv()
+                        RailBtn("Cam ${camNames[cam]}", RIcon.CAM, w, enabled = view3d) { cam = (cam + 1) % 4; vm.settings.camMode = cam }
+                        RailBtn(if (view3d) "2D" else "3D", RIcon.VIEW, w) { view3d = !view3d; vm.settings.view3d = view3d; animBusy = false }
                     }
                 }
-                RailLabel("VIEW")
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    RailBtn("Commentary", RIcon.MIC, Modifier.weight(1f), active = panel == 1) { toggle(1) }
-                    RailBtn("Highlights", RIcon.STAR, Modifier.weight(1f), active = panel == 2) { toggle(2) }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    RailBtn("Scorecard", RIcon.LIST, Modifier.weight(1f), active = panel == 3) { toggle(3) }
-                    RailBtn("Wagon", RIcon.WAGON, Modifier.weight(1f), active = panel == 4) { toggle(4) }
-                }
-            }
             }
 
             /* ---- result card ---- */
             if (m.finished && panel == 0) Box(Modifier.align(Alignment.Center).padding(end = railW).clip(RoundedCornerShape(16.dp))
-                .background(Brush.verticalGradient(listOf(Color(0xF5142350), Color(0xF5081127)))).border(1.dp, C.Gold.copy(alpha = 0.6f), RoundedCornerShape(16.dp)).padding(horizontal = 22.dp, vertical = 14.dp)) {
+                .background(Color(0xF50A1224)).border(1.dp, C.Gold.copy(alpha = 0.6f), RoundedCornerShape(16.dp)).padding(horizontal = 22.dp, vertical = 14.dp)) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("FULL TIME", color = C.Gold, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                     Text(m.resultText, color = Color.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 380.dp))
@@ -564,6 +601,10 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
                 }
             }
         }
+        /* ---- pause menu ---- */
+        if (paused && !m.finished) PauseMenu(m, onResume = { paused = false }, onSettings = { paused = false; vm.nav(Screen.SettingsScr) }, onExit = { confirmExit = true })
+        if (confirmExit) DsConfirm("Exit match?", "The match is kept exactly at this ball and your career is saved. Resume it any time from the Match Centre or the Calendar.",
+            "Exit match", danger = true, onConfirm = { confirmExit = false; paused = false; vm.exitMatch() }, onDismiss = { confirmExit = false })
     }
 }
 

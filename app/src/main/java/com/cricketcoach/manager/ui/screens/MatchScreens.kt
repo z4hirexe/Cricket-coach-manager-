@@ -92,7 +92,7 @@ fun FixturesScreen(vm: GameVM) {
         }
         FixtureList(s, comp, if (mineOnly && comp.userTeam != null) comp.userTeam else null) { detail = it }
     }
-    detail?.let { FixtureDetail(s, it) { detail = null } }
+    detail?.let { FixtureDetail(s, it, vm) { detail = null } }
 }
 
 @Composable
@@ -116,22 +116,6 @@ fun FixtureList(s: CareerSave, comp: Competition, team: String?, onOpen: (Fixtur
         }
         item { if (list.isEmpty()) Sub("No fixtures yet."); Spacer(Modifier.height(24.dp)) }
     }
-}
-
-@Composable
-fun FixtureDetail(s: CareerSave, f: Fixture, onClose: () -> Unit) {
-    val r = f.res ?: return
-    AlertDialog(onDismissRequest = onClose, containerColor = C.Surface,
-        title = { Text("${s.clubs[f.home]?.short} v ${s.clubs[f.away]?.short} — ${f.stage}") },
-        text = {
-            Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
-                Text(r.text, color = C.Gold, fontWeight = FontWeight.Bold)
-                if (r.potm.isNotEmpty()) Sub("Player of the match: ${s.players[r.potm]?.name ?: r.potm}")
-                Spacer(Modifier.height(6.dp))
-                r.card.forEach { Text(it, color = if (!it.startsWith("  ")) C.Green else C.Text, fontSize = 11.sp) }
-            }
-        },
-        confirmButton = { TextButton(onClick = onClose) { Text("Close") } })
 }
 
 @Composable

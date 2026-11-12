@@ -304,4 +304,78 @@ class ScreenPreviews {
     @Test fun matchCentreBenchSmall() { val vm = matchCentreVm(team = "F_CSK", days = 8); shot("106_match_centre_bench_small_phone.png", 1500) { PreMatchScreen(vm, 0) } }
 
     @Test fun settings() { val vm = vm(); shot("50_settings.png") { SettingsScreen(vm) } }
+
+    // ---- Mega phase H (v2.6 / Cricket Manager Pro 2027)
+    @Test fun loading2027() { shot("200_loading.png", 2200) { Splash() } }
+    @Test fun mainMenu2027() { val vm = vm(); shot("201_main_menu.png", 1500) { MainMenu(vm) } }
+    @Config(sdk = [34], qualifiers = "w411dp-h891dp-port-xxhdpi")
+    @Test fun mainMenuPortrait() { val vm = vm(); shot("202_main_menu_portrait.png", 1500) { MainMenu(vm) } }
+    @Test fun newGame() { val vm = vm(); shot("203_new_game.png", 1200) { NewGameScreen(vm) } }
+    @Test fun about() { val vm = vm(); shot("204_about.png", 1200) { AboutScreen(vm) } }
+    @Test fun settings2027() { val vm = vm(); shot("205_settings.png", 1200) { SettingsScreen(vm) } }
+    @Config(sdk = [34], qualifiers = "w411dp-h891dp-port-xxhdpi")
+    @Test fun settingsPortrait() { val vm = vm(); shot("206_settings_portrait.png", 1200) { SettingsScreen(vm) } }
+    @Test fun calendarOfficialIpl() {
+        val vm = careerVm(Modes.IPL, "F_KKR", 4); val s = vm.save!!
+        // a day with other teams' fixtures so the compact rows are visible
+        val d = Schedule.matches(s).filter { !it.mine }.map { it.date }.firstOrNull { day -> Schedule.matches(s).count { it.date == day } >= 2 } ?: Schedule.today(s)
+        inShell(vm, Screen.Calendar, "207_calendar_official_ipl.png", 1600) { CalendarScreen(vm, d) }
+    }
+    @Test fun auction2027() { val vm = auctionVm(4); shot("208_auction.png", 1600) { AuctionScreen(vm, preview = 1) } }
+    @Test fun squadSelection2027() { val vm = careerVm(Modes.INTL, "N_IND", 0); inShell(vm, Screen.Selection, "209_squad_selection.png", 1500) { SelectionScreen(vm) } }
+    @Test fun matchCentre2027() { val vm = matchCentreVm(); shot("210_match_centre.png", 1500) { PreMatchScreen(vm, 0) } }
+    @Test fun gameplay2027() { val vm = liveVm(); shot("211_fullscreen_gameplay.png", 5000) { LiveMatchScreen(vm) } }
+    @Test fun tvScoreboard2027() { val vm = liveVm(firstInnsDone = 1, balls = 97); shot("212_tv_scoreboard_chase.png", 5000) { LiveMatchScreen(vm) } }
+    @Test fun pauseMenu() { val vm = liveVm(); shot("213_pause_menu.png", 3000) { LiveMatchScreen(vm, initialPaused = true) } }
+    @Config(sdk = [34], qualifiers = "w740dp-h360dp-land-xxhdpi")
+    @Test fun gameplaySmall() { val vm = liveVm(); shot("214_gameplay_small_phone.png", 5000) { LiveMatchScreen(vm) } }
+    private fun playedVm(): Pair<GameVM, Pair<Competition, Fixture>> {
+        val vm = careerVm(Modes.IPL, "F_MI", 6); val s = vm.save!!
+        val c = s.league.first(); val f = c.fixtures.filter { it.played && it.res != null }.maxByOrNull { it.day }!!
+        return vm to (c to f)
+    }
+    @Test fun resultCard() {
+        val (vm, cf) = playedVm(); val s = vm.save!!
+        shot("215_match_result_card.png", 1200) {
+            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFF03060F)), contentAlignment = androidx.compose.ui.Alignment.Center) { ResultCard(s, cf.second, vm) {} }
+        }
+    }
+    @Test fun matchReport() {
+        val (vm, cf) = playedVm()
+        inShell(vm, Screen.MatchReport(cf.first.id, cf.second.id), "216_match_report_scorecard.png", 1500) { MatchReportScreen(vm, cf.first.id, cf.second.id) }
+    }
+    @Test fun liveResult2027() { val vm = liveVm(); vm.sim!!.simToEnd(); shot("217_live_result.png", 3000) { LiveMatchScreen(vm) } }
+    @Test fun stumpsPhotoPost() {
+        val vm = careerVm(Modes.INTL, "N_IND", 4); val s = vm.save!!
+        Stumps.ensureSeeded(s); if (!Stumps.isFollowing(s, "ba607b88")) Stumps.toggleFollow(s, "ba607b88")
+        Stumps.playerPost(s, "ba607b88", "CENTURY", 22.0, "Patience. Process. Hundred. 💯 122* (98) v AUS #IND #Century", Random(2))
+        inShell(vm, Screen.Social, "218_stumps_photo_post.png", 2500) { SocialScreen(vm, initialTab = 1) }
+    }
+    @Test fun stumpsProfile2027() {
+        val vm = careerVm(Modes.IPL, "F_MI", 6); val s = vm.save!!
+        Stumps.ensureSeeded(s)
+        Stumps.playerPost(s, "462411b3", "FIVEFOR", 20.0, "Five in the book! Team effort though 🙌 5/21 v CSK #MI", Random(5))
+        inShell(vm, Screen.SocialProfile("462411b3"), "219_stumps_player_profile.png", 2500) { SocialProfileScreen(vm, "462411b3") }
+    }
+    @Test fun playerProfile2027() { val vm = careerVm(Modes.INTL, "N_IND", 2); inShell(vm, Screen.Profile("ba607b88"), "220_player_profile.png", 1600) { ProfileScreen(vm, "ba607b88") } }
+    private fun yorkerVm(): GameVM {
+        val vm = careerVm(Modes.IPL, "F_CSK", 8); val s = vm.save!!
+        Yorker.ensureSeeded(s, Random(3))
+        val u = s.userClub()
+        Yorker.post(s, Yorker.keyOfTeam(u.id), "Matchday! Let's go ${u.short} 💛 #${u.short} #IPL2026", "NEWS", Random(4), photo = "win", club = u.id)
+        return vm
+    }
+    @Test fun yorkerFeed() { val vm = yorkerVm(); inShell(vm, Screen.YorkerHome, "221_yorker_home_feed.png", 2500) { YorkerScreen(vm) } }
+    @Config(sdk = [34], qualifiers = "w411dp-h891dp-port-xxhdpi")
+    @Test fun yorkerFeedPortrait() { val vm = yorkerVm(); inShell(vm, Screen.YorkerHome, "222_yorker_feed_portrait.png", 2500) { YorkerScreen(vm) } }
+    @Test fun yorkerProfile() {
+        val vm = yorkerVm(); val key = Yorker.keyOfTeam(vm.save!!.userClubId)
+        inShell(vm, Screen.YorkerProfile(key), "223_yorker_profile.png", 2000) { YorkerProfileScreen(vm, key) }
+    }
+    @Test fun yorkerThread() {
+        val vm = yorkerVm(); val s = vm.save!!
+        val p = s.yorker.posts.first { it.author.startsWith("p:") || it.author.startsWith("t:") }
+        Yorker.reply(s, p, "What a performance tonight! Proud of this group.")
+        inShell(vm, Screen.YorkerThread(p.id), "224_yorker_thread.png", 2000) { YorkerThreadScreen(vm, p.id) }
+    }
 }

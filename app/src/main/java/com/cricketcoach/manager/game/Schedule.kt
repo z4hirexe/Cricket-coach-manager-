@@ -16,6 +16,17 @@ import java.time.temporal.ChronoUnit
  */
 object Schedule {
     const val DISCLAIMER = "Generated / fictional schedule — not an official fixture list"
+    /** Calendar footer: official lists are named, everything else is generated. */
+    fun sourceNote(s: CareerSave): String {
+        val off = s.league.filter { it.source.isNotEmpty() }
+        return if (off.isEmpty()) DISCLAIMER else off.joinToString(" · ") { it.source } + if (off.size < s.league.size) " · other fixtures generated" else ""
+    }
+
+    /** Date text in the user's chosen style (Settings > Language > Date format): "IN" 28 Mar 2026, "US" Mar 28, 2026, "ISO" 2026-03-28. */
+    fun fmt(d: LocalDate, style: String = "IN", dow: Boolean = false): String {
+        val pat = when (style) { "US" -> if (dow) "EEE, MMM d, yyyy" else "MMM d, yyyy"; "ISO" -> if (dow) "EEE yyyy-MM-dd" else "yyyy-MM-dd"; else -> if (dow) "EEE d MMM yyyy" else "d MMM yyyy" }
+        return d.format(java.time.format.DateTimeFormatter.ofPattern(pat, java.util.Locale.ENGLISH))
+    }
 
     // categories (filter chips)
     const val INTL = "INTL"; const val IPL = "IPL"; const val DOMESTIC = "DOMESTIC"; const val TOURN = "TOURN"
@@ -36,11 +47,17 @@ object Schedule {
     ) { val isMatch get() = fx != null }
 
     /** First day of the season for each career type (fictional but plausible windows). */
-    fun seasonStart(s: CareerSave): LocalDate = when (s.mode) {
+    fun seasonStart(s: CareerSave): LocalDate = officialStart(s) ?: when (s.mode) {
         Modes.IPL -> LocalDate.of(s.year, 3, 22)
         Modes.INTL -> LocalDate.of(s.year, 6, 1)
         Modes.DOMESTIC -> LocalDate.of(s.year, 9, 20)
         else -> LocalDate.of(s.year, 4, 10)
+    }
+
+    /** First official fixture date of the season (game day 1), when the season uses a verified fixture list. */
+    private fun officialStart(s: CareerSave): LocalDate? {
+        val f = s.league.asSequence().filter { it.source.isNotEmpty() }.flatMap { it.fixtures.asSequence() }.filter { it.date.isNotEmpty() && it.day >= 1 }.minByOrNull { it.day } ?: return null
+        return runCatching { LocalDate.parse(f.date).minusDays((f.day - 1).toLong()) }.getOrNull()
     }
 
     /** Length of a fixture in calendar days (Tests 5, first-class 4, everything else 1). */
@@ -74,8 +91,16 @@ object Schedule {
             val d = f.day.coerceAtLeast(1); maxDay = maxOf(maxDay, d)
             gap[d] = maxOf(gap[d] ?: 1, gapAfter(c, f))
         }
+        // official fixtures pin their game day to the real date (offset from the season start)
+        val start = officialStart(s)
+        val pinned = HashMap<Int, Int>()
+        if (start != null) for (c in s.league) if (c.source.isNotEmpty()) for (f in c.fixtures) if (f.date.isNotEmpty() && f.day >= 1)
+            runCatching { pinned[f.day] = ChronoUnit.DAYS.between(start, LocalDate.parse(f.date)).toInt() }
         val off = IntArray(maxDay + 2)
-        for (d in 2..maxDay + 1) off[d] = off[d - 1] + (gap[d - 1] ?: 1)
+        for (d in 2..maxDay + 1) {
+            val natural = off[d - 1] + (gap[d - 1] ?: 1)
+            off[d] = pinned[d]?.takeIf { it > off[d - 1] } ?: natural
+        }
         cacheKey = key; cacheOffsets = off
         return off
     }
@@ -131,6 +156,7 @@ object Schedule {
 
     /** Fictional start time (local) by format; IPL double-headers get an afternoon slot. */
     fun startTime(s: CareerSave, c: Competition, f: Fixture): String {
+        if (f.time.isNotEmpty()) return f.time
         if (c.format == "TEST") return "09:30"
         if (c.format == "ODI") return if (c.kind == "NATION") "14:00" else "09:00"
         if (c.kind == "FRANCHISE") {
@@ -141,6 +167,7 @@ object Schedule {
     }
 
     fun venue(s: CareerSave, f: Fixture): String {
+        if (f.venue.isNotEmpty()) return f.venue
         val h = s.clubs[f.home]
         return h?.stadium?.takeIf { it.isNotBlank() } ?: Tournaments.venueOf(f.home) ?: Modes.stateOf(f.home)?.venue ?: "${h?.name ?: "Home"} ground"
     }

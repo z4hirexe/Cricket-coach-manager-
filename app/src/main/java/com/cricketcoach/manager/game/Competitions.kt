@@ -152,7 +152,7 @@ object CompEngine {
         val ko = comp.fixtures.filter { isKO(it) }
         val fx = { stage: String -> comp.fixtures.firstOrNull { it.stage == stage } }
         fun add(stage: String, h: String, a: String) {
-            comp.fixtures.add(Fixture("${comp.id}-${comp.nextFixtureId++}", h, a, stage, 0, lastDay(comp) + 1))
+            comp.fixtures.add(Fixture("${comp.id}-${comp.nextFixtureId++}", h, a, stage, 0, lastDay(comp) + 1).also { OfficialSchedule.stamp(comp, it) })
         }
         if (comp.series || comp.knockout == "NONE") {
             val t = table(comp)

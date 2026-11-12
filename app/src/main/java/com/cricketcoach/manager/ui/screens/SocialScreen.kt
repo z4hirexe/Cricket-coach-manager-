@@ -395,21 +395,9 @@ private fun CommentBubble(author: String, handle: String, text: String, time: St
 
 @Composable
 private fun LocalComments(vm: GameVM, s: CareerSave, p: SocialPost) {
-    var text by remember(p.id) { mutableStateOf("") }
-    Column(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.weight(1f)) {
-            items(p.comments.size) { i -> val c = p.comments[i]; CommentBubble(c.author, c.handle, c.text, if (c.handle.startsWith("@coach_")) "now" else minutesAgo(c.handle + c.text)) }
-        }
-        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(text, { text = it.take(160) }, placeholder = { Text("Reply as Coach ${s.manager}…", fontSize = 11.sp) }, singleLine = true,
-                modifier = Modifier.weight(1f).heightIn(min = 54.dp), textStyle = LocalTextStyle.current.copy(fontSize = 12.sp))
-            IconButton(onClick = {
-                val b = text.trim(); if (b.isNotEmpty()) {
-                    p.comments.add(SocialComment("${s.manager} (Coach)", "@coach_${s.manager.filter { it.isLetterOrDigit() }.lowercase().take(12)}", b, 0))
-                    text = ""; vm.persist()
-                }
-            }) { Icon(Icons.Filled.Send, "Send", tint = UI.Pink) }
-        }
+    CommentThreadView(key = p.id, total = max(p.comments.size, p.commentCount), stored = p.comments, generatedTotal = Stumps.generatedTotal(s, p),
+        page = { from, n -> Stumps.commentPage(s, p, from, n) }, meName = "Coach ${s.manager}", version = vm.tick, modifier = Modifier.fillMaxSize(), accent = UI.Pink) { text, replyTo ->
+        Stumps.userComment(s, p, text, replyTo); vm.persist()
     }
 }
 
@@ -468,7 +456,8 @@ private fun LocalPostCard(vm: GameVM, s: CareerSave, p: SocialPost, selected: Bo
     val shape = RoundedCornerShape(14.dp)
     Column(Modifier.fillMaxWidth().padding(vertical = 5.dp).clip(shape).background(Color(0xFF0E1522))
         .border(if (selected) 2.dp else 1.dp, if (selected) UI.Pink.copy(alpha = 0.85f) else UI.Line, shape).clickable { onSelect() }.padding(10.dp)) {
-        if (p.headline.isNotEmpty()) { PostPoster(s, p); Spacer(Modifier.height(8.dp)) }
+        if (p.photo.isNotEmpty()) { PostPhoto(s, p); Spacer(Modifier.height(8.dp)) }
+        else if (p.headline.isNotEmpty()) { PostPoster(s, p); Spacer(Modifier.height(8.dp)) }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) {
                 AuthorLine(p.author, p.handle, p.verified, p.kind, p.authorPid, if (p.authorPid.isNotEmpty()) ({ vm.nav(Screen.SocialProfile(p.authorPid)) }) else null)
@@ -485,6 +474,25 @@ private fun LocalPostCard(vm: GameVM, s: CareerSave, p: SocialPost, selected: Bo
             Text("S${p.season} D${p.day}", color = C.Sub, fontSize = 9.sp)
         }
         if (p.shared) Text("Shared online", color = C.Sub, fontSize = 9.sp)
+    }
+}
+
+/** v2.6 photo post: original moment artwork, kit recoloured to the player's team, with a small stat caption. */
+@Composable
+private fun PostPhoto(s: CareerSave, p: SocialPost) {
+    val club = s.clubs[p.club] ?: s.players[p.authorPid.ifEmpty { p.pid }]?.clubId?.let { s.clubs[it] }
+    val shape = RoundedCornerShape(12.dp)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val side = minOf(maxWidth, 420.dp)
+        Box(Modifier.size(side).clip(shape).border(1.dp, UI.Line, shape)) {
+            PhotoMoment(p.photo, club?.primary ?: 0xFF4F8EF7, Modifier.fillMaxSize(), contentDescription = "${p.author} photo")
+            Row(Modifier.align(Alignment.BottomStart).padding(10.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xCC060B1A)).padding(horizontal = 8.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                if (club != null) { TeamFlag(club, 18.dp); Spacer(Modifier.width(6.dp)) }
+                Text(kindLabel(p.kind), color = kindColor(p.kind), fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp)
+                if (p.stat.isNotBlank()) { Spacer(Modifier.width(6.dp)); Text(p.stat, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, maxLines = 1) }
+            }
+        }
     }
 }
 

@@ -101,6 +101,31 @@ class LiveBroadcastUiTest {
         compose.onNodeWithContentDescription("Declare").assertIsNotEnabled()
     }
 
+    /** v2.6: no Back mid-match - the pause menu offers Resume / Settings / Exit match; exit asks first and loses nothing. */
+    @Test fun pauseMenuResumeAndConfirmedExit() {
+        val (vm, m) = setup("T20")
+        tap("Ball"); tap("Ball")
+        val balls = m.events.size
+        tap("Pause menu")
+        compose.onNodeWithText("MATCH PAUSED").assertExists()
+        compose.onNodeWithContentDescription("Settings").assertExists()
+        tap("Resume")
+        compose.onAllNodesWithText("MATCH PAUSED").assertCountEquals(0)
+        assertEquals(balls, m.events.size)
+        // exit: first a confirmation, cancel keeps the match open
+        tap("Pause menu"); tap("Exit match")
+        compose.onNodeWithText("Exit match?").assertExists()
+        compose.onNodeWithContentDescription("Cancel").performClick(); compose.mainClock.advanceTimeBy(400)
+        assertEquals(Screen.Live, vm.stack.last())
+        // confirm: back to the calendar, the match is kept exactly at this ball
+        tap("Exit match")
+        compose.onAllNodesWithContentDescription("Exit match").onLast().performClick(); compose.mainClock.advanceTimeBy(400)
+        assertEquals(Screen.Calendar, vm.stack.last())
+        assertSame(m, vm.sim)
+        assertEquals(balls, m.events.size)
+        assertFalse(m.finished)
+    }
+
     @Test fun limitedOversHasNoDeclareButton() {
         setup("ODI")
         compose.onAllNodesWithContentDescription("Declare").assertCountEquals(0)

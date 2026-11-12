@@ -272,6 +272,8 @@ object Modes {
                 val ipl = Competition(id = "S${s}IPL", name = "Indian Premier League ${save.year}", key = "IPL", format = "T20", kind = "FRANCHISE", season = s, knockout = "IPL", allowImpact = true)
                 ipl.teams = Consts.IPL.map { it.id }.toMutableList()
                 iplSchedule(ipl, rnd)
+                // 2026: the official, verified IPL fixture list (dates / venues); other years stay generated
+                OfficialSchedule.applyIpl(ipl, save.year)
                 add(ipl, 1)
             }
         }

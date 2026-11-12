@@ -8,79 +8,79 @@
 0.3   [EXPERT]   >> The pressure of the dot balls told there.
 0.4   [DOT] Beaten! That kissed nothing but air past the outside edge.
 0.5   [RUN] Dabbed down to third man, single.
-0.6   [RUN] Pushed past mid-off, they take one.
+0.6   [RUN] Pushed wide of mid-on, they take one.
 0.6   [OVER] END OF OVER 1 · 3 RUNS · 1 WKT | AUS 3/1  ·  CRR 3.00 | Head 2 (3)  ·  Smith 1 (2)  ·  Bumrah 1-0-3-1
-1.1   [FOUR] FOUR! Head drives it behind square on the leg side!
-1.2   [FOUR] Beautiful timing, threaded straight down the ground for four.
-1.3   [DOT] Ashwin to Head, defended solidly back down the pitch.
-1.4   [RUN] Quick single! Sharp running between the wickets.
-1.5   [RUN] Turned away fine, one run.
-1.6   [DOT] Head shoulders arms - well judged.
+1.1   [FOUR] FOUR! Head drives it straight down the ground!
+1.2   [FOUR] Edged... and it flies past the keeper! Four lucky runs.
+1.3   [DOT] Good length from Ashwin, Head leaves it alone.
+1.4   [RUN] Tapped to mid-on and they scamper through.
+1.5   [RUN] Smith rotates the strike.
+1.6   [DOT] Played and missed! Lovely bowling from Ashwin.
 1.6   [OVER] END OF OVER 2 · 10 RUNS | AUS 13/1  ·  CRR 6.50 | Head 11 (8)  ·  Smith 2 (3)  ·  Ashwin 1-0-10-0
-2.1   [DOT] Played and missed! Lovely bowling from Bumrah.
-2.2   [RUN] Driven to long-off for one.
-2.3   [RUN] Head rotates the strike.
-2.4   [FOUR] That races away past point. Four!
-2.5   [DOT] Pressure building, another dot.
+2.1   [DOT] Tight line from Bumrah, Smith can only block.
+2.2   [RUN] Turned away fine, one run.
+2.3   [RUN] Driven to long-off for one.
+2.4   [FOUR] Cracked through the covers - four runs!
+2.5   [DOT] Smith shoulders arms - well judged.
 2.6   [WICKET] That's out, LBW - trapped on the crease. Smith departs for 7 off 8.
-2.6   [EXPERT]   >> Bumrah's figures now read 2-0-9-2, economy 4.50.
+2.6   [EXPERT]   >> Bumrah set that up beautifully over the last few balls.
 2.6   [OVER] END OF OVER 3 · 6 RUNS · 1 WKT | AUS 19/2  ·  CRR 6.33 | Head 12 (9)  ·  Bumrah 2-0-9-2
-3.1   [RUN] Tapped to mid-on and they scamper through.
-3.2   [RUN] Nudged past point, easy single.
-3.3   [RUN] Pushed past the keeper, they take one.
+3.1   [RUN] Quick single! Sharp running between the wickets.
+3.2   [RUN] Nudged through the covers, easy single.
+3.3   [RUN] Pushed through midwicket, they take one.
 3.4   [RUN] Superb running - three!
-3.5   [RUN] Head works it past the keeper for a single.
-3.6   [DOT] Tight line from Shami, Marsh can only block.
+3.5   [RUN] Head works it through the covers for a single.
+3.6   [DOT] Full and straight, dug out by Marsh.
 3.6   [OVER] END OF OVER 4 · 7 RUNS | AUS 26/2  ·  CRR 6.50 | Head 15 (12)  ·  Marsh 4 (3)  ·  Shami 1-0-7-0
 4.1   [RUN] Dabbed down to third man, single.
-4.2   [RUN] Driven to long-off for one.
-4.3   [FOUR] Head dances down and hits it past point. Four!
-4.4   [RUN] Head rotates the strike.
-4.5   [RUN] Tapped to mid-on and they scamper through.
-4.6   [SIX] That's HUGE! Sent over long-on! That's gone 95 metres!
+4.2   [RUN] Turned away fine, one run.
+4.3   [FOUR] Short and punished! Head sends it down to third man for four.
+4.4   [RUN] Driven to long-off for one.
+4.5   [RUN] Marsh rotates the strike.
+4.6   [SIX] SIX! Head launches Ashwin over long-on! That's gone 94 metres!
 4.6   [OVER] END OF OVER 5 · 14 RUNS | AUS 40/2  ·  CRR 8.00 | Head 27 (16)  ·  Marsh 6 (5)  ·  Ashwin 2-0-24-0
-5.1   [SIX] SIX! Marsh launches Bumrah straight back over the bowler's head!
-5.2   [DOT] Full and straight, dug out by Marsh.
+5.1   [SIX] Maximum! Picked the length early and dispatched it over extra cover.
+5.2   [DOT] Bumrah hits the deck hard, Marsh fends it down.
 5.3   [RUN] Quick single! Sharp running between the wickets.
-5.4   [RUN] Nudged straight down the ground, easy single.
-5.5   [RUN] Turned away fine, one run.
-5.6   [WIDE] Wide called. Bumrah strays down the leg side.
+5.4   [RUN] Tapped to mid-on and they scamper through.
+5.5   [RUN] Marsh works it behind square on the leg side for a single.
+5.6   [WIDE] Too wide outside off - extra run.
 5.6   [CALL] That brings up 50 for Australia.
-5.6   [RUN] Dabbed down to third man, single.
+5.6   [RUN] Nudged fine down the leg side, easy single.
 5.6   [CALL/POWERPLAY] End of the powerplay: Australia 51/2.
-5.6   [EXPERT]   >> Current run rate 8.50. At this rate, 170 is on the cards.
+5.6   [EXPERT]   >> Bumrah's figures now read 3-0-20-2, economy 6.67.
 5.6   [OVER] END OF OVER 6 · 11 RUNS | AUS 51/2  ·  CRR 8.50 | Head 29 (18)  ·  Marsh 14 (9)  ·  Bumrah 3-0-20-2
-6.1   [RUN] Good running, two runs.
-6.2   [RUN] Placed down to third man - they come back for two.
-6.3   [RUN] Driven to long-off for one.
-6.4   [RUN] Pushed wide of mid-on, they take one.
-6.5   [DOT] Quick bouncer from Jadeja, Head sways out of the way.
-6.6   [DOT] Angled across, Head lets it go through to the keeper.
+6.1   [RUN] Placed past the keeper - they come back for two.
+6.2   [RUN] Good running, two runs.
+6.3   [RUN] Pushed down to third man, they take one.
+6.4   [RUN] Dabbed down to third man, single.
+6.5   [DOT] Yorker! Head jams the bat down just in time.
+6.6   [DOT] Slower ball, Head is early on the shot. No run.
 6.6   [OVER] END OF OVER 7 · 6 RUNS | AUS 57/2  ·  CRR 8.14 | Head 34 (23)  ·  Marsh 15 (10)  ·  Jadeja 1-0-6-0
-7.1   [FOUR] Cracked wide of mid-on - four runs!
-7.2   [RUN] Clipped through the covers, they hustle back for the second.
-7.3   [RUN] Tapped to mid-on and they scamper through.
-7.4   [DOT] Slower ball, Head is early on the shot. No run.
-7.5   [SIX] Smoked over long-on for six! Out of the ground almost - 93 metres!
+7.1   [FOUR] Marsh dances down and hits it fine down the leg side. Four!
+7.2   [RUN] Clipped wide of mid-on, they hustle back for the second.
+7.3   [RUN] Driven to long-off for one.
+7.4   [DOT] Pressure building, another dot.
+7.5   [SIX] That's HUGE! Sent over long-on!
 7.5   [CALL/PARTNERSHIP] That's a 50-run partnership between Head and Marsh, off 29 balls.
 7.6   [RUN] Quick single! Sharp running between the wickets.
 7.6   [OVER] END OF OVER 8 · 14 RUNS | AUS 71/2  ·  CRR 8.88 | Head 41 (26)  ·  Marsh 22 (13)  ·  Ashwin 3-0-38-0
 8.1   [RUN] Head rotates the strike.
-8.2   [RUN] Marsh works it past mid-off for a single.
-8.3   [DOT] Yorker! Head jams the bat down just in time.
+8.2   [RUN] Turned away fine, one run.
+8.3   [DOT] Angled across, Head lets it go through to the keeper.
 8.4   [DOT] Dot ball. Head pushes to cover, straight to the fielder.
-8.5   [RUN] Turned away fine, one run.
+8.5   [RUN] Head works it fine down the leg side for a single.
 ...
 17.6  [CALL/BIG OVER] That over went for 18. Carnage!
 17.6  [EXPERT] Required rate 1.00. India can't let this drift.
 17.6  [OVER] END OF OVER 18 · 18 RUNS
-18.1  [RUN] Nudged down to third man, easy single.
+18.1  [RUN] Nudged wide of mid-on, easy single.
 18.1  [CALL] It's down to 1 from 11!
-18.2  [DOT] Dot ball. Yadav pushes to cover, straight to the fielder.
+18.2  [DOT] Pressure building, another dot.
 18.2  [CALL] 1 needed from 10 balls - this is getting tight!
-18.3  [DOT] Pressure building, another dot.
+18.3  [DOT] Good length from Maxwell, Yadav leaves it alone.
 18.3  [CALL] 1 off 9. Hearts in mouths!
-18.4  [RUN] Quick single! Sharp running between the wickets.
+18.4  [RUN] Yadav works it through midwicket for a single.
 18.4  [CALL/WIN] And that's it! India win it!
 18.4  [RESULT/RESULT] India won by 9 wickets (8 balls left)
 
@@ -95,77 +95,77 @@
 0.5   [RUN] तेज़ सिंगल, शानदार दौड़!
 0.6   [RUN] गैप में धकेला, एक रन।
 0.6   [OVER] ओवर 1 समाप्त · 3 रन · 1 विकेट | AUS 3/1  ·  CRR 3.00 | Head 2 (3)  ·  Smith 1 (2)  ·  Bumrah 1-0-3-1
-1.1   [FOUR] स्क्वेयर लेग की ओर शानदार शॉट, चार रन!
-1.2   [FOUR] चौका! Head ने गेंद सीधा मैदान पर भेज दी!
-1.3   [DOT] सटीक लाइन, Head के पास कोई जवाब नहीं।
-1.4   [RUN] स्ट्राइक रोटेट, एक रन।
-1.5   [RUN] थर्ड मैन की ओर, आसान सिंगल।
-1.6   [DOT] Ashwin की गेंद, Head ने सीधा बल्ला दिखाया, कोई रन नहीं।
+1.1   [FOUR] सीधा मैदान पर शानदार शॉट, चार रन!
+1.2   [FOUR] किनारा लगा और गेंद विकेटकीपर के पीछे चार रन के लिए!
+1.3   [DOT] Head ने रक्षात्मक शॉट खेला।
+1.4   [RUN] पैड से फ्लिक, एक रन।
+1.5   [RUN] मिड-ऑन की ओर, एक रन पूरा।
+1.6   [DOT] सटीक लाइन, Head के पास कोई जवाब नहीं।
 1.6   [OVER] ओवर 2 समाप्त · 10 रन | AUS 13/1  ·  CRR 6.50 | Head 11 (8)  ·  Smith 2 (3)  ·  Ashwin 1-0-10-0
 2.1   [DOT] बाउंसर! Smith झुककर बचे।
-2.2   [RUN] पैड से फ्लिक, एक रन।
+2.2   [RUN] Smith ने स्क्वेयर लेग की ओर खेलकर एक रन चुराया।
 2.3   [RUN] लॉन्ग-ऑफ पर ड्राइव, एक रन।
-2.4   [FOUR] बेहतरीन टाइमिंग, पॉइंट के पास से चौका!
-2.5   [DOT] अच्छी लेंथ, Smith ने गेंद छोड़ दी।
+2.4   [FOUR] चौका! Smith ने गेंद कवर्स के बीच से भेज दी!
+2.5   [DOT] Bumrah की कसी हुई गेंदबाज़ी।
 2.6   [WICKET] एलबीडब्ल्यू! Smith विकेट के सामने पकड़े गए। Smith 7 (8) बनाकर लौटे।
-2.6   [EXPERT]   >> Bumrah के आंकड़े अब 2-0-9-2, इकॉनमी 4.50।
+2.6   [EXPERT]   >> बेहतरीन कप्तानी - फील्डर ठीक उसी शॉट के लिए लगाया गया था।
 2.6   [OVER] ओवर 3 समाप्त · 6 रन · 1 विकेट | AUS 19/2  ·  CRR 6.33 | Head 12 (9)  ·  Bumrah 2-0-9-2
-3.1   [RUN] Head ने मिड-ऑन के पास से खेलकर एक रन चुराया।
-3.2   [RUN] मिड-ऑन की ओर, एक रन पूरा।
+3.1   [RUN] स्ट्राइक रोटेट, एक रन।
+3.2   [RUN] थर्ड मैन की ओर, आसान सिंगल।
 3.3   [RUN] Head ने एक रन लिया।
 3.4   [RUN] बाउंड्री से पहले रुकी, तीन रन!
 3.5   [RUN] तेज़ सिंगल, शानदार दौड़!
-3.6   [DOT] ऑफ स्टंप के बाहर, Marsh ने छोड़ा।
+3.6   [DOT] Shami की गेंद, Marsh ने सीधा बल्ला दिखाया, कोई रन नहीं।
 3.6   [OVER] ओवर 4 समाप्त · 7 रन | AUS 26/2  ·  CRR 6.50 | Head 15 (12)  ·  Marsh 4 (3)  ·  Shami 1-0-7-0
-4.1   [RUN] थर्ड मैन की ओर, आसान सिंगल।
-4.2   [RUN] पैड से फ्लिक, एक रन।
-4.3   [FOUR] छोटी गेंद और सज़ा! Head का चौका पॉइंट के पास से।
-4.4   [RUN] गैप में धकेला, एक रन।
+4.1   [RUN] मिड-ऑन की ओर, एक रन पूरा।
+4.2   [RUN] गैप में धकेला, एक रन।
+4.3   [FOUR] मोटा किनारा, स्लिप के बगल से चौका।
+4.4   [RUN] लॉन्ग-ऑफ पर ड्राइव, एक रन।
 4.5   [RUN] स्ट्राइक रोटेट, एक रन।
-4.6   [SIX] छक्का! Head ने गेंद लॉन्ग-ऑन के ऊपर से स्टैंड्स में भेज दी! ये 95 मीटर लंबा छक्का है!
+4.6   [SIX] छक्का! Head ने गेंद लॉन्ग-ऑन के ऊपर से स्टैंड्स में भेज दी! ये 94 मीटर लंबा छक्का है!
 4.6   [OVER] ओवर 5 समाप्त · 14 रन | AUS 40/2  ·  CRR 8.00 | Head 27 (16)  ·  Marsh 6 (5)  ·  Ashwin 2-0-24-0
-5.1   [SIX] गगनचुंबी छक्का, सीधा गेंदबाज़ के सिर के ऊपर से!
-5.2   [DOT] Bumrah की कसी हुई गेंदबाज़ी।
-5.3   [RUN] Marsh ने कवर्स के बीच से खेलकर एक रन चुराया।
+5.1   [SIX] ये गई... एक्स्ट्रा कवर के ऊपर से छह रन!
+5.2   [DOT] अच्छी लेंथ, Marsh ने गेंद छोड़ दी।
+5.3   [RUN] Marsh ने मिडविकेट से खेलकर एक रन चुराया।
 5.4   [RUN] Head ने एक रन लिया।
-5.5   [RUN] मिड-ऑन की ओर, एक रन पूरा।
-5.6   [WIDE] वाइड गेंद, अतिरिक्त रन।
-5.6   [RUN] तेज़ सिंगल, शानदार दौड़!
+5.5   [RUN] पैड से फ्लिक, एक रन।
+5.6   [WIDE] वाइड! Bumrah की गेंद लेग साइड पर भटकी।
+5.6   [RUN] मिड-ऑन की ओर, एक रन पूरा।
 5.6   [CALL/POWERPLAY] पावरप्ले ख़त्म: Australia 51/2।
-5.6   [EXPERT]   >> Bumrah के आंकड़े अब 3-0-20-2, इकॉनमी 6.67।
+5.6   [EXPERT]   >> यह साझेदारी अब 18 गेंदों में 32 रनों की हो गई है।
 5.6   [OVER] ओवर 6 समाप्त · 11 रन | AUS 51/2  ·  CRR 8.50 | Head 29 (18)  ·  Marsh 14 (9)  ·  Bumrah 3-0-20-2
-6.1   [RUN] पॉइंट के पास से शॉट, दो रन!
+6.1   [RUN] विकेटकीपर के पीछे शॉट, दो रन!
 6.2   [RUN] मिडविकेट की ओर, दो रन।
-6.3   [RUN] पैड से फ्लिक, एक रन।
-6.4   [RUN] गैप में धकेला, एक रन।
+6.3   [RUN] थर्ड मैन की ओर, आसान सिंगल।
+6.4   [RUN] लॉन्ग-ऑफ पर ड्राइव, एक रन।
 6.5   [DOT] फील्डर के सीधे हाथ में, रन नहीं।
-6.6   [DOT] Head ने रक्षात्मक शॉट खेला।
+6.6   [DOT] धीमी गेंद, Head के शॉट में जल्दबाज़ी, कोई रन नहीं।
 6.6   [OVER] ओवर 7 समाप्त · 6 रन | AUS 57/2  ·  CRR 8.14 | Head 34 (23)  ·  Marsh 15 (10)  ·  Jadeja 1-0-6-0
-7.1   [FOUR] Marsh ने आगे बढ़कर मिड-ऑन के पास से चौका जड़ा!
-7.2   [RUN] फील्डर ने रोका, लेकिन दो रन मिल गए।
-7.3   [RUN] स्ट्राइक रोटेट, एक रन।
-7.4   [DOT] यॉर्कर! Head ने किसी तरह बल्ला नीचे लाकर रोका।
-7.5   [SIX] Head का ज़ोरदार प्रहार, लॉन्ग-ऑन के ऊपर से छक्का! गेंद 93 मीटर दूर जाकर गिरी!
+7.1   [FOUR] बेहतरीन टाइमिंग, फाइन लेग की ओर चौका!
+7.2   [RUN] अच्छी दौड़, दो रन पूरे।
+7.3   [RUN] तेज़ सिंगल, शानदार दौड़!
+7.4   [DOT] ऑफ स्टंप के बाहर, Head ने छोड़ा।
+7.5   [SIX] गगनचुंबी छक्का, लॉन्ग-ऑन के ऊपर से!
 7.5   [CALL/PARTNERSHIP] Head और Marsh के बीच 50 रनों की साझेदारी, 29 गेंदों में।
-7.6   [RUN] लॉन्ग-ऑफ पर ड्राइव, एक रन।
+7.6   [RUN] Head ने सीधा मैदान पर खेलकर एक रन चुराया।
 7.6   [OVER] ओवर 8 समाप्त · 14 रन | AUS 71/2  ·  CRR 8.88 | Head 41 (26)  ·  Marsh 22 (13)  ·  Ashwin 3-0-38-0
 8.1   [RUN] Head ने एक रन लिया।
-8.2   [RUN] मिड-ऑन की ओर, एक रन पूरा।
+8.2   [RUN] स्ट्राइक रोटेट, एक रन।
 8.3   [DOT] बीट! गेंद बल्ले को छकाती हुई निकल गई।
-8.4   [DOT] डॉट बॉल, दबाव बढ़ रहा है।
-8.5   [RUN] Head ने फाइन लेग की ओर खेलकर एक रन चुराया।
+8.4   [DOT] यॉर्कर! Head ने किसी तरह बल्ला नीचे लाकर रोका।
+8.5   [RUN] गैप में धकेला, एक रन।
 8.6   [RUN] थर्ड मैन की ओर, आसान सिंगल।
 ...
 17.6  [EXPERT] इससे दबाव कम हुआ। अब आवश्यक रन रेट 1.00।
 17.6  [CALL/BIG OVER] इस ओवर में 18 रन, Marsh पर भारी पड़ा!
 17.6  [OVER] ओवर 18 समाप्त · 18 रन
-18.1  [RUN] थर्ड मैन की ओर, आसान सिंगल।
+18.1  [RUN] गैप में धकेला, एक रन।
 18.1  [CALL] 11 गेंदों में 1 रन - मुकाबला रोमांचक!
-18.2  [DOT] धीमी गेंद, Yadav के शॉट में जल्दबाज़ी, कोई रन नहीं।
+18.2  [DOT] Maxwell की गेंद, Yadav ने सीधा बल्ला दिखाया, कोई रन नहीं।
 18.2  [CALL] 1 रन, 10 गेंदें - सांसें थमी हुई हैं!
-18.3  [DOT] डॉट बॉल, दबाव बढ़ रहा है।
+18.3  [DOT] यॉर्कर! Yadav ने किसी तरह बल्ला नीचे लाकर रोका।
 18.3  [CALL] 9 गेंदों में 1 रन - मुकाबला रोमांचक!
-18.4  [RUN] मिड-ऑन की ओर, एक रन पूरा।
+18.4  [RUN] स्ट्राइक रोटेट, एक रन।
 18.4  [CALL/WIN] और यह रहा! India ने मुकाबला जीत लिया!
 18.4  [RESULT/RESULT] India won by 9 wickets (8 balls left)
 
@@ -180,85 +180,85 @@
 0.5   [RUN] Quick single! Badhiya running.
 0.6   [RUN] Strike rotate, ek run.
 0.6   [OVER] Over 1 khatam · 3 run · 1 wkt | AUS 3/1  ·  CRR 3.00 | Head 2 (3)  ·  Smith 1 (2)  ·  Bumrah 1-0-3-1
-1.1   [FOUR] square leg ki taraf zabardast shot, chaar run!
-1.2   [FOUR] CHAUKA! Head ne ball seedha ground ke neeche bhej di!
-1.3   [DOT] Tight line Ashwin ki, Head sirf block kar paaye.
-1.4   [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
-1.5   [RUN] Smith ne covers ke beech se khel ke ek run liya.
-1.6   [DOT] Ashwin ki ball, Head ne solid defence kiya. Koi run nahi.
+1.1   [FOUR] seedha ground ke neeche zabardast shot, chaar run!
+1.2   [FOUR] Edge laga aur ball keeper ke peeche chaar run ke liye!
+1.3   [DOT] Head ne cover ki taraf push kiya, seedha fielder ke haath mein.
+1.4   [RUN] Head ne mid-on ke paas se khel ke ek run liya.
+1.5   [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
+1.6   [DOT] Tight line Ashwin ki, Head sirf block kar paaye.
 1.6   [OVER] Over 2 khatam · 10 run | AUS 13/1  ·  CRR 6.50 | Head 11 (8)  ·  Smith 2 (3)  ·  Ashwin 1-0-10-0
 2.1   [DOT] Bouncer! Smith ne jhuk ke chhod diya.
-2.2   [RUN] Smith ne mid-on ke paas se nudge kiya, ek run.
-2.3   [RUN] Long-off pe drive, ek run.
-2.4   [FOUR] Kya timing hai! point ke paas se chauka.
-2.5   [DOT] Achhi length, Smith ne ball chhod di.
+2.2   [RUN] Smith ne square leg ki taraf nudge kiya, ek run.
+2.3   [RUN] Third man ki taraf dab kiya, aasaan single.
+2.4   [FOUR] CHAUKA! Smith ne ball covers ke beech se bhej di!
+2.5   [DOT] Yorker! Smith ne last moment pe bat neeche laaya.
 2.6   [WICKET] LBW! Smith wicket ke saamne pakde gaye. Smith 7 (8) bana ke wapas.
-2.6   [EXPERT]   >> Bumrah ke figures ab 2-0-9-2, economy 4.50.
+2.6   [EXPERT]   >> Badhiya captaincy - fielder bilkul usi shot ke liye lagaya tha.
 2.6   [OVER] Over 3 khatam · 6 run · 1 wkt | AUS 19/2  ·  CRR 6.33 | Head 12 (9)  ·  Bumrah 2-0-9-2
 3.1   [RUN] Gap mein push, ek run.
-3.2   [RUN] Quick single! Badhiya running.
-3.3   [RUN] Third man ki taraf dab kiya, aasaan single.
+3.2   [RUN] Long-off pe drive, ek run.
+3.3   [RUN] Quick single! Badhiya running.
 3.4   [RUN] Boundary se pehle ruk gayi, teen run!
-3.5   [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
-3.6   [DOT] Slower ball, Marsh shot mein jaldi kar gaye. Koi run nahi.
+3.5   [RUN] Head ne covers ke beech se khel ke ek run liya.
+3.6   [DOT] Shami ki ball, Marsh ne solid defence kiya. Koi run nahi.
 3.6   [OVER] Over 4 khatam · 7 run | AUS 26/2  ·  CRR 6.50 | Head 15 (12)  ·  Marsh 4 (3)  ·  Shami 1-0-7-0
 4.1   [RUN] Strike rotate, ek run.
-4.2   [RUN] Marsh ne third man ki taraf khel ke ek run liya.
-4.3   [FOUR] Short ball aur saza! Head ka chauka point ke paas se.
-4.4   [RUN] Long-off pe drive, ek run.
-4.5   [RUN] Marsh ne mid-on ke paas se nudge kiya, ek run.
-4.6   [SIX] CHHAKKA! Head ne ball long-on ke upar se stands mein bhej di! Ye 95 meter lamba chhakka hai!
+4.2   [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
+4.3   [FOUR] Mota edge, slip ke bagal se chauka. Kismat saath hai.
+4.4   [RUN] Head ne point ke paas se nudge kiya, ek run.
+4.5   [RUN] Third man ki taraf dab kiya, aasaan single.
+4.6   [SIX] CHHAKKA! Head ne ball long-on ke upar se stands mein bhej di! Ye 94 meter lamba chhakka hai!
 4.6   [OVER] Over 5 khatam · 14 run | AUS 40/2  ·  CRR 8.00 | Head 27 (16)  ·  Marsh 6 (5)  ·  Ashwin 2-0-24-0
-5.1   [SIX] Bahut bada shot, seedha bowler ke sar ke upar se chhakka!
-5.2   [DOT] Yorker! Marsh ne last moment pe bat neeche laaya.
-5.3   [RUN] Quick single! Badhiya running.
-5.4   [RUN] Gap mein push, ek run.
-5.5   [RUN] Third man ki taraf dab kiya, aasaan single.
-5.6   [WIDE] Wide ball, ek extra run.
-5.6   [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
+5.1   [SIX] Ye gayi... extra cover ke upar se chhe run!
+5.2   [DOT] Achhi length, Marsh ne ball chhod di.
+5.3   [RUN] Gap mein push, ek run.
+5.4   [RUN] Quick single! Badhiya running.
+5.5   [RUN] Long-off pe drive, ek run.
+5.6   [WIDE] Wide! Bumrah ki ball leg side pe bhatak gayi.
+5.6   [RUN] Head ne fine leg ki taraf khel ke ek run liya.
 5.6   [CALL/POWERPLAY] Powerplay khatam: Australia 51/2.
-5.6   [EXPERT]   >> Bumrah ke figures ab 3-0-20-2, economy 6.67.
+5.6   [EXPERT]   >> Ye partnership ab 18 balls mein 32 run ki ho gayi hai.
 5.6   [OVER] Over 6 khatam · 11 run | AUS 51/2  ·  CRR 8.50 | Head 29 (18)  ·  Marsh 14 (9)  ·  Bumrah 3-0-20-2
-6.1   [RUN] point ke paas se khela, do run!
+6.1   [RUN] keeper ke peeche khela, do run!
 6.2   [RUN] Head ne tez bhaag ke doosra run bhi le liya.
 6.3   [RUN] Strike rotate, ek run.
-6.4   [RUN] Long-off pe drive, ek run.
+6.4   [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
 6.5   [DOT] Played and missed! Kya ball daali hai Jadeja ne.
-6.6   [DOT] Head ne cover ki taraf push kiya, seedha fielder ke haath mein.
+6.6   [DOT] Beaten! Ball edge ke bilkul paas se nikal gayi.
 6.6   [OVER] Over 7 khatam · 6 run | AUS 57/2  ·  CRR 8.14 | Head 34 (23)  ·  Marsh 15 (10)  ·  Jadeja 1-0-6-0
-7.1   [FOUR] Marsh ne aage badh ke mid-on ke paas se chauka jad diya!
-7.2   [RUN] Fielder ne roka, lekin do run mil gaye.
-7.3   [RUN] Marsh ne covers ke beech se khel ke ek run liya.
-7.4   [DOT] Ek aur dot, Ashwin ne bandh ke rakha hai.
-7.5   [SIX] Head ka zordaar prahaar, long-on ke upar se chhakka! Ball 93 meter door jaake giri!
+7.1   [FOUR] Kya timing hai! fine leg ki taraf chauka.
+7.2   [RUN] Badhiya running, do run poore.
+7.3   [RUN] Third man ki taraf dab kiya, aasaan single.
+7.4   [DOT] Slower ball, Head shot mein jaldi kar gaye. Koi run nahi.
+7.5   [SIX] Bahut bada shot, long-on ke upar se chhakka!
 7.5   [CALL/PARTNERSHIP] Head aur Marsh ke beech 50 run ki partnership, 29 balls mein.
-7.6   [RUN] Quick single! Badhiya running.
+7.6   [RUN] Head ne seedha ground ke neeche nudge kiya, ek run.
 7.6   [OVER] Over 8 khatam · 14 run | AUS 71/2  ·  CRR 8.88 | Head 41 (26)  ·  Marsh 22 (13)  ·  Ashwin 3-0-38-0
-8.1   [RUN] Head ne seedha ground ke neeche nudge kiya, ek run.
-8.2   [RUN] Gap mein push, ek run.
-8.3   [DOT] Tight line Jadeja ki, Head sirf block kar paaye.
-8.4   [DOT] Jadeja ki ball, Head ne solid defence kiya. Koi run nahi.
-8.5   [RUN] Third man ki taraf dab kiya, aasaan single.
-8.6   [RUN] Strike rotate, ek run.
+8.1   [RUN] Gap mein push, ek run.
+8.2   [RUN] Long-off pe drive, ek run.
+8.3   [DOT] Head ne cover ki taraf push kiya, seedha fielder ke haath mein.
+8.4   [DOT] Ek aur dot, Jadeja ne bandh ke rakha hai.
+8.5   [RUN] Head ne fine leg ki taraf khel ke ek run liya.
+8.6   [RUN] Quick single! Badhiya running.
 ...
 17.6  [EXPERT] Isse pressure kam hua. Ab required rate 1.00.
 17.6  [CALL/BIG OVER] Is over mein 18 run, Marsh ki pitaai ho gayi!
 17.6  [OVER] Over 18 khatam · 18 run
-18.1  [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
+18.1  [RUN] Quick single! Badhiya running.
 18.1  [CALL] 11 balls mein 1 run - match bahut tight ho gaya hai!
-18.2  [DOT] Beaten! Ball edge ke bilkul paas se nikal gayi.
+18.2  [DOT] Bouncer! Yadav ne jhuk ke chhod diya.
 18.2  [CALL] 1 run, 10 balls - saansein ruki hui hain!
-18.3  [DOT] Maxwell ki ball, Yadav ne solid defence kiya. Koi run nahi.
+18.3  [DOT] Yadav ne off stump ke bahar wali ball ko jaane diya.
 18.3  [CALL] 9 balls mein 1 run - match bahut tight ho gaya hai!
-18.4  [RUN] Gap mein push, ek run.
+18.4  [RUN] Yadav ne midwicket se khel ke ek run liya.
 18.4  [CALL/WIN] Aur ye raha! India ne match jeet liya!
 18.4  [RESULT/RESULT] India won by 9 wickets (8 balls left)
 
-===== ODI · EN · Mark Ellison & Priya Nair · India won by 149 runs
+===== ODI · EN · Mark Ellison & Priya Nair · India won by 166 runs
 0.1   [INTRO] Welcome to Eden Gardens, Kolkata for Border Cup. India take on Australia.
 0.1   [INTRO] India won the toss and chose to bat. Clear skies, and a dry, turning pitch.
-0.1   [RUN] Pushed through the covers, they take one.
-0.2   [RUN] Sudharsan works it past point for a single.
+0.1   [RUN] Pushed past mid-off, they take one.
+0.2   [RUN] Sudharsan works it straight down the ground for a single.
 0.3   [DOT] Lyon to Kohli, defended solidly back down the pitch.
 0.4   [RUN] Quick single! Sharp running between the wickets.
 0.5   [DOT] Tight line from Lyon, Sudharsan can only block.
@@ -269,77 +269,77 @@
 1.3   [RUN] Dabbed down to third man, single.
 1.4   [DOT] Played and missed! Lovely bowling from Starc.
 1.5   [DOT] Good length from Starc, Kohli leaves it alone.
-1.6   [FOUR] Cracked past point - four runs!
+1.6   [FOUR] Edged... and it flies past the keeper! Four lucky runs.
 1.6   [OVER] END OF OVER 2 · 6 RUNS | IND 9/0  ·  CRR 4.50 | Kohli 7 (8)  ·  Sudharsan 2 (4)  ·  Starc 1-0-6-0
-2.1   [FOUR] FOUR! Sudharsan drives it past point!
-2.2   [DOT] Pressure building, another dot.
-2.3   [APPEAL] Loud shout for LBW - turned down.
+2.1   [FOUR] Cracked wide of mid-on - four runs!
+2.2   [DOT] Slower ball, Sudharsan is early on the shot. No run.
+2.3   [APPEAL] Big appeal from Lyon... not out!
 2.4   [RUN] Driven to long-off for one.
-2.5   [DOT] Kohli shoulders arms - well judged.
-2.6   [DOT] Lyon hits the deck hard, Kohli fends it down.
+2.5   [DOT] Quick bouncer from Lyon, Kohli sways out of the way.
+2.6   [DOT] Pressure building, another dot.
 2.6   [EXPERT]   >> Lyon's figures now read 2-0-8-0, economy 4.00.
 2.6   [OVER] END OF OVER 3 · 5 RUNS | IND 14/0  ·  CRR 4.67 | Kohli 7 (10)  ·  Sudharsan 7 (8)  ·  Lyon 2-0-8-0
 3.1   [WICKET] In the air... and taken by Stoinis! Hazlewood strikes. Sudharsan departs for 7 off 9.
-3.2   [FOUR] That races away fine down the leg side. Four!
+3.1   [EXPERT]   >> Hazlewood set that up beautifully over the last few balls.
+3.2   [FOUR] FOUR! Yadav drives it straight down the ground!
 3.3   [RUN] Turned away fine, one run.
-3.4   [DOT] Slower ball, Kohli is early on the shot. No run.
-3.5   [DOT] Quick bouncer from Hazlewood, Kohli sways out of the way.
-3.6   [FOUR] Kohli dances down and hits it through midwicket. Four!
+3.4   [DOT] Dot ball. Kohli pushes to cover, straight to the fielder.
+3.5   [DOT] Yorker! Kohli jams the bat down just in time.
+3.6   [FOUR] That races away through midwicket. Four!
 3.6   [OVER] END OF OVER 4 · 9 RUNS · 1 WKT | IND 23/1  ·  CRR 5.75 | Kohli 11 (13)  ·  Yadav 5 (2)  ·  Hazlewood 1-0-9-1
-4.1   [RUN] Pushed past point, they take one.
-4.2   [DOT] Yorker! Kohli jams the bat down just in time.
-4.3   [RUN] Good running, two runs.
-4.4   [DOT] Soft hands from Kohli, it drops at his feet.
-4.5   [FOUR] No chance for the fielder - FOUR through the covers!
-4.6   [DOT] Tight line from Lyon, Kohli can only block.
+4.1   [RUN] Yadav rotates the strike.
+4.2   [DOT] Angled across, Kohli lets it go through to the keeper.
+4.3   [RUN] Placed through the covers - they come back for two.
+4.4   [DOT] Lyon to Kohli, defended solidly back down the pitch.
+4.5   [FOUR] Kohli dances down and hits it behind square on the leg side. Four!
+4.6   [DOT] Kohli shoulders arms - well judged.
 4.6   [OVER] END OF OVER 5 · 7 RUNS | IND 30/1  ·  CRR 6.00 | Kohli 17 (18)  ·  Yadav 6 (3)  ·  Lyon 3-0-15-0
-5.1   [FOUR] Picked the gap past point, one bounce into the rope.
-5.2   [DOT] Dot ball. Yadav pushes to cover, straight to the fielder.
-5.3   [DOT] Beaten! That kissed nothing but air past the outside edge.
-5.4   [DOT] Full and straight, dug out by Yadav.
+5.1   [FOUR] Short and punished! Yadav sends it straight down the ground for four.
+5.2   [DOT] Tight line from Hazlewood, Yadav can only block.
+5.3   [DOT] Full and straight, dug out by Yadav.
+5.4   [DOT] Soft hands from Yadav, it drops at his feet.
 5.5   [RUN] Superb running - three!
-5.6   [RUN] Clipped behind square on the leg side, they hustle back for the second.
+5.6   [RUN] Good running, two runs.
 5.6   [EXPERT]   >> Lovely spell from Hazlewood: 2-0-18-1.
 5.6   [OVER] END OF OVER 6 · 9 RUNS | IND 39/1  ·  CRR 6.50 | Kohli 19 (19)  ·  Yadav 13 (8)  ·  Hazlewood 2-0-18-1
-6.1   [FOUR] Beautiful timing, threaded fine down the leg side for four.
-6.2   [RUN] Yadav works it straight down the ground for a single.
-6.3   [DOT] Angled across, Kohli lets it go through to the keeper.
-6.4   [DOT] Played and missed! Lovely bowling from Starc.
+6.1   [FOUR] No chance for the fielder - FOUR behind square on the leg side!
+6.2   [RUN] Yadav works it past point for a single.
+6.3   [DOT] Played and missed! Lovely bowling from Starc.
+6.4   [DOT] Quick bouncer from Starc, Kohli sways out of the way.
 6.5   [RUN] Quick single! Sharp running between the wickets.
-6.6   [FOUR] Short and punished! Yadav sends it behind square on the leg side for four.
+6.6   [FOUR] Beautiful timing, threaded fine down the leg side for four.
 6.6   [OVER] END OF OVER 7 · 10 RUNS | IND 49/1  ·  CRR 7.00 | Kohli 20 (22)  ·  Yadav 22 (11)  ·  Starc 2-0-16-0
-7.1   [FOUR] FOUR! Kohli drives it straight down the ground!
+7.1   [FOUR] Pure placement from Kohli, four wide of mid-on.
+7.1   [CALL] That brings up 50 for India.
 7.2   [RUN] Kohli drives, the fielder cuts it off - two.
-7.3   [DOT] Lyon to Kohli, defended solidly back down the pitch.
-7.4   [RUN] Tapped to mid-on and they scamper through.
-7.5   [RUN] Yadav rotates the strike.
-7.6   [RUN] Nudged behind square on the leg side, easy single.
+7.3   [DOT] Beaten! That kissed nothing but air past the outside edge.
+7.4   [RUN] Nudged behind square on the leg side, easy single.
+7.5   [RUN] Pushed wide of mid-on, they take one.
+7.6   [RUN] Driven to long-off for one.
 7.6   [OVER] END OF OVER 8 · 9 RUNS | IND 58/1  ·  CRR 7.25 | Kohli 28 (27)  ·  Yadav 23 (12)  ·  Lyon 4-0-24-0
-8.1   [DOT] Slower ball, Kohli is early on the shot. No run.
-8.2   [FOUR] Pure placement from Kohli, four behind square on the leg side.
-8.3   [RUN] Placed through midwicket - they come back for two.
+8.1   [DOT] Dot ball. Kohli pushes to cover, straight to the fielder.
+8.2   [FOUR] Cracked past point - four runs!
+8.3   [RUN] Pulled away, comfortable couple.
 8.3   [CALL/PARTNERSHIP] That's a 50-run partnership between Kohli and Yadav, off 32 balls.
-8.4   [WICKET] Holed out! Hazlewood takes a fine catch in the deep. Kohli walks back with 34 (31 balls).
+8.4   [WICKET] Top edge... Hazlewood settles under it. Out! Kohli walks back with 34 (31 balls).
 8.4   [EXPERT]   >> Kohli will be kicking himself. He was set on 34 and gave it away.
-8.5   [DOT] Pressure building, another dot.
-8.6   [RUN] Driven to long-off for one.
-8.6   [EXPERT]   >> Current run rate 7.22. At this rate, 361 is on the cards.
-8.6   [OVER] END OF OVER 9 · 7 RUNS · 1 WKT | IND 65/2  ·  CRR 7.22 | Yadav 23 (12)  ·  Rahul 1 (2)  ·  Cummins 1-0-7-1
+8.5   [DOT] Slower ball, Rahul is early on the shot. No run.
+8.6   [RUN] Turned away fine, one run.
 ...
-29.3  [WICKET] Skied it - and Rahul holds on! End of a 7-run stay for Starc.
-29.3  [EXPERT] Good captaincy - the fielder was put there for exactly that shot.
-29.4  [DOT] Quick bouncer from Shami, Hazlewood sways out of the way.
-29.5  [RUN] Quick single! Sharp running between the wickets.
-29.6  [DOT] Full and straight, dug out by Cummins.
-29.6  [CALL] 152 needed from 120 balls.
-29.6  [EXPERT] Required rate 7.60. Australia can't let this drift.
-29.6  [OVER] END OF OVER 30 · 2 RUNS · 1 WKT
-30.1  [RUN] Hazlewood rotates the strike.
-30.2  [RUN] Cummins works it down to third man for a single.
-30.3  [WICKET] Went for the big one... caught on the boundary by Sharma! Hazlewood departs for 2 off 4.
-30.3  [RESULT/RESULT] India won by 149 runs
+24.2  [RUN] Quick single! Sharp running between the wickets.
+24.3  [RUN] Starc works it behind square on the leg side for a single.
+24.4  [RUN] Hazlewood rotates the strike.
+24.5  [RUN] Nudged down to third man, easy single.
+24.6  [RUN] Dabbed down to third man, single.
+24.6  [CALL] The equation: 169 off 150.
+24.6  [OVER] END OF OVER 25 · 10 RUNS
+25.1  [RUN] Pushed behind square on the leg side, they take one.
+25.2  [RUN] Tapped to mid-on and they scamper through.
+25.3  [WICKET] Nick and gone - Dhoni gloves it cleanly. Hazlewood departs for 12 off 8.
+25.3  [CALL/3-FOR] Ashwin has his third. 7.3-0-26-3.
+25.3  [RESULT/RESULT] India won by 166 runs
 
-===== ODI · HI · Rajesh Tiwari & Sunita Verma · India won by 149 runs
+===== ODI · HI · Rajesh Tiwari & Sunita Verma · India won by 166 runs
 0.1   [INTRO] Eden Gardens, Kolkata से नमस्कार! Border Cup में आज India का मुकाबला Australia से।
 0.1   [INTRO] India ने टॉस जीतकर पहले बल्लेबाज़ी का फैसला किया। मौसम साफ़ आसमान, पिच सूखी, स्पिन वाली।
 0.1   [RUN] Kohli ने एक रन लिया।
@@ -354,77 +354,77 @@
 1.3   [RUN] थर्ड मैन की ओर, आसान सिंगल।
 1.4   [DOT] बीट! गेंद बल्ले को छकाती हुई निकल गई।
 1.5   [DOT] Starc की कसी हुई गेंदबाज़ी।
-1.6   [FOUR] पॉइंट के पास से शानदार शॉट, चार रन!
+1.6   [FOUR] चौका! Kohli ने गेंद विकेटकीपर के पीछे भेज दी!
 1.6   [OVER] ओवर 2 समाप्त · 6 रन | IND 9/0  ·  CRR 4.50 | Kohli 7 (8)  ·  Sudharsan 2 (4)  ·  Starc 1-0-6-0
-2.1   [FOUR] चौका! Sudharsan ने गेंद पॉइंट के पास से भेज दी!
-2.2   [DOT] Lyon की गेंद, Sudharsan ने सीधा बल्ला दिखाया, कोई रन नहीं।
+2.1   [FOUR] मिड-ऑन के पास से शानदार शॉट, चार रन!
+2.2   [DOT] फील्डर के सीधे हाथ में, रन नहीं।
 2.3   [APPEAL] ज़ोरदार अपील... नॉट आउट!
-2.4   [RUN] पैड से फ्लिक, एक रन।
-2.5   [DOT] ऑफ स्टंप के बाहर, Kohli ने छोड़ा।
+2.4   [RUN] Sudharsan ने फाइन लेग की ओर खेलकर एक रन चुराया।
+2.5   [DOT] Lyon की गेंद, Kohli ने सीधा बल्ला दिखाया, कोई रन नहीं।
 2.6   [DOT] सटीक लाइन, Kohli के पास कोई जवाब नहीं।
 2.6   [EXPERT]   >> Lyon के आंकड़े अब 2-0-8-0, इकॉनमी 4.00।
 2.6   [OVER] ओवर 3 समाप्त · 5 रन | IND 14/0  ·  CRR 4.67 | Kohli 7 (10)  ·  Sudharsan 7 (8)  ·  Lyon 2-0-8-0
 3.1   [WICKET] हवा में गेंद... और Stoinis ने लपक ली! Sudharsan 7 (9) बनाकर लौटे।
-3.2   [FOUR] छोटी गेंद और सज़ा! Yadav का चौका फाइन लेग की ओर।
-3.3   [RUN] Yadav ने स्क्वेयर लेग की ओर खेलकर एक रन चुराया।
-3.4   [DOT] धीमी गेंद, Kohli के शॉट में जल्दबाज़ी, कोई रन नहीं।
-3.5   [DOT] फील्डर के सीधे हाथ में, रन नहीं।
-3.6   [FOUR] बेहतरीन टाइमिंग, मिडविकेट से चौका!
+3.1   [EXPERT]   >> डॉट गेंदों का दबाव काम कर गया।
+3.2   [FOUR] छोटी गेंद और सज़ा! Yadav का चौका सीधा मैदान पर।
+3.3   [RUN] मिड-ऑन की ओर, एक रन पूरा।
+3.4   [DOT] ऑफ स्टंप के बाहर, Kohli ने छोड़ा।
+3.5   [DOT] Hazlewood ने लगातार एक ही जगह गेंद डाली, फिर डॉट।
+3.6   [FOUR] Kohli ने आगे बढ़कर मिडविकेट से चौका जड़ा!
 3.6   [OVER] ओवर 4 समाप्त · 9 रन · 1 विकेट | IND 23/1  ·  CRR 5.75 | Kohli 11 (13)  ·  Yadav 5 (2)  ·  Hazlewood 1-0-9-1
-4.1   [RUN] मिड-ऑन की ओर, एक रन पूरा।
-4.2   [DOT] डॉट बॉल, दबाव बढ़ रहा है।
-4.3   [RUN] विकेटकीपर के पीछे शॉट, दो रन!
-4.4   [DOT] यॉर्कर! Kohli ने किसी तरह बल्ला नीचे लाकर रोका।
-4.5   [FOUR] Kohli ने आगे बढ़कर कवर्स के बीच से चौका जड़ा!
-4.6   [DOT] अच्छी लेंथ, Kohli ने गेंद छोड़ दी।
+4.1   [RUN] Yadav ने एक रन लिया।
+4.2   [DOT] यॉर्कर! Kohli ने किसी तरह बल्ला नीचे लाकर रोका।
+4.3   [RUN] कवर्स के बीच से शॉट, दो रन!
+4.4   [DOT] डॉट बॉल, दबाव बढ़ रहा है।
+4.5   [FOUR] बेहतरीन टाइमिंग, स्क्वेयर लेग की ओर चौका!
+4.6   [DOT] धीमी गेंद, Kohli के शॉट में जल्दबाज़ी, कोई रन नहीं।
 4.6   [OVER] ओवर 5 समाप्त · 7 रन | IND 30/1  ·  CRR 6.00 | Kohli 17 (18)  ·  Yadav 6 (3)  ·  Lyon 3-0-15-0
-5.1   [FOUR] फील्डर के लिए कोई मौका नहीं, पॉइंट के पास से चौका!
-5.2   [DOT] Hazlewood ने लगातार एक ही जगह गेंद डाली, फिर डॉट।
-5.3   [DOT] Yadav ने रक्षात्मक शॉट खेला।
-5.4   [DOT] बाउंसर! Yadav झुककर बचे।
+5.1   [FOUR] फील्डर के लिए कोई मौका नहीं, सीधा मैदान पर चौका!
+5.2   [DOT] अच्छी लेंथ, Yadav ने गेंद छोड़ दी।
+5.3   [DOT] बाउंसर! Yadav झुककर बचे।
+5.4   [DOT] बीट! गेंद बल्ले को छकाती हुई निकल गई।
 5.5   [RUN] बाउंड्री से पहले रुकी, तीन रन!
-5.6   [RUN] मिडविकेट की ओर, दो रन।
+5.6   [RUN] अच्छी दौड़, दो रन पूरे।
 5.6   [EXPERT]   >> मौजूदा रन रेट 6.50। इसी रफ़्तार से स्कोर 325 तक जा सकता है।
 5.6   [OVER] ओवर 6 समाप्त · 9 रन | IND 39/1  ·  CRR 6.50 | Kohli 19 (19)  ·  Yadav 13 (8)  ·  Hazlewood 2-0-18-1
-6.1   [FOUR] क्या प्लेसमेंट है, फाइन लेग की ओर चार रन।
-6.2   [RUN] गैप में धकेला, एक रन।
+6.1   [FOUR] क्या प्लेसमेंट है, स्क्वेयर लेग की ओर चार रन।
+6.2   [RUN] लॉन्ग-ऑफ पर ड्राइव, एक रन।
 6.3   [DOT] Kohli ने आगे बढ़कर रोका, रन नहीं बना।
-6.4   [DOT] बीट! गेंद बल्ले को छकाती हुई निकल गई।
-6.5   [RUN] लॉन्ग-ऑफ पर ड्राइव, एक रन।
-6.6   [FOUR] स्क्वेयर लेग की ओर शानदार शॉट, चार रन!
+6.4   [DOT] Starc की कसी हुई गेंदबाज़ी।
+6.5   [RUN] गैप में धकेला, एक रन।
+6.6   [FOUR] चौका! Yadav ने गेंद फाइन लेग की ओर भेज दी!
 6.6   [OVER] ओवर 7 समाप्त · 10 रन | IND 49/1  ·  CRR 7.00 | Kohli 20 (22)  ·  Yadav 22 (11)  ·  Starc 2-0-16-0
-7.1   [FOUR] छोटी गेंद और सज़ा! Kohli का चौका सीधा मैदान पर।
-7.1   [CALL] India के 50 रन पूरे।
-7.2   [RUN] अच्छी दौड़, दो रन पूरे।
-7.3   [DOT] Lyon की कसी हुई गेंदबाज़ी।
-7.4   [RUN] Kohli ने एक रन लिया।
-7.5   [RUN] स्ट्राइक रोटेट, एक रन।
-7.6   [RUN] पैड से फ्लिक, एक रन।
+7.1   [FOUR] छोटी गेंद और सज़ा! Kohli का चौका मिड-ऑन के पास से।
+7.2   [RUN] मिडविकेट की ओर, दो रन।
+7.3   [DOT] Kohli ने रक्षात्मक शॉट खेला।
+7.4   [RUN] तेज़ सिंगल, शानदार दौड़!
+7.5   [RUN] थर्ड मैन की ओर, आसान सिंगल।
+7.6   [RUN] Kohli ने स्क्वेयर लेग की ओर खेलकर एक रन चुराया।
 7.6   [OVER] ओवर 8 समाप्त · 9 रन | IND 58/1  ·  CRR 7.25 | Kohli 28 (27)  ·  Yadav 23 (12)  ·  Lyon 4-0-24-0
-8.1   [DOT] ऑफ स्टंप के बाहर, Kohli ने छोड़ा।
-8.2   [FOUR] बेहतरीन टाइमिंग, स्क्वेयर लेग की ओर चौका!
+8.1   [DOT] सटीक लाइन, Kohli के पास कोई जवाब नहीं।
+8.2   [FOUR] पॉइंट के पास से शानदार शॉट, चार रन!
 8.3   [RUN] फील्डर ने रोका, लेकिन दो रन मिल गए।
 8.3   [CALL/PARTNERSHIP] Kohli और Yadav के बीच 50 रनों की साझेदारी, 32 गेंदों में।
-8.4   [WICKET] बड़ा शॉट खेलने गए... बाउंड्री पर Hazlewood ने कैच लपका! Kohli की 34 रनों की पारी ख़त्म।
-8.5   [DOT] फील्डर के सीधे हाथ में, रन नहीं।
-8.6   [RUN] थर्ड मैन की ओर, आसान सिंगल।
+8.4   [WICKET] कैच! Kohli ने गेंद सीधी Hazlewood के हाथ में दे दी। Kohli की 34 रनों की पारी ख़त्म।
+8.4   [EXPERT]   >> Kohli ख़ुद से नाराज़ होंगे, 34 पर सेट थे और विकेट गंवा दिया।
+8.5   [DOT] Cummins की गेंद, Rahul ने सीधा बल्ला दिखाया, कोई रन नहीं।
+8.6   [RUN] पैड से फ्लिक, एक रन।
 8.6   [EXPERT]   >> मौजूदा रन रेट 7.22। इसी रफ़्तार से स्कोर 361 तक जा सकता है।
-8.6   [OVER] ओवर 9 समाप्त · 7 रन · 1 विकेट | IND 65/2  ·  CRR 7.22 | Yadav 23 (12)  ·  Rahul 1 (2)  ·  Cummins 1-0-7-1
 ...
-29.3  [WICKET] Rahul के हाथों में आसान कैच - आउट! Starc की 7 रनों की पारी ख़त्म।
-29.3  [EXPERT] अब नए बल्लेबाज़ को शुरुआत से पारी बनानी होगी।
-29.4  [DOT] Shami की कसी हुई गेंदबाज़ी।
-29.5  [RUN] पैड से फ्लिक, एक रन।
-29.6  [DOT] अच्छी लेंथ, Cummins ने गेंद छोड़ दी।
-29.6  [CALL] जीत के लिए 120 गेंदों में 152 रन चाहिए।
-29.6  [EXPERT] अब हर ओवर में 7.60 रन चाहिए - 120 गेंदों में 152।
-29.6  [OVER] ओवर 30 समाप्त · 2 रन · 1 विकेट
-30.1  [RUN] Hazlewood ने एक रन लिया।
-30.2  [RUN] Cummins ने थर्ड मैन की ओर खेलकर एक रन चुराया।
-30.3  [WICKET] बड़ा शॉट खेलने गए... बाउंड्री पर Sharma ने कैच लपका! Hazlewood 2 (4) बनाकर लौटे।
-30.3  [RESULT/RESULT] India won by 149 runs
+24.2  [RUN] Hazlewood ने मिडविकेट से खेलकर एक रन चुराया।
+24.3  [RUN] मिड-ऑन की ओर, एक रन पूरा।
+24.4  [RUN] Hazlewood ने एक रन लिया।
+24.5  [RUN] स्ट्राइक रोटेट, एक रन।
+24.6  [RUN] गैप में धकेला, एक रन।
+24.6  [CALL] जीत के लिए 150 गेंदों में 169 रन चाहिए।
+24.6  [OVER] ओवर 25 समाप्त · 10 रन
+25.1  [RUN] थर्ड मैन की ओर, आसान सिंगल।
+25.2  [RUN] तेज़ सिंगल, शानदार दौड़!
+25.3  [WICKET] किनारा और विकेटकीपर Dhoni के दस्ताने में! Hazlewood की 12 रनों की पारी ख़त्म।
+25.3  [CALL/3-FOR] Ashwin का तीसरा विकेट! आंकड़े 7.3-0-26-3।
+25.3  [RESULT/RESULT] India won by 166 runs
 
-===== ODI · HG · Kabir Malhotra & Rhea Sethi · India won by 149 runs
+===== ODI · HG · Kabir Malhotra & Rhea Sethi · India won by 166 runs
 0.1   [INTRO] Namaskar aur swagat hai Eden Gardens, Kolkata se! Border Cup mein aaj India vs Australia.
 0.1   [INTRO] India ne toss jeet ke pehle batting ka faisla kiya. Mausam saaf aasmaan, pitch sookhi, turning.
 0.1   [RUN] Gap mein push, ek run.
@@ -439,87 +439,87 @@
 1.3   [RUN] Third man ki taraf dab kiya, aasaan single.
 1.4   [DOT] Beaten! Ball edge ke bilkul paas se nikal gayi.
 1.5   [DOT] Yorker! Kohli ne last moment pe bat neeche laaya.
-1.6   [FOUR] point ke paas se zabardast shot, chaar run!
+1.6   [FOUR] CHAUKA! Kohli ne ball keeper ke peeche bhej di!
 1.6   [OVER] Over 2 khatam · 6 run | IND 9/0  ·  CRR 4.50 | Kohli 7 (8)  ·  Sudharsan 2 (4)  ·  Starc 1-0-6-0
-2.1   [FOUR] CHAUKA! Sudharsan ne ball point ke paas se bhej di!
-2.2   [DOT] Lyon ki ball, Sudharsan ne solid defence kiya. Koi run nahi.
+2.1   [FOUR] mid-on ke paas se zabardast shot, chaar run!
+2.2   [DOT] Played and missed! Kya ball daali hai Lyon ne.
 2.3   [APPEAL] Zordaar appeal... NOT OUT!
-2.4   [RUN] Sudharsan ne seedha ground ke neeche nudge kiya, ek run.
-2.5   [DOT] Slower ball, Kohli shot mein jaldi kar gaye. Koi run nahi.
+2.4   [RUN] Sudharsan ne fine leg ki taraf nudge kiya, ek run.
+2.5   [DOT] Lyon ki ball, Kohli ne solid defence kiya. Koi run nahi.
 2.6   [DOT] Tight line Lyon ki, Kohli sirf block kar paaye.
 2.6   [EXPERT]   >> Lyon ke figures ab 2-0-8-0, economy 4.00.
 2.6   [OVER] Over 3 khatam · 5 run | IND 14/0  ·  CRR 4.67 | Kohli 7 (10)  ·  Sudharsan 7 (8)  ·  Lyon 2-0-8-0
 3.1   [WICKET] Hawa mein ball... aur Stoinis ne pakad li! Sudharsan 7 (9) bana ke wapas.
-3.2   [FOUR] Short ball aur saza! Yadav ka chauka fine leg ki taraf.
-3.3   [RUN] Long-off pe drive, ek run.
-3.4   [DOT] Dot ball, pressure badh raha hai.
-3.5   [DOT] Played and missed! Kya ball daali hai Hazlewood ne.
-3.6   [FOUR] Kya timing hai! midwicket se chauka.
+3.1   [EXPERT]   >> Dot balls ka pressure kaam kar gaya.
+3.2   [FOUR] Short ball aur saza! Yadav ka chauka seedha ground ke neeche.
+3.3   [RUN] Yadav ne point ke paas se khel ke ek run liya.
+3.4   [DOT] Slower ball, Kohli shot mein jaldi kar gaye. Koi run nahi.
+3.5   [DOT] Achhi length, Kohli ne ball chhod di.
+3.6   [FOUR] Kohli ne aage badh ke midwicket se chauka jad diya!
 3.6   [OVER] Over 4 khatam · 9 run · 1 wkt | IND 23/1  ·  CRR 5.75 | Kohli 11 (13)  ·  Yadav 5 (2)  ·  Hazlewood 1-0-9-1
-4.1   [RUN] Gap mein push, ek run.
-4.2   [DOT] Kohli ne cover ki taraf push kiya, seedha fielder ke haath mein.
-4.3   [RUN] keeper ke peeche khela, do run!
-4.4   [DOT] Ek aur dot, Lyon ne bandh ke rakha hai.
-4.5   [FOUR] Kohli ne aage badh ke covers ke beech se chauka jad diya!
-4.6   [DOT] Bouncer! Kohli ne jhuk ke chhod diya.
+4.1   [RUN] Long-off pe drive, ek run.
+4.2   [DOT] Ek aur dot, Lyon ne bandh ke rakha hai.
+4.3   [RUN] covers ke beech se khela, do run!
+4.4   [DOT] Kohli ne cover ki taraf push kiya, seedha fielder ke haath mein.
+4.5   [FOUR] Kya timing hai! square leg ki taraf chauka.
+4.6   [DOT] Dot ball, pressure badh raha hai.
 4.6   [OVER] Over 5 khatam · 7 run | IND 30/1  ·  CRR 6.00 | Kohli 17 (18)  ·  Yadav 6 (3)  ·  Lyon 3-0-15-0
-5.1   [FOUR] Fielder ke paas koi chance nahi, point ke paas se chauka!
-5.2   [DOT] Achhi length, Yadav ne ball chhod di.
-5.3   [DOT] Beaten! Ball edge ke bilkul paas se nikal gayi.
-5.4   [DOT] Yorker! Yadav ne last moment pe bat neeche laaya.
+5.1   [FOUR] Fielder ke paas koi chance nahi, seedha ground ke neeche chauka!
+5.2   [DOT] Bouncer! Yadav ne jhuk ke chhod diya.
+5.3   [DOT] Yorker! Yadav ne last moment pe bat neeche laaya.
+5.4   [DOT] Played and missed! Kya ball daali hai Hazlewood ne.
 5.5   [RUN] Boundary se pehle ruk gayi, teen run!
-5.6   [RUN] Kohli ne tez bhaag ke doosra run bhi le liya.
+5.6   [RUN] Badhiya running, do run poore.
 5.6   [EXPERT]   >> Current run rate 6.50. Isi speed se 325 tak ja sakte hain.
 5.6   [OVER] Over 6 khatam · 9 run | IND 39/1  ·  CRR 6.50 | Kohli 19 (19)  ·  Yadav 13 (8)  ·  Hazlewood 2-0-18-1
-6.1   [FOUR] Perfect placement, fine leg ki taraf chaar run.
-6.2   [RUN] Quick single! Badhiya running.
+6.1   [FOUR] Perfect placement, square leg ki taraf chaar run.
+6.2   [RUN] Gap mein push, ek run.
 6.3   [DOT] Kohli ne off stump ke bahar wali ball ko jaane diya.
 6.4   [DOT] Starc ki ball, Kohli ne solid defence kiya. Koi run nahi.
-6.5   [RUN] Kohli ne mid-off ke paas se khel ke ek run liya.
-6.6   [FOUR] square leg ki taraf zabardast shot, chaar run!
+6.5   [RUN] Strike rotate, ek run.
+6.6   [FOUR] CHAUKA! Yadav ne ball fine leg ki taraf bhej di!
 6.6   [OVER] Over 7 khatam · 10 run | IND 49/1  ·  CRR 7.00 | Kohli 20 (22)  ·  Yadav 22 (11)  ·  Starc 2-0-16-0
-7.1   [FOUR] Short ball aur saza! Kohli ka chauka seedha ground ke neeche.
-7.1   [CALL] India ke 50 run poore.
-7.2   [RUN] Badhiya running, do run poore.
-7.3   [DOT] Slower ball, Kohli shot mein jaldi kar gaye. Koi run nahi.
-7.4   [RUN] Strike rotate, ek run.
-7.5   [RUN] Third man ki taraf dab kiya, aasaan single.
-7.6   [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
+7.1   [FOUR] Short ball aur saza! Kohli ka chauka mid-on ke paas se.
+7.2   [RUN] Kohli ne tez bhaag ke doosra run bhi le liya.
+7.3   [DOT] Beaten! Ball edge ke bilkul paas se nikal gayi.
+7.4   [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
+7.5   [RUN] Quick single! Badhiya running.
+7.6   [RUN] Third man ki taraf dab kiya, aasaan single.
 7.6   [OVER] Over 8 khatam · 9 run | IND 58/1  ·  CRR 7.25 | Kohli 28 (27)  ·  Yadav 23 (12)  ·  Lyon 4-0-24-0
-8.1   [DOT] Dot ball, pressure badh raha hai.
-8.2   [FOUR] Kya timing hai! square leg ki taraf chauka.
+8.1   [DOT] Achhi length, Kohli ne ball chhod di.
+8.2   [FOUR] point ke paas se zabardast shot, chaar run!
 8.3   [RUN] Fielder ne roka, lekin do run mil gaye.
 8.3   [CALL/PARTNERSHIP] Kohli aur Yadav ke beech 50 run ki partnership, 32 balls mein.
-8.4   [WICKET] Bada shot khelne gaye... boundary pe Hazlewood ne catch le liya! Kohli ki 34 run ki innings khatam.
-8.5   [DOT] Ek aur dot, Cummins ne bandh ke rakha hai.
-8.6   [RUN] Long-off pe drive, ek run.
+8.4   [WICKET] CATCH! Kohli ne ball seedha Hazlewood ke haath mein de di. Kohli ki 34 run ki innings khatam.
+8.4   [EXPERT]   >> Kohli khud se naraaz honge, 34 pe set the aur wicket de diya.
+8.5   [DOT] Slower ball, Rahul shot mein jaldi kar gaye. Koi run nahi.
+8.6   [RUN] Rahul ne point ke paas se khel ke ek run liya.
 8.6   [EXPERT]   >> Current run rate 7.22. Isi speed se 361 tak ja sakte hain.
-8.6   [OVER] Over 9 khatam · 7 run · 1 wkt | IND 65/2  ·  CRR 7.22 | Yadav 23 (12)  ·  Rahul 1 (2)  ·  Cummins 1-0-7-1
 ...
-29.3  [WICKET] Aasaan catch Rahul ka, Shami ko wicket! Starc ki 7 run ki innings khatam.
-29.3  [EXPERT] Ab naye batsman ko zero se shuru karna padega.
-29.4  [DOT] Beaten! Ball edge ke bilkul paas se nikal gayi.
-29.5  [RUN] Long-off pe drive, ek run.
-29.6  [DOT] Bouncer! Cummins ne jhuk ke chhod diya.
-29.6  [CALL] Jeet ke liye 120 balls mein 152 run chahiye.
-29.6  [EXPERT] Ab har over mein 7.60 chahiye - 120 balls mein 152.
-29.6  [OVER] Over 30 khatam · 2 run · 1 wkt
-30.1  [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
-30.2  [RUN] Strike rotate, ek run.
-30.3  [WICKET] Bada shot khelne gaye... boundary pe Sharma ne catch le liya! Hazlewood 2 (4) bana ke wapas.
-30.3  [RESULT/RESULT] India won by 149 runs
+24.2  [RUN] Quick single! Badhiya running.
+24.3  [RUN] Gap mein push, ek run.
+24.4  [RUN] Long-off pe drive, ek run.
+24.5  [RUN] Starc ne third man ki taraf khel ke ek run liya.
+24.6  [RUN] Hazlewood ne covers ke beech se nudge kiya, ek run.
+24.6  [CALL] Jeet ke liye 150 balls mein 169 run chahiye.
+24.6  [OVER] Over 25 khatam · 10 run
+25.1  [RUN] Mid-on ki taraf tap kiya aur bhaag liye.
+25.2  [RUN] Strike rotate, ek run.
+25.3  [WICKET] Edge laga aur keeper Dhoni ke gloves mein! Hazlewood ki 12 run ki innings khatam.
+25.3  [CALL/3-FOR] Ashwin ka teesra wicket! Figures 7.3-0-26-3.
+25.3  [RESULT/RESULT] India won by 166 runs
 
-===== TEST · EN · Mark Ellison & Priya Nair · Australia won by 5 wickets
+===== TEST · EN · Mark Ellison & Priya Nair · Australia won by 7 wickets
 0.1   [INTRO] Welcome to Eden Gardens, Kolkata for Border Cup. India take on Australia.
 0.1   [INTRO] India won the toss and chose to bat. It's humid, and a good, balanced pitch.
-0.1   [RUN] Pushed straight down the ground, they take one.
+0.1   [RUN] Pushed through midwicket, they take one.
 0.2   [DOT] Good length from Starc, Sudharsan leaves it alone.
 0.3   [DOT] Starc to Sudharsan, defended solidly back down the pitch.
 0.4   [DOT] Played and missed! Lovely bowling from Starc.
-0.5   [SIX] That's HUGE! Sent over midwicket!
+0.5   [SIX] That's HUGE! Sent over long-off!
 0.6   [DOT] Dot ball. Sudharsan pushes to cover, straight to the fielder.
 0.6   [OVER] END OF OVER 1 · 7 RUNS | IND 7/0  ·  CRR 7.00 | Kohli 1 (1)  ·  Sudharsan 6 (5)  ·  Starc 1-0-7-0
-1.1   [FOUR] That races away straight down the ground. Four!
+1.1   [FOUR] That races away through the covers. Four!
 1.2   [DOT] Tight line from Hazlewood, Kohli can only block.
 1.3   [RUN] Kohli works it fine down the leg side for a single.
 1.4   [DOT] Sudharsan shoulders arms - well judged.
@@ -538,7 +538,7 @@
 3.2   [DOT] Full and straight, dug out by Sudharsan.
 3.3   [DOT] Good length from Starc, Sudharsan leaves it alone.
 3.4   [DOT] Starc to Sudharsan, defended solidly back down the pitch.
-3.5   [RUN] Placed wide of mid-on - they come back for two.
+3.5   [RUN] Placed through the covers - they come back for two.
 3.6   [DOT] Played and missed! Lovely bowling from Starc.
 3.6   [OVER] END OF OVER 4 · 2 RUNS | IND 16/0  ·  CRR 4.00 | Kohli 7 (8)  ·  Sudharsan 9 (16)  ·  Starc 2-0-9-0
 4.1   [DOT] Soft hands from Kohli, it drops at his feet.
@@ -559,7 +559,7 @@
 6.1   [DOT] Hazlewood to Kohli, defended solidly back down the pitch.
 6.2   [DOT] Good length from Hazlewood, Kohli leaves it alone.
 6.3   [DOT] Played and missed! Lovely bowling from Hazlewood.
-6.4   [RUN] Nudged through midwicket, easy single.
+6.4   [RUN] Nudged behind square on the leg side, easy single.
 6.5   [APPEAL] They go up for the catch - umpire unmoved.
 6.6   [DOT] Pressure building, another dot.
 6.6   [OVER] END OF OVER 7 · 1 RUN | IND 21/0  ·  CRR 3.00 | Kohli 12 (21)  ·  Sudharsan 9 (21)  ·  Hazlewood 3-0-9-0
@@ -581,30 +581,30 @@
 9.1   [DOT] Kohli shoulders arms - well judged.
 9.2   [DOT] Quick bouncer from Hazlewood, Kohli sways out of the way.
 ...
-48.1  [DOT] Angled across, Marsh lets it go through to the keeper.
-48.2  [SIX] That's HUGE! Sent over long-off!
-48.2  [CALL/PARTNERSHIP] Marsh and Stoinis have now added 50 together.
-48.3  [DOT] Slower ball, Marsh is early on the shot. No run.
-48.4  [DOT] Marsh shoulders arms - well judged.
-48.5  [DOT] Yorker! Marsh jams the bat down just in time.
-48.6  [DOT] Good length from Jadeja, Marsh leaves it alone.
-48.6  [OVER] END OF OVER 49 · 6 RUNS
-49.1  [DOT] Played and missed! Lovely bowling from Shami.
-49.2  [RUN] Good running, two runs.
-49.2  [CALL/WIN] And that's it! Australia win it!
-49.2  [RESULT/RESULT] Australia won by 5 wickets
+21.2  [DOT] Quick bouncer from Ashwin, Smith sways out of the way.
+21.3  [RUN] Nudged through the covers, easy single.
+21.4  [DOT] Angled across, Inglis lets it go through to the keeper.
+21.5  [DOT] Beaten! That kissed nothing but air past the outside edge.
+21.6  [DOT] Soft hands from Inglis, it drops at his feet.
+21.6  [OVER] END OF OVER 22 · 2 RUNS
+22.1  [DOT] Bumrah to Smith, defended solidly back down the pitch.
+22.2  [DOT] Smith shoulders arms - well judged.
+22.3  [APPEAL] Big appeal from Bumrah... not out!
+22.4  [FOUR] Beautiful timing, threaded through midwicket for four.
+22.4  [CALL/WIN] And that's it! Australia win it!
+22.4  [RESULT/RESULT] Australia won by 7 wickets
 
-===== TEST · HI · Rajesh Tiwari & Sunita Verma · Australia won by 5 wickets
+===== TEST · HI · Rajesh Tiwari & Sunita Verma · Australia won by 7 wickets
 0.1   [INTRO] Eden Gardens, Kolkata से नमस्कार! Border Cup में आज India का मुकाबला Australia से।
 0.1   [INTRO] India ने टॉस जीतकर पहले बल्लेबाज़ी का फैसला किया। मौसम उमस भरा, पिच संतुलित।
 0.1   [RUN] Kohli ने एक रन लिया।
 0.2   [DOT] बीट! गेंद बल्ले को छकाती हुई निकल गई।
 0.3   [DOT] Sudharsan ने रक्षात्मक शॉट खेला।
 0.4   [DOT] सटीक लाइन, Sudharsan के पास कोई जवाब नहीं।
-0.5   [SIX] छक्का! Sudharsan ने गेंद मिडविकेट के ऊपर से स्टैंड्स में भेज दी!
+0.5   [SIX] छक्का! Sudharsan ने गेंद लॉन्ग-ऑफ के ऊपर से स्टैंड्स में भेज दी!
 0.6   [DOT] डॉट बॉल, दबाव बढ़ रहा है।
 0.6   [OVER] ओवर 1 समाप्त · 7 रन | IND 7/0  ·  CRR 7.00 | Kohli 1 (1)  ·  Sudharsan 6 (5)  ·  Starc 1-0-7-0
-1.1   [FOUR] सीधा मैदान पर शानदार शॉट, चार रन!
+1.1   [FOUR] कवर्स के बीच से शानदार शॉट, चार रन!
 1.2   [DOT] फील्डर के सीधे हाथ में, रन नहीं।
 1.3   [RUN] स्ट्राइक रोटेट, एक रन।
 1.4   [DOT] अच्छी लेंथ, Sudharsan ने गेंद छोड़ दी।
@@ -636,7 +636,7 @@
 5.1   [DOT] Starc ने लगातार एक ही जगह गेंद डाली, फिर डॉट।
 5.2   [DOT] यॉर्कर! Kohli ने किसी तरह बल्ला नीचे लाकर रोका।
 5.3   [DOT] Starc की गेंद, Kohli ने सीधा बल्ला दिखाया, कोई रन नहीं।
-5.4   [RUN] Kohli ने मिड-ऑफ के पास से खेलकर एक रन चुराया।
+5.4   [RUN] Kohli ने सीधा मैदान पर खेलकर एक रन चुराया।
 5.5   [DOT] Starc की कसी हुई गेंदबाज़ी।
 5.6   [DOT] बीट! गेंद बल्ले को छकाती हुई निकल गई।
 5.6   [EXPERT]   >> Sudharsan 19 गेंदों में 9 रन पर, 0 चौके और 1 छक्के।
@@ -666,30 +666,30 @@
 9.1   [DOT] Hazlewood की कसी हुई गेंदबाज़ी।
 9.2   [DOT] फील्डर के सीधे हाथ में, रन नहीं।
 ...
-48.1  [DOT] Marsh ने आगे बढ़कर रोका, रन नहीं बना।
-48.2  [SIX] गगनचुंबी छक्का, लॉन्ग-ऑफ के ऊपर से!
-48.2  [CALL/PARTNERSHIP] Marsh और Stoinis ने मिलकर 50 रन जोड़ लिए।
-48.3  [DOT] बीट! गेंद बल्ले को छकाती हुई निकल गई।
-48.4  [DOT] Marsh ने रक्षात्मक शॉट खेला।
-48.5  [DOT] फील्डर के सीधे हाथ में, रन नहीं।
-48.6  [DOT] डॉट बॉल, दबाव बढ़ रहा है।
-48.6  [OVER] ओवर 49 समाप्त · 6 रन
-49.1  [DOT] सटीक लाइन, Stoinis के पास कोई जवाब नहीं।
-49.2  [RUN] मिडविकेट की ओर, दो रन।
-49.2  [CALL/WIN] और यह रहा! Australia ने मुकाबला जीत लिया!
-49.2  [RESULT/RESULT] Australia won by 5 wickets
+21.2  [DOT] सटीक लाइन, Smith के पास कोई जवाब नहीं।
+21.3  [RUN] Smith ने एक रन लिया।
+21.4  [DOT] डॉट बॉल, दबाव बढ़ रहा है।
+21.5  [DOT] Ashwin ने लगातार एक ही जगह गेंद डाली, फिर डॉट।
+21.6  [DOT] ऑफ स्टंप के बाहर, Inglis ने छोड़ा।
+21.6  [OVER] ओवर 22 समाप्त · 2 रन
+22.1  [DOT] Bumrah की गेंद, Smith ने सीधा बल्ला दिखाया, कोई रन नहीं।
+22.2  [DOT] धीमी गेंद, Smith के शॉट में जल्दबाज़ी, कोई रन नहीं।
+22.3  [APPEAL] ज़ोरदार अपील... नॉट आउट!
+22.4  [FOUR] छोटी गेंद और सज़ा! Smith का चौका मिडविकेट से।
+22.4  [CALL/WIN] और यह रहा! Australia ने मुकाबला जीत लिया!
+22.4  [RESULT/RESULT] Australia won by 7 wickets
 
-===== TEST · HG · Kabir Malhotra & Rhea Sethi · Australia won by 5 wickets
+===== TEST · HG · Kabir Malhotra & Rhea Sethi · Australia won by 7 wickets
 0.1   [INTRO] Namaskar aur swagat hai Eden Gardens, Kolkata se! Border Cup mein aaj India vs Australia.
 0.1   [INTRO] India ne toss jeet ke pehle batting ka faisla kiya. Mausam umas bhara, pitch balanced.
 0.1   [RUN] Gap mein push, ek run.
 0.2   [DOT] Beaten! Ball edge ke bilkul paas se nikal gayi.
 0.3   [DOT] Sudharsan ne cover ki taraf push kiya, seedha fielder ke haath mein.
 0.4   [DOT] Tight line Starc ki, Sudharsan sirf block kar paaye.
-0.5   [SIX] CHHAKKA! Sudharsan ne ball midwicket ke upar se stands mein bhej di!
+0.5   [SIX] CHHAKKA! Sudharsan ne ball long-off ke upar se stands mein bhej di!
 0.6   [DOT] Dot ball, pressure badh raha hai.
 0.6   [OVER] Over 1 khatam · 7 run | IND 7/0  ·  CRR 7.00 | Kohli 1 (1)  ·  Sudharsan 6 (5)  ·  Starc 1-0-7-0
-1.1   [FOUR] seedha ground ke neeche zabardast shot, chaar run!
+1.1   [FOUR] covers ke beech se zabardast shot, chaar run!
 1.2   [DOT] Played and missed! Kya ball daali hai Hazlewood ne.
 1.3   [RUN] Quick single! Badhiya running.
 1.4   [DOT] Achhi length, Sudharsan ne ball chhod di.
@@ -715,7 +715,7 @@
 4.2   [DOT] Beaten! Ball edge ke bilkul paas se nikal gayi.
 4.3   [DOT] Ek aur dot, Hazlewood ne bandh ke rakha hai.
 4.4   [RUN] Kohli ne tez bhaag ke doosra run bhi le liya.
-4.5   [RUN] Kohli ne fine leg ki taraf khel ke ek run liya.
+4.5   [RUN] Kohli ne point ke paas se khel ke ek run liya.
 4.6   [DOT] Bouncer! Sudharsan ne jhuk ke chhod diya.
 4.6   [OVER] Over 5 khatam · 3 run | IND 19/0  ·  CRR 3.80 | Kohli 10 (13)  ·  Sudharsan 9 (17)  ·  Hazlewood 2-0-8-0
 5.1   [DOT] Kohli ne cover ki taraf push kiya, seedha fielder ke haath mein.
@@ -736,7 +736,7 @@
 7.1   [DOT] Beaten! Ball edge ke bilkul paas se nikal gayi.
 7.2   [DOT] Bouncer! Kohli ne jhuk ke chhod diya.
 7.3   [DOT] Yorker! Kohli ne last moment pe bat neeche laaya.
-7.4   [RUN] Kohli ne seedha ground ke neeche nudge kiya, ek run.
+7.4   [RUN] Kohli ne mid-on ke paas se nudge kiya, ek run.
 7.5   [DOT] Tight line Starc ki, Sudharsan sirf block kar paaye.
 7.6   [DOT] Sudharsan ne cover ki taraf push kiya, seedha fielder ke haath mein.
 7.6   [OVER] Over 8 khatam · 1 run | IND 22/0  ·  CRR 2.75 | Kohli 13 (25)  ·  Sudharsan 9 (23)  ·  Starc 4-0-11-0
@@ -751,15 +751,15 @@
 9.1   [DOT] Slower ball, Kohli shot mein jaldi kar gaye. Koi run nahi.
 9.2   [DOT] Yorker! Kohli ne last moment pe bat neeche laaya.
 ...
-48.1  [DOT] Dot ball, pressure badh raha hai.
-48.2  [SIX] Bahut bada shot, long-off ke upar se chhakka!
-48.2  [CALL/PARTNERSHIP] Marsh aur Stoinis ne milke 50 run jod liye.
-48.3  [DOT] Jadeja ki ball, Marsh ne solid defence kiya. Koi run nahi.
-48.4  [DOT] Played and missed! Kya ball daali hai Jadeja ne.
-48.5  [DOT] Tight line Jadeja ki, Marsh sirf block kar paaye.
-48.6  [DOT] Bouncer! Marsh ne jhuk ke chhod diya.
-48.6  [OVER] Over 49 khatam · 6 run
-49.1  [DOT] Achhi length, Stoinis ne ball chhod di.
-49.2  [RUN] Stoinis ne tez bhaag ke doosra run bhi le liya.
-49.2  [CALL/WIN] Aur ye raha! Australia ne match jeet liya!
-49.2  [RESULT/RESULT] Australia won by 5 wickets
+21.2  [DOT] Achhi length, Smith ne ball chhod di.
+21.3  [RUN] Smith ne covers ke beech se khel ke ek run liya.
+21.4  [DOT] Inglis ne cover ki taraf push kiya, seedha fielder ke haath mein.
+21.5  [DOT] Played and missed! Kya ball daali hai Ashwin ne.
+21.6  [DOT] Yorker! Inglis ne last moment pe bat neeche laaya.
+21.6  [OVER] Over 22 khatam · 2 run
+22.1  [DOT] Bumrah ki ball, Smith ne solid defence kiya. Koi run nahi.
+22.2  [DOT] Tight line Bumrah ki, Smith sirf block kar paaye.
+22.3  [APPEAL] Zordaar appeal... NOT OUT!
+22.4  [FOUR] Short ball aur saza! Smith ka chauka midwicket se.
+22.4  [CALL/WIN] Aur ye raha! Australia ne match jeet liya!
+22.4  [RESULT/RESULT] Australia won by 7 wickets
