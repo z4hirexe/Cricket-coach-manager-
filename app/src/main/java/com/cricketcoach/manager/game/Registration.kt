@@ -113,7 +113,8 @@ object Registration {
         if (rule(save, comp) == null) return "No registration needed for ${comp.name}."
         if (locked(save, comp)) return "The ${short(comp)} squad is locked - only permitted replacements are allowed."
         val p = problems(save, comp, ids)
-        if (p.isNotEmpty()) return p.first()
+        // a simulated match must never stall: the default squad is registered even if the club can't meet every rule
+        if (p.isNotEmpty() && !(auto && ids.isNotEmpty())) return p.first()
         comp.reg = ids.distinct().toMutableList(); comp.regDone = true; comp.regAuto = auto
         val c = save.clubs[comp.userTeam!!]!!
         save.addNews(if (auto) "${c.name}'s ${short(comp)} squad (${comp.reg.size}) was registered automatically for a simulated match."
