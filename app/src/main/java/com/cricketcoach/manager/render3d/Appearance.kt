@@ -56,7 +56,12 @@ class Look(
             floatArrayOf(0.55f, 0.42f, 0.24f), floatArrayOf(0.42f, 0.17f, 0.06f), floatArrayOf(0.42f, 0.41f, 0.40f))
         val HAIR_NAMES = arrayOf("Black", "Dark brown", "Brown", "Blond", "Ginger", "Grey")
 
-        private fun h(id: String): Long { var x = 1125899906842597L; for (c in id) x = 31 * x + c.code; return x and 0x7fffffffffffffffL }
+        /** string hash with a splitmix64 finaliser, so neighbouring ids ("gen-1", "gen-2") get unrelated looks */
+        private fun h(id: String): Long {
+            var x = 1125899906842597L; for (c in id) x = 31 * x + c.code
+            x = (x xor (x ushr 30)) * -4658895280553007687L; x = (x xor (x ushr 27)) * -7723592293110705685L; x = x xor (x ushr 31)
+            return x and 0x7fffffffffffffffL
+        }
 
         /** Shirt number 1..98, stable per player (also printed on the 2D kit and the auction spotlight). */
         fun number(id: String): Int = (id.hashCode().let { if (it < 0) -it else it } % 98) + 1

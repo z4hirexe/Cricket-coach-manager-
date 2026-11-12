@@ -243,6 +243,8 @@ def digit_mesh(d, cx):
     """seven-segment digit on the shirt back, centred at x=cx (character space), as boxes facing -z.  Returns v, n, f in chest-local space."""
     V, N, F = [], [], []
     def quad(a, b, c, e, nrm):
+        # wind so the geometric normal agrees with nrm (back-face culling on the GPU would hide a mis-wound digit)
+        if np.dot(np.cross(np.asarray(b) - a, np.asarray(c) - a), nrm) < 0: a, b, c, e = a, e, c, b
         i = len(V); V.extend([a, b, c, e]); N.extend([nrm] * 4); F.extend([(i, i + 1, i + 2), (i, i + 2, i + 3)])
     for s in DIGITS[d]:
         kind = SEGS[s]
@@ -261,11 +263,14 @@ def digit_mesh(d, cx):
             y = NUM_Y + (v - 0.5) * NUM_H
             z = back_z(x, y) + inset
             return np.array([x, y, z]) - BIND["chest"]
-        out = [P(u, v, 0.0) for u, v in corners]; inn = [P(u, v, 0.004) for u, v in corners]
+        # raised 7 mm proud of the jersey (skinned cloth moves a little under the rigid digits), 3 mm sunk in
+        out = [P(u, v, -0.007) for u, v in corners]; inn = [P(u, v, 0.003) for u, v in corners]
         quad(out[0], out[3], out[2], out[1], (0, 0, -1))          # facing -z (CCW seen from behind)
         for k in range(4):
             a, b = out[k], out[(k + 1) % 4]; c, e = inn[(k + 1) % 4], inn[k]
             nn = np.cross(b - a, e - a); nn = nn / (np.linalg.norm(nn) + 1e-9)
+            mid = (a + b) / 2; cen = np.mean(out, axis=0)
+            if np.dot(nn[:2], (mid - cen)[:2]) < 0: nn = -nn          # side walls face away from the segment centre
             quad(a, b, c, e, tuple(nn))
     return np.array(V, np.float32), np.array(N, np.float32), np.array(F, np.int32)
 

@@ -147,6 +147,34 @@ object Auction {
             } else st.aiVal.remove(u.id)
             resolveLot(save, st, rnd)
         }
+        if (bidForUser) acceleratedRound(save, st, u)
+    }
+
+    /**
+     * Accelerated round after SIM ALL: if the user's club was outbid too often, it picks up the best remaining
+     * unsold players (then other free agents) at their base price until it has [AUTO_TARGET], within cap and overseas limits.
+     */
+    private fun acceleratedRound(save: CareerSave, st: AuctionState, u: Club) {
+        if (u.squad.size >= AUTO_TARGET) return
+        val unsold = st.unsold.toHashSet()
+        val pool = save.players.values.filter { it.clubId.isEmpty() && !it.retired && !it.academy }
+            .sortedWith(compareByDescending<GPlayer> { it.id in unsold }.thenByDescending { it.overall() })
+        var n = 0
+        for (p in pool) {
+            if (u.squad.size >= AUTO_TARGET) break
+            val price = Money.basePrice(p.overall(), save.economy)
+            if (Career.canJoin(save, u, p, price) != null) continue
+            p.clubId = u.id; u.squad.add(p.id); p.salary = price; p.contractYears = if (st.type == "MEGA") 3 else 2
+            p.history.add("Season ${save.season}: Picked up by ${u.name} in the accelerated round for ${Money.fmt(price)}")
+            st.sold.add(AuctionSale(p.id, u.id, price)); st.unsold.remove(p.id); n++
+        }
+        if (n > 0) {
+            if (u.squad.size >= 15) st.log.removeAll { it.startsWith("⚠ Your squad has") }
+            st.log.add("⚡ Accelerated round: ${u.name} picked up $n player(s) at base price — squad now ${u.squad.size}.")
+            save.addNews("Auction: accelerated round added $n player(s) at base price")
+            trimLog(st)
+        }
+        TeamSelector.autoPick(u, save.players)
     }
 
     private fun noteBid(st: AuctionState, club: String) {
