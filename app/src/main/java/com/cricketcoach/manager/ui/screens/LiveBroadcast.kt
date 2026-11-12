@@ -122,8 +122,8 @@ private fun DrawScope.drawGlyph(icon: RIcon, col: Color) {
         RIcon.SIMEND -> { drawPath(tri(w * 0.06f, w * 0.38f), col); drawPath(tri(w * 0.40f, w * 0.38f), col); drawLine(col, Offset(w * 0.88f, h * 0.2f), Offset(w * 0.88f, h * 0.8f), sw * 1.2f, StrokeCap.Round) }
         RIcon.DECLARE -> { drawLine(col, Offset(w * 0.24f, h * 0.12f), Offset(w * 0.24f, h * 0.9f), sw, StrokeCap.Round)
             drawPath(Path().apply { moveTo(w * 0.26f, h * 0.14f); lineTo(w * 0.84f, h * 0.30f); lineTo(w * 0.26f, h * 0.50f); close() }, col) }
-        RIcon.DEFEND -> drawPath(Path().apply { moveTo(w * 0.5f, h * 0.1f); lineTo(w * 0.86f, h * 0.24f); quadraticTo(w * 0.84f, h * 0.72f, w * 0.5f, h * 0.92f)
-            quadraticTo(w * 0.16f, h * 0.72f, w * 0.14f, h * 0.24f); close() }, col, style = st)
+        RIcon.DEFEND -> drawPath(Path().apply { moveTo(w * 0.5f, h * 0.1f); lineTo(w * 0.86f, h * 0.24f); quadraticBezierTo(w * 0.84f, h * 0.72f, w * 0.5f, h * 0.92f)
+            quadraticBezierTo(w * 0.16f, h * 0.72f, w * 0.14f, h * 0.24f); close() }, col, style = st)
         RIcon.NORMAL -> { drawCircle(col, w * 0.38f, style = st); drawCircle(col, w * 0.12f) }
         RIcon.ATTACK -> for (k in 0..1) { val y = h * (0.52f - 0.3f * k)
             drawPath(Path().apply { moveTo(w * 0.18f, y + h * 0.28f); lineTo(w * 0.5f, y); lineTo(w * 0.82f, y + h * 0.28f) }, col, style = st) }
