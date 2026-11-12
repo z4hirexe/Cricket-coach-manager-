@@ -46,9 +46,9 @@
 | B | Auction premium redesign | ✅ build-13 (2.5.0-alpha2): broadcast stage, dossier + career stats, price rail, team panels, history dialog, retention board, auction report |
 | C | Per-player 3D body model + kit + animations | ✅ 2.5.0-alpha3: 3 body builds (slim / athletic / heavy, 2 LODs), height scaling, 6 skin tones, 6 hair styles x 6 colours, 5 facial-hair options, rigid shirt-number digits on the back, team kit (jersey, trim, trousers, cap/helmet, team-tinted pads, gloves, shoes; whites for red-ball). `render3d/Appearance.kt`: ~118 curated real players get approximate public style descriptors (no scans, no likeness assets), everyone else a deterministic fictional look. Anti-clipping pass in the asset pipeline (IK hip raise + residual lift, per-clip lowest point exported as `ClipData.GROUND_MIN` and unit-tested); actor separation 0.6 m in DeliveryPlan. Profile: 3D model panel with animation picker (Idle, Batting, Pace, Spin, Running, Fielding, Catching, Throwing, Keeping, Celebrate), drag-to-rotate Filament viewer, 2D twin on Low graphics. Phase B fixes: SIMULATE always opens the calendar first, DOBs, SIM ALL bids for the user + accelerated round, compact pips. |
 | D | Stumpstagram (social rename + player accounts) | ✅ 2.5.0-alpha4: CricGram renamed Stumpstagram (nav, menu, titles). `game/Stumps.kt`: every one of the 901 real players has an account (unique @username, photo/initials avatar, bio, followers, following, posts, verified badge); fictional players get small never-verified accounts. Followers come from a popularity model (caps, runs, wickets, 100s, 5-fors, country fan base, IPL contract) and are always labelled **est.** with a note that they are in-game estimates, not verified data. Auto posts by the players themselves for win, loss, 50, 100, five-for, hat-trick (from ball events), auction signing, transfer / free signing, trophy and career milestones; likes, comment counts and follower gain scale with performance and popularity. Follow / unfollow, Following feed, Players directory with search + filters, player profile (`Screen.SocialProfile`) reachable from posts, the directory and the player profile. Offline feed + Supabase online feed kept. Tests: StumpsTest (5); CI build-20, 79/79 green. |
-| E | Match Centre redesign + mandatory tournament squad selection | planned |
-| F | True fullscreen landscape match + TV scoreboard | planned |
-| G | Integration, previews and testing | planned |
+| E | Match Centre redesign + mandatory tournament squad selection | ✅ build-26 (2.5.0-alpha5) |
+| F | True fullscreen landscape match + TV scoreboard | ✅ build-34 (2.5.0-alpha6) |
+| G | Integration, previews and testing | ✅ 2.5.0-beta1 (vc17) - see Phase G below |
 
 ## 5. Path to "AAA" realism (honest scope)
 Procedurally generated humans cannot match motion-captured, artist-sculpted, licensed models like those in console cricket games. The engine is ready for them: drop artist glTF files into `assets/models/` with the same joint names and clip names, and the game uses them. Recommended next steps if a budget exists:
@@ -73,3 +73,27 @@ Procedurally generated humans cannot match motion-captured, artist-sculpted, lic
 - LiveBroadcastUiTest (3 Compose UI tests on Robolectric) taps every rail control and checks the engine state.
 - Previews 95-102 (incl. 740x360 small phone).
 - Leftovers: no real-device GPU test; Robolectric previews use the legacy 2D-projected stadium (Filament 3D only on device).
+
+## Phase G - integration, calibration, leftovers (2.5.0-beta1, vc17)
+- **Score calibration** (`game/MatchSim.kt`): skill gap saturates (`DIFF_CAP*tanh`), domestic games re-centre the bat-v-ball gap on the
+  international level (`levelAdj`, `LEVEL_F`), first-class base wicket/dot rates tuned (`FC_WK`, `FC_DOT`). Tuned with the pure-JVM
+  harness `tools/simharness` (build.sh / run.sh, ~5 s per 1,000 matches). 1st-innings averages (N=200 / 66 for multi-day):
+
+  | Format | Before | After | Target |
+  |---|---|---|---|
+  | Intl T20 | 162 (max 313) | 168 (max 258) | 160-175 |
+  | IPL | 195 (300+ 6%) | 195 (max 273, 300+ 0%) | 180-195 |
+  | SMAT | 192 | 181 | 170-195 |
+  | Intl ODI | 253 (350+ 18%, max 442) | 263 (350+ 8%) | 260-290 |
+  | VHT | 336 (max 608) | 284 (max 410) | 270-295 |
+  | Test | 295 | 346 (draw 16%) | 300-350 |
+  | Ranji | 431 (max 923, draw 70%) | 329 (draw 48%) | 300-360 |
+- `CalibrationTest` (7 tests) guards every format band; EngineTest still sees India beat Zimbabwe 48/60.
+- **Stumpstagram**: posts carry `matchKey`; one post per player per match (fan CENTURY/FIVE-FOR cards fold into the player's own post with the
+  poster card), re-entry safe; "For You" uses log-engagement + recency + diversity penalty (`Stumps.forYou`) so no single superstar dominates.
+- **Match Centre**: tiny-sample averages no longer show "@177.0" (`avgPart`: n.o. / "1 out" until 3 dismissals); Batting Order tab shows this
+  comp -> real format record -> career (no more "0 career runs"); bench/XI chip row is one annotated line (FORM never clipped).
+- **Registration**: calendar banner + sidebar "Register Squad" entry (starred while pending); calendar jumps stop at `Screen.SquadRegistration`
+  instead of silently auto-registering (Sim-to-season-end still auto-registers).
+- **Camera**: 2D broadcast follow camera keeps its aim inside the rope and low (sixes no longer tilt into the sky / floodlights).
+- Previews 103-106. Remaining: no real-device GPU test from the sandbox; `bowl_spin` keeps a 1.85 cm residual body lift baked into the GLB.

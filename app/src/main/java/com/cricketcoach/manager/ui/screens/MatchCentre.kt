@@ -369,8 +369,8 @@ private fun SheetRow(s: CareerSave, comp: Competition, c: Club, p: GPlayer, idx:
                 fun seg(s: String, c: Color, w: FontWeight = FontWeight.Bold) { pushStyle(androidx.compose.ui.text.SpanStyle(color = c, fontWeight = w)); append(s); pop() }
                 seg(roleShort(p.role), roleColor(p.role), FontWeight.Black)
                 seg(" ${p.overall()}", C.Text); seg(" · ", C.Sub)
-                seg("FIT ${p.fitness}", fc); seg(" · ", C.Sub)
-                seg("FORM $sym${p.form}", col)
+                seg("$sym${p.form}", col); seg(" · ", C.Sub)      // form first: the coloured arrow is what selection hinges on
+                seg("FIT ${p.fitness}", fc)
             }, fontSize = 8.5.sp, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
             Text(statLine(comp, p), color = C.Sub, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -410,7 +410,8 @@ private fun TeamSheetTab(vm: GameVM, s: CareerSave, comp: Competition, c: Club, 
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f).fillMaxHeight()) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(34.dp)) {
-                Text(if (pool != null) "BENCH · REGISTERED ${bench.size}" else "BENCH ${bench.size}", color = C.Gold, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, modifier = Modifier.weight(1f))
+                Text(if (pool != null) "BENCH · REG ${bench.size}" else "BENCH ${bench.size}", color = C.Gold, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, modifier = Modifier.weight(1f),
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
                 if (comp.allowImpact) Text("IMPACT: ${s.players[c.impact]?.short() ?: "none"}", color = C.Sub, fontSize = 9.sp)
             }
             LazyColumn(Modifier.fillMaxSize()) {
