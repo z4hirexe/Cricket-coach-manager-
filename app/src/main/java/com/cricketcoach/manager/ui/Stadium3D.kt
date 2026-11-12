@@ -238,7 +238,11 @@ private fun camFor(mode: Int, ev: BallEv?, p: Float, sc: Scene, w: Float, h: Flo
                 (ev.kind == "WICKET" && (ev.how.startsWith("c ") && !ev.how.startsWith("c †") || ev.how.startsWith("run out"))))
             if (!follow || b == null) base else {
                 val k = easeInOut(seg(p, 0.42f, 0.58f))
-                val tgt = lerp3(V3(0f, 0.6f, 5f), V3(b.x * 0.85f, b.y * 0.6f, b.z * 0.85f + 2f), k)
+                // v2.5 Phase G: keep the aim on the outfield (inside the rope, low) so a six doesn't tilt the view into the sky / floodlights
+                val hx = b.x * 0.85f; val hz = b.z * 0.85f + 2f
+                val hd = kotlin.math.sqrt(hx * hx + (hz - STRIKER_Z) * (hz - STRIKER_Z))
+                val lim = if (hd > 48f) 48f / hd else 1f
+                val tgt = lerp3(V3(0f, 0.6f, 5f), V3(hx * lim, (b.y * 0.25f).coerceAtMost(3.5f), STRIKER_Z + (hz - STRIKER_Z) * lim), k)
                 val eye = lerp3(V3(0f, 7.5f, 49f), V3(b.x * 0.2f, 34f, 66f + b.z * 0.1f), k)
                 Cam3(eye, tgt, lerpF(27f, 50f, k), w, h)
             }

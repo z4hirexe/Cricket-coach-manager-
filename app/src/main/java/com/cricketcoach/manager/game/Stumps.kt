@@ -175,6 +175,40 @@ object Stumps {
         return save.posts.filter { it.authorPid in f || (it.authorPid.isEmpty() && it.pid in f) }
     }
 
+    /**
+     * "For You" ranking (v2.5 Phase G): engagement on a log scale (so a 300M-follower superstar doesn't bury everyone),
+     * recency, poster/story bonus, and a diversity penalty so no single account takes over the top of the feed.
+     */
+    fun forYou(save: CareerSave, limit: Int = 80): List<SocialPost> {
+        val pool = save.posts.take(160)
+        val uc = save.clubs[save.userClubId]
+        fun base(i: Int, p: SocialPost): Double {
+            val eng = kotlin.math.log10(10.0 + p.likes + max(p.comments.size, p.commentCount) * 40.0)
+            var s = eng * 10 - i * 0.35
+            if (p.headline.isNotEmpty()) s += 4
+            if (p.mine) s += 6
+            if (uc != null && (p.authorPid in uc.squad || p.pid in uc.squad || p.club == uc.id)) s += 5
+            if (p.authorPid.isNotEmpty() && p.authorPid in save.stumps.following) s += 4
+            return s
+        }
+        val scored = pool.mapIndexed { i, p -> p to base(i, p) }.toMutableList()
+        val seen = HashMap<String, Int>()
+        val out = ArrayList<SocialPost>()
+        while (scored.isNotEmpty() && out.size < limit) {
+            var bi = 0; var bv = Double.NEGATIVE_INFINITY
+            for ((k, pr) in scored.withIndex()) {
+                val who = pr.first.authorPid.ifEmpty { pr.first.handle }
+                val v = pr.second - 9.0 * (seen[who] ?: 0)
+                if (v > bv) { bv = v; bi = k }
+            }
+            val p = scored.removeAt(bi).first
+            val who = p.authorPid.ifEmpty { p.handle }
+            seen[who] = (seen[who] ?: 0) + 1
+            out += p
+        }
+        return out
+    }
+
     fun postsBy(save: CareerSave, pid: String): List<SocialPost> = save.posts.filter { it.authorPid == pid || (it.authorPid.isEmpty() && it.pid == pid) }
 
     private fun bump(save: CareerSave, pid: String, d: Int) { save.stumps.fDelta[pid] = (save.stumps.fDelta[pid] ?: 0) + d }
@@ -271,12 +305,16 @@ object Stumps {
         val mine = fx.home == u || fx.away == u
         fun relevant(pid: String) = mine || pid in uc.squad || pid in save.stumps.following || popular(save, pid, 5_000_000)
         val posted = HashSet<String>()
-        // hundreds / fifties
-        for (inn in sim.innings) for (c in inn.bc) {
-            if (!c.batted || c.runs < 50 || !relevant(c.pid)) continue
+        // hundreds / fifties - best innings first so a Test player with two scores posts once, about the bigger one
+        val cards = sim.innings.flatMap { inn -> inn.bc.map { inn to it } }.sortedByDescending { it.second.runs }
+        for ((inn, c) in cards) {
+            if (!c.batted || c.runs < 50 || !relevant(c.pid) || c.pid in posted) continue
             val team = sim.club(inn.batTeam)
             if (c.runs >= 100) {
-                playerPost(save, c.pid, "CENTURY", (c.runs - 100).toDouble(), "${line("CENTURY", rnd)} ${c.runs}${if (!c.out) "*" else ""} (${c.balls}) v ${sim.club(inn.bowlTeam).short} #${team.short} #Century", rnd)
+                val opp = sim.club(inn.bowlTeam)
+                val poster = Social.Poster(c.pid, team.id, opp.id, "CENTURY", "${c.runs}${if (!c.out) "*" else ""}",
+                    listOf("BALLS|${c.balls}", "4s / 6s|${c.fours} / ${c.sixes}", "STRIKE RATE|${"%.1f".format(if (c.balls > 0) c.runs * 100.0 / c.balls else 0.0)}", "VS|${opp.short}"))
+                playerPost(save, c.pid, "CENTURY", (c.runs - 100).toDouble(), "${line("CENTURY", rnd)} ${c.runs}${if (!c.out) "*" else ""} (${c.balls}) v ${opp.short} #${team.short} #Century", rnd, poster)
                 posted += c.pid
             } else if (c.runs >= 70 || c.pid in uc.squad || c.pid in save.stumps.following) {
                 if (c.pid !in posted && rnd.nextDouble() < 0.7) {
@@ -286,16 +324,19 @@ object Stumps {
             }
         }
         // five-fors
-        for (inn in sim.innings) for (b in inn.bw.values) {
+        for ((inn, b) in sim.innings.flatMap { inn -> inn.bw.values.map { inn to it } }.sortedByDescending { it.second.wk * 1000 - it.second.runs }) {
             if (b.wk < 5 || !relevant(b.pid) || b.pid in posted) continue
-            val team = sim.club(inn.bowlTeam)
-            playerPost(save, b.pid, "FIVEFOR", (b.wk - 5).toDouble(), "${line("FIVEFOR", rnd)} ${b.wk}/${b.runs} #${team.short} #FiveFor", rnd)
+            val team = sim.club(inn.bowlTeam); val opp = sim.club(inn.batTeam)
+            val poster = Social.Poster(b.pid, team.id, opp.id, "FIVE-FOR", "${b.wk}/${b.runs}",
+                listOf("OVERS|${b.oversText}", "MAIDENS|${b.maidens}", "ECONOMY|${"%.2f".format(b.econ)}", "VS|${opp.short}"))
+            playerPost(save, b.pid, "FIVEFOR", (b.wk - 5).toDouble(), "${line("FIVEFOR", rnd)} ${b.wk}/${b.runs} #${team.short} #FiveFor", rnd, poster)
             posted += b.pid
         }
         // hat-tricks (always posted, they're rare)
         for ((bowler, innIdx) in hatTricks(sim.events)) {
             val inn = sim.innings.getOrNull(innIdx) ?: sim.innings.firstOrNull { bowler in it.bw } ?: continue
             val team = sim.club(inn.bowlTeam)
+            if (bowler in posted) continue
             val p = playerPost(save, bowler, "HATTRICK", 0.0, "${line("HATTRICK", rnd)} #${team.short} #HatTrick", rnd) ?: continue
             posted += bowler
             save.players[bowler]?.let { Social.post(save, Social.STATS, "HAT-TRICK! ${it.name} takes three in three for ${team.name} (${comp.name}). #HatTrick", "HATTRICK", p.likes / 2 + 500, rnd, 3) }

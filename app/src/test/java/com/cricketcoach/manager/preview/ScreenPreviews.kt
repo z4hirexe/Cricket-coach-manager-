@@ -229,15 +229,15 @@ class ScreenPreviews {
 
     // ---- Phase E: Match Centre + tournament squad registration
     /** IPL career with the user's first match pending in the Match Centre. */
-    private fun matchCentreVm(team: String = "F_MI", register: Boolean = true, confirm: Boolean = true): GameVM {
-        val vm = careerVm(Modes.IPL, team, 0)
+    private fun matchCentreVm(team: String = "F_MI", register: Boolean = true, confirm: Boolean = true, days: Int = 0): GameVM {
+        val vm = careerVm(Modes.IPL, team, days)
         val s = vm.save!!
         val comp = s.league.first(); val u = s.userClubId
-        val fx = comp.fixtures.filter { it.home == u || it.away == u }.minByOrNull { it.day }!!
+        val fx = comp.fixtures.filter { !it.played && (it.home == u || it.away == u) }.minByOrNull { it.day }!!
         s.day = fx.day
         vm.pending = com.cricketcoach.manager.ui.PendingMatch(comp.id, fx.id)
         if (register) {
-            Registration.register(s, comp, Registration.autoSelect(s, comp))
+            if (!comp.regDone) Registration.register(s, comp, Registration.autoSelect(s, comp))
             val c = s.userClub()
             TeamSelector.autoPick(c, s.players, pool = Registration.xiPool(s, comp))
             if (c.vice !in c.xi || c.vice == c.captain) c.vice = c.xi.first { it != c.captain }
@@ -290,6 +290,18 @@ class ScreenPreviews {
         Stumps.ensureSeeded(s); s.userClub().squad.take(4).forEach { Stumps.toggleFollow(s, it) }; Stumps.toggleFollow(s, "462411b3")
         inShell(vm, Screen.Social, "87_stumps_following.png", 1600) { SocialScreen(vm, initialTab = 1) }
     }
+
+    // ---- Phase G: integration fixes
+    @Test fun calendarRegistrationBanner() {
+        val vm = careerVm(Modes.IPL, "F_RR", 0)
+        val s = vm.save!!
+        val first = Schedule.matches(s).filter { it.mine && it.fx?.played == false }.minByOrNull { it.date }?.date
+        inShell(vm, Screen.Calendar, "103_calendar_registration_open.png", 1600) { CalendarScreen(vm, first) }
+    }
+    @Test fun stumpsForYouDiverse() { val vm = careerVm(Modes.IPL, "F_RCB", 12); inShell(vm, Screen.Social, "104_stumps_for_you_diverse.png", 2000) { SocialScreen(vm, initialTab = 0) } }
+    @Test fun matchCentreBattingMidSeason() { val vm = matchCentreVm(team = "F_CSK", days = 8); shot("105_match_centre_batting_midseason.png", 1500) { PreMatchScreen(vm, 1) } }
+    @Config(sdk = [34], qualifiers = "w740dp-h360dp-land-xxhdpi")
+    @Test fun matchCentreBenchSmall() { val vm = matchCentreVm(team = "F_CSK", days = 8); shot("106_match_centre_bench_small_phone.png", 1500) { PreMatchScreen(vm, 0) } }
 
     @Test fun settings() { val vm = vm(); shot("50_settings.png") { SettingsScreen(vm) } }
 }

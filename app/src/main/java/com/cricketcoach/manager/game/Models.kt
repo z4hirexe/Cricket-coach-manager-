@@ -169,5 +169,7 @@ class SocialPost(
     var pid: String = "", var club: String = "", var opp: String = "", var headline: String = "", var stat: String = "",
     var lines: MutableList<String> = mutableListOf(),
     // v2.5 Stumpstagram: the player who wrote the post ("" = media / fan / coach account) and the total comment count
-    var authorPid: String = "", var commentCount: Int = 0
+    var authorPid: String = "", var commentCount: Int = 0,
+    // v2.5 Phase G: "compId:fixtureId" of the match that produced the post (dedupe: one post per author per match)
+    var matchKey: String = ""
 )

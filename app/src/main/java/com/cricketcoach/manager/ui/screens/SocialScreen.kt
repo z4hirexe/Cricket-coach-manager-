@@ -139,7 +139,7 @@ fun SocialScreen(vm: GameVM, initialTab: Int = -1) {
                     if (tab < 4) {
                         val list = remember(vm.tick, tab, s?.posts?.size, s?.stumps?.following?.size) {
                             if (s == null) emptyList() else when (tab) {
-                                0 -> s.posts.take(80).sortedByDescending { it.likes + max(it.comments.size, it.commentCount) * 40 + (if (it.headline.isNotEmpty()) 2000 else 0) + (if (it.authorPid.isNotEmpty()) 1500 else 0) }
+                                0 -> Stumps.forYou(s)
                                 1 -> Stumps.followingFeed(s)
                                 else -> s.posts.filter { it.mine || it.club == s.userClubId || s.userClub().short in it.tags || it.pid in s.userClub().squad || it.authorPid in s.userClub().squad }
                             }

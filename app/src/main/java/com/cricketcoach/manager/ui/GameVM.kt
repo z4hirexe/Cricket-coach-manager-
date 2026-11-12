@@ -546,16 +546,30 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private sealed class DayOut { object Next : DayOut(); object SeasonEnd : DayOut(); class Match(val pm: PendingMatch) : DayOut() }
+    private sealed class DayOut { object Next : DayOut(); object SeasonEnd : DayOut(); class Match(val pm: PendingMatch) : DayOut(); class Register(val compId: String) : DayOut() }
+
+    /** v2.5 Phase G: a registration-gated competition whose user fixture is on [day] and isn't registered yet (the sim stops for it). */
+    private fun registrationStop(s: CareerSave, list: List<Pair<Competition, Fixture>>): Competition? =
+        list.firstOrNull { (c, f) -> (f.home == s.userClubId || f.away == s.userClubId) && Registration.required(s, c) && !Registration.registered(s, c) }?.first
+
+    private fun openRegistration(compId: String) {
+        val c = compById(compId) ?: return
+        val r = save?.let { Registration.rule(it, c) }
+        msg("Squad registration: pick your ${Registration.short(c)} squad${r?.let { " (${it.sizeText()})" } ?: ""} before the first match.")
+        nav(Screen.SquadRegistration(compId))
+    }
 
     /** Engine-only day step (safe off the main thread). */
-    private fun advanceDay(s: CareerSave, simUser: Boolean): DayOut {
+    private fun advanceDay(s: CareerSave, simUser: Boolean, stopForReg: Boolean = false): DayOut {
         if (Career.leagueFinished(s)) { Career.endSeason(s, rnd); return DayOut.SeasonEnd }
         val nextDay = s.league.flatMap { it.fixtures }.filter { !it.played }.minOfOrNull { it.day }
             ?: run { Career.endSeason(s, rnd); return DayOut.SeasonEnd }
+        val list = Career.fixturesOnDay(s, nextDay)
+        // stop before the day is played when the user's squad for that competition still has to be registered
+        // (only when the user's match would be auto-simulated; otherwise the Match Centre's registration gate handles it)
+        if (stopForReg && simUser) registrationStop(s, list)?.let { return DayOut.Register(it.id) }
         s.day = nextDay
         if (s.mode == Modes.CLUB && nextDay > Career.LEAGUE_DAYS) s.phase = "PLAYOFFS"
-        val list = Career.fixturesOnDay(s, nextDay)
         val hosts = list.map { it.second.home }.toSet()
         var userFx: Pair<Competition, Fixture>? = null
         for ((c, f) in list) {
@@ -583,6 +597,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
             when (out) {
                 is DayOut.SeasonEnd -> { persist(); nav(Screen.SeasonSummary) }
                 is DayOut.Match -> { pending = out.pm; sim = null; matchApplied = false; persist(); nav(Screen.PreMatch) }
+                is DayOut.Register -> { persist(); openRegistration(out.compId) }
                 else -> { persist(); if (s.phase == "OFFSEASON") nav(Screen.SeasonSummary) }
             }
         }
@@ -615,7 +630,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
             if (s.phase == "OFFSEASON") return DayOut.SeasonEnd
             val nd = s.league.flatMap { it.fixtures }.filter { !it.played }.minOfOrNull { it.day } ?: break
             if (nd > target) break
-            val o = advanceDay(s, nd < target || simUserOnTarget)
+            val o = advanceDay(s, nd < target || simUserOnTarget, stopForReg = true)
             if (o !is DayOut.Next) return o
         }
         return DayOut.Next
@@ -678,6 +693,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
                     pending = out.pm; sim = null; matchApplied = false; persist()
                     if (out.pm.fixtureId == fxId) nav(Screen.PreMatch) else { msg("Match day! Your next match comes first."); nav(Screen.PreMatch) }
                 }
+                is DayOut.Register -> { persist(); openRegistration(out.compId) }
                 is DayOut.SeasonEnd -> { calendarFocus = PendingMatch(compId, fxId); persist(); msg("Season complete.") }
                 else -> { calendarFocus = PendingMatch(compId, fxId); persist() }
             }

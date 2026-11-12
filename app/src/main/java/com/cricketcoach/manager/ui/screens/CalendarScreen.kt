@@ -124,6 +124,7 @@ fun CalendarScreen(vm: GameVM, initialDate: LocalDate? = null) {
             Spacer(Modifier.width(10.dp))
             // ---------------- right: filters + agenda ----------------
             Column(Modifier.weight(0.53f).fillMaxHeight()) {
+                RegistrationBanner(vm, s)
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
                     SmallPill("ALL", C.Gold, filled = filters.size == Schedule.CATEGORIES.size) { filters = Schedule.CATEGORIES.toSet() }
                     for (c in Schedule.CATEGORIES) {
@@ -448,5 +449,27 @@ private fun StatusTag(status: String) {
     val col = when (status) { "RESULT" -> C.Sub; "MATCH DAY", "TODAY" -> C.Red; "NO RESULT" -> Color(0xFF94A3B8); else -> Color(0xFF38BDF8) }
     Box(Modifier.clip(RoundedCornerShape(4.dp)).background(if (status == "MATCH DAY") C.Red else col.copy(alpha = 0.14f)).padding(horizontal = 5.dp, vertical = 1.dp)) {
         Text(if (status == "MATCH DAY") "● MATCH DAY" else status, color = if (status == "MATCH DAY") Color.White else col, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp, maxLines = 1)
+    }
+}
+
+/** v2.5 Phase G: registration call-to-action at the top of the agenda while a tournament squad is still to be registered. */
+@Composable
+private fun RegistrationBanner(vm: GameVM, s: CareerSave) {
+    val c = Registration.nextPending(s) ?: return
+    val r = Registration.rule(s, c) ?: return
+    val first = c.fixtures.filter { !it.played && (it.home == s.userClubId || it.away == s.userClubId) }.minOfOrNull { it.day }
+    val inDays = first?.let { (it - s.day).coerceAtLeast(0) }
+    Row(Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(12.dp))
+        .background(Brush.horizontalGradient(listOf(Color(0xFF3A2A06), Color(0xFF1A2440)))).border(1.dp, C.Gold.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+        .clickable { GameAudio.click(); vm.nav(Screen.SquadRegistration(c.id)) }.padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Filled.Info, null, tint = C.Gold, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Column(Modifier.weight(1f)) {
+            Text("SQUAD REGISTRATION OPEN · ${Registration.short(c)}", color = C.GoldLight, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("Register ${r.sizeText()} before your first match" + (inDays?.let { if (it == 0) " (today)" else " (in $it game day${if (it == 1) "" else "s"})" } ?: "") + ". The sim stops here until you do.",
+                color = C.Text, fontSize = 9.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Spacer(Modifier.width(6.dp))
+        SmallPill("REGISTER", C.Gold, filled = true) { vm.nav(Screen.SquadRegistration(c.id)) }
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.cricketcoach.manager.R
 import com.cricketcoach.manager.audio.GameAudio
 import com.cricketcoach.manager.game.Modes
+import com.cricketcoach.manager.game.Registration
 import com.cricketcoach.manager.ui.screens.continueLabel
 
 /** Accent palette of the v2.2 "manager office" UI (dark charcoal + neon accents, gold brand). */
@@ -55,6 +56,15 @@ fun Screen.inShell(): Boolean = when (this) {
     Screen.Dashboard, Screen.Inbox, Screen.MyClub, is Screen.Squad, Screen.Database, is Screen.Profile, Screen.Transfers, Screen.Fixtures,
     Screen.Table, Screen.TournamentsScr, Screen.Statistics, Screen.Finances, Screen.SettingsScr, Screen.Selection, Screen.Social, is Screen.SocialProfile, Screen.SeasonSummary, Screen.Calendar -> true
     else -> false
+}
+
+/** v2.5 Phase G: "Registration" sidebar entry - starred while a tournament squad is still to be registered. */
+private fun regNav(vm: GameVM, s: com.cricketcoach.manager.game.CareerSave): NavItem? {
+    val pend = Registration.nextPending(s)
+    val any = pend ?: s.league.firstOrNull { Registration.required(s, it) && it.fixtures.any { f -> !f.played } } ?: return null
+    return NavItem("register", if (pend != null) "Register Squad" else "Registered Squads", "squad", null, badge = if (pend != null) 1 else 0, star = pend != null) {
+        vm.nav(Screen.SquadRegistration(any.id))
+    }
 }
 
 private class NavItem(val key: String, val label: String, val glyph: String?, val icon: androidx.compose.ui.graphics.vector.ImageVector?, val badge: Int = 0, val star: Boolean = false, val go: () -> Unit)
@@ -98,8 +108,9 @@ private fun Sidebar(vm: GameVM) {
         } else null,
         NavItem("club", if (club) "My Club" else "Facilities", "stadium", null) { vm.navRoot(Screen.MyClub) },
     )
-    val comps = listOf(
+    val comps = listOfNotNull(
         NavItem("calendar", "Calendar", "calendar", null) { vm.navRoot(Screen.Calendar) },
+        regNav(vm, s),
         NavItem("fixtures", "Fixtures", "table", null) { vm.navRoot(Screen.Fixtures) },
         NavItem("table", if (club) "League Table" else "Points Tables", "table", null) { vm.navRoot(Screen.Table) },
         NavItem("tournaments", "Tournaments", "trophy", null) { vm.navRoot(Screen.TournamentsScr) },

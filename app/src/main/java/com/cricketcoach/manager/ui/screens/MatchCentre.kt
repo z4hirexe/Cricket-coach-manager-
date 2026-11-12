@@ -104,12 +104,41 @@ private fun FormMark(form: Int) {
 private fun roleShort(r: String) = when (r) { "BAT" -> "BAT"; "WK" -> "WK"; "AR" -> "AR"; else -> "BOWL" }
 private fun roleColor(r: String) = when (r) { "BAT" -> Color(0xFF5B9BFF); "WK" -> Color(0xFF22D3EE); "AR" -> Color(0xFFB388FF); else -> Color(0xFF43C66B) }
 
+/** Batting average text that doesn't mislead on tiny samples (v2.5 Phase G: 177 runs, 1 dismissal is not "@177.0"). */
+internal fun avgPart(runs: Int, inn: Int, no: Int): String {
+    val outs = inn - no
+    return when {
+        inn <= 0 -> ""
+        outs <= 0 -> " (${no} n.o.)"
+        outs < 3 -> " · ${outs} out"
+        else -> " @%.1f".format(runs.toDouble() / outs)
+    }
+}
+
+/** Real record in the competition's format (Cricsheet data), if any. */
+private fun realFormatStats(comp: Competition, p: GPlayer): Pair<String, com.cricketcoach.manager.data.FmtStats>? {
+    val key = when { comp.key == "IPL" -> "IPL"; comp.format == "TEST" -> "TEST"; comp.format == "ODI" -> "ODI"; else -> "T20I" }
+    val st = com.cricketcoach.manager.data.Repo.byId[p.id]?.stats?.let { it[key] ?: it[key.uppercase()] } ?: return null
+    return if (st.m > 0) key to st else null
+}
+
+/** Short batting summary for the Batting Order tab: this comp -> real format record -> in-game career -> none. */
+internal fun batSummary(comp: Competition, p: GPlayer): String {
+    val b = comp.bat[p.id]
+    if (b != null && b.inn > 0) return "${b.runs} r${avgPart(b.runs, b.inn, b.no)}" + (b.sr()?.let { " · SR %.0f".format(it) } ?: "")
+    realFormatStats(comp, p)?.let { (key, st) ->
+        if (st.inn > 0) return "$key ${st.runs} r${avgPart(st.runs, st.inn, st.no)}" + (st.sr?.takeIf { key != "TEST" }?.let { " · SR %.0f".format(it) } ?: "")
+    }
+    if (p.careerM > 0) return "Career ${p.careerRuns} r · ${p.careerM} m"
+    return if (p.fictional) "Fictional · no record" else "No record in format"
+}
+
 /** "This comp: 154r @38.5 · 3w" or career totals. */
 private fun statLine(comp: Competition, p: GPlayer): String {
     val b = comp.bat[p.id]; val w = comp.bowlS[p.id]
     return if ((b?.m ?: 0) + (w?.m ?: 0) > 0) {
         val parts = ArrayList<String>()
-        if (b != null && b.inn > 0) parts += "${b.runs}r" + (b.avg()?.let { " @%.1f".format(it) } ?: "")
+        if (b != null && b.inn > 0) parts += "${b.runs}r" + avgPart(b.runs, b.inn, b.no)
         if (w != null && w.balls > 0) parts += "${w.wk}w" + (w.econ()?.let { " e%.1f".format(it) } ?: "")
         "THIS COMP " + parts.joinToString(" · ").ifBlank { "${b?.m ?: w?.m ?: 0} m" }
     } else {
@@ -118,7 +147,7 @@ private fun statLine(comp: Competition, p: GPlayer): String {
         val st = com.cricketcoach.manager.data.Repo.byId[p.id]?.stats?.let { it[key] ?: it[key.uppercase()] }
         if (st != null && st.m > 0) {
             val parts = arrayListOf("$key ${st.m}m")
-            if (st.inn > 0) parts += "${st.runs}r" + (st.avg?.let { " @%.1f".format(it) } ?: "") + (st.sr?.takeIf { key != "TEST" }?.let { " SR %.0f".format(it) } ?: "")
+            if (st.inn > 0) parts += "${st.runs}r" + avgPart(st.runs, st.inn, st.no) + (st.sr?.takeIf { key != "TEST" }?.let { " SR %.0f".format(it) } ?: "")
             if (st.wk > 0) parts += "${st.wk}w"
             parts.joinToString(" · ")
         } else if (p.careerM > 0) "CAREER ${p.careerM}m · ${p.careerRuns}r · ${p.careerWk}w" else if (p.fictional) "FICTIONAL · no record yet" else "No recorded matches in this format"
@@ -333,14 +362,16 @@ private fun SheetRow(s: CareerSave, comp: Competition, c: Club, p: GPlayer, idx:
                 tags.forEach { Text(it, color = if (it == "OS") C.Blue else C.Gold, fontSize = 8.5.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(end = 3.dp)) }
                 if (avail.isNotEmpty()) TagChip(avail, if (avail == "TIRED") Warn else C.Red)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(roleShort(p.role), color = roleColor(p.role), fontSize = 8.5.sp, fontWeight = FontWeight.Black, maxLines = 1, softWrap = false)
-                Text("  ${p.overall()} OVR", color = C.Text, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-                val fc = when { p.fitness >= 80 -> Ok; p.fitness >= 60 -> Warn; else -> C.Red }
-                Text("  FIT ${p.fitness}", color = fc, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-                val (sym, col) = when { p.form >= 72 -> "▲" to Ok; p.form < 45 -> "▼" to C.Red; else -> "●" to Color(0xFF8899BB) }
-                Text("  FORM $sym${p.form}", color = col, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-            }
+            // one annotated line (v2.5 Phase G): role · OVR · FIT · FORM never gets its last chip clipped on narrow columns
+            val fc = when { p.fitness >= 80 -> Ok; p.fitness >= 60 -> Warn; else -> C.Red }
+            val (sym, col) = when { p.form >= 72 -> "▲" to Ok; p.form < 45 -> "▼" to C.Red; else -> "●" to Color(0xFF8899BB) }
+            Text(androidx.compose.ui.text.buildAnnotatedString {
+                fun seg(s: String, c: Color, w: FontWeight = FontWeight.Bold) { pushStyle(androidx.compose.ui.text.SpanStyle(color = c, fontWeight = w)); append(s); pop() }
+                seg(roleShort(p.role), roleColor(p.role), FontWeight.Black)
+                seg(" ${p.overall()}", C.Text); seg(" · ", C.Sub)
+                seg("FIT ${p.fitness}", fc); seg(" · ", C.Sub)
+                seg("FORM $sym${p.form}", col)
+            }, fontSize = 8.5.sp, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
             Text(statLine(comp, p), color = C.Sub, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         trailing()
@@ -424,8 +455,8 @@ private fun BattingOrderTab(vm: GameVM, s: CareerSave, comp: Competition, c: Clu
                         Text(p.name, color = Color.White, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text("$slot · ${roleShort(p.role)} · TECH ${p.tech} · PWR ${p.power}", color = C.Sub, fontSize = 8.5.sp)
                     }
-                    Text(if (b != null && b.inn > 0) "${b.runs} r · avg ${b.avg()?.let { "%.1f".format(it) } ?: "-"} · SR ${b.sr()?.let { "%.0f".format(it) } ?: "-"}" else "${p.careerRuns} career runs",
-                        color = C.Text, fontSize = 9.5.sp, modifier = Modifier.width(150.dp), textAlign = TextAlign.End)
+                    Text(batSummary(comp, p), color = C.Text, fontSize = 9.5.sp, modifier = Modifier.width(150.dp), textAlign = TextAlign.End,
+                        maxLines = 2, lineHeight = 11.sp, overflow = TextOverflow.Ellipsis)
                     FormMark(p.form)
                     IconBtn(Icons.Filled.KeyboardArrowUp, "up", enabled = canEdit && i > 0) { val l = c.xi; val x = l[i - 1]; l[i - 1] = l[i]; l[i] = x; edit() }
                     IconBtn(Icons.Filled.KeyboardArrowDown, "down", enabled = canEdit && i < c.xi.size - 1) { val l = c.xi; val x = l[i + 1]; l[i + 1] = l[i]; l[i] = x; edit() }

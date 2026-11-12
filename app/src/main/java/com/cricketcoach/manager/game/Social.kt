@@ -71,6 +71,9 @@ object Social {
         val u = save.userClubId
         val mine = fx.home == u || fx.away == u
         val uc = save.clubs[u] ?: return
+        val key = "${comp.id}:${fx.id}"
+        if (save.posts.any { it.matchKey == key }) return    // already processed (re-entry / reload)
+        val firstNew = save.nextId
         val f = save.followers
         if (mine) {
             val opp = save.clubs[if (fx.home == u) fx.away else fx.home]
@@ -110,6 +113,7 @@ object Social {
                 val team = sim.club(inn.batTeam)
                 val rec = when (comp.format) { "T20" -> c.runs >= 130; "ODI" -> c.runs >= 180; else -> c.runs >= 250 }
                 val oppT = sim.club(inn.bowlTeam)
+                if (!rec && Stumps.account(save, p.id) != null) continue   // the player posts it himself (Stumps.onMatch) - no duplicate fan card
                 post(save, if (rec) STATS else fanOf(team), "${if (rec) "RECORD-BREAKER! " else "CENTURY! "}${p.name} ${c.runs}${if (!c.out) "*" else ""} off ${c.balls} balls for ${team.name} (${comp.name}).${if (p.fictional) " [fictional player]" else ""} #${team.short} #${if (rec) "Record" else "Century"}",
                     if (rec) "RECORD" else "CENTURY", 800 + c.runs * 40 + rnd.nextInt(1500), rnd, 4,
                     Poster(p.id, team.id, oppT.id, if (rec) "RECORD" else "CENTURY", "${c.runs}${if (!c.out) "*" else ""}",
@@ -123,6 +127,7 @@ object Social {
                 if (forUser) { save.pendingCoins += 20; save.followers += 300 + b.wk * 100 }
                 val team = sim.club(inn.bowlTeam)
                 val oppT = sim.club(inn.batTeam)
+                if (b.wk < 8 && Stumps.account(save, p.id) != null) continue
                 post(save, fanOf(team), "FIVE-FOR! ${p.name} takes ${b.wk}/${b.runs} for ${team.name} (${comp.name}).${if (p.fictional) " [fictional player]" else ""} #${team.short} #FiveFor",
                     if (b.wk >= 8) "RECORD" else "FIVEFOR", 900 + b.wk * 300 + rnd.nextInt(1200), rnd, 4,
                     Poster(p.id, team.id, oppT.id, "FIVE-FOR", "${b.wk}/${b.runs}",
@@ -135,6 +140,7 @@ object Social {
             }
         }
         Stumps.onMatch(save, comp, fx, sim, rnd)
+        for (p in save.posts) { if (p.id < firstNew) break; p.matchKey = key }
     }
 
     fun onTitle(save: CareerSave, comp: Competition, rnd: Random = Random.Default) {

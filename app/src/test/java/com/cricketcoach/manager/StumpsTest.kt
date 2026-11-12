@@ -106,4 +106,37 @@ class StumpsTest {
         val old = g.fromJson("{\"manager\":\"X\",\"posts\":[{\"id\":1,\"text\":\"hi\"}]}", CareerSave::class.java)
         assertNotNull(old.stumps); assertFalse(old.stumps.seeded); assertEquals("", old.posts[0].authorPid)
     }
+
+    /** Phase G: one post per author per match (no fan card + player post duplicates), re-entry safe, diverse For You feed. */
+    @Test fun noDuplicateMatchPostsAndDiverseForYou() {
+        val rnd = Random(21)
+        val s = Modes.newCareer(1, "T", Modes.IPL, "F_RCB", 1.0, 1, rnd)
+        s.auction = null
+        Career.startSeason(s)
+        Stumps.ensureSeeded(s, rnd)
+        repeat(16) {
+            val d = s.league.flatMap { it.fixtures }.filter { !it.played }.minOfOrNull { it.day } ?: return@repeat
+            s.day = d
+            for ((c, f) in Career.fixturesOnDay(s, d)) Career.quickSim(s, c, f, rnd)
+        }
+        val keyed = s.posts.filter { it.matchKey.isNotEmpty() }
+        assertTrue("match posts carry a match key", keyed.size >= 8)
+        // the same player is never the subject of two posts from one match
+        val dupAuthor = keyed.filter { it.authorPid.isNotEmpty() }.groupBy { it.matchKey to it.authorPid }.filter { it.value.size > 1 }
+        assertTrue("duplicate player posts: ${dupAuthor.keys}", dupAuthor.isEmpty())
+        val dupSubject = keyed.filter { it.kind == "CENTURY" || it.kind == "FIVEFOR" }.groupBy { it.matchKey to (it.authorPid.ifEmpty { it.pid }) }.filter { it.value.size > 1 }
+        assertTrue("century/five-for posted twice: ${dupSubject.keys}", dupSubject.isEmpty())
+        // re-running the social hook for an already processed match adds nothing
+        val comp = s.league.first { c -> c.fixtures.any { it.played } }
+        val fx = comp.fixtures.first { it.played }
+        val n = s.posts.size
+        val sim = Career.makeSim(s, comp, fx, Random(1)); sim.autoAll = true; sim.simToEnd()
+        if (s.posts.any { it.matchKey == "${comp.id}:${fx.id}" }) { Social.onMatch(s, comp, fx, sim); assertEquals(n, s.posts.size) }
+        // For You: no single account takes over the top of the feed
+        val top = Stumps.forYou(s).take(12)
+        val per = top.groupBy { it.authorPid.ifEmpty { it.handle } }.mapValues { it.value.size }
+        println("For You top 12 authors: $per")
+        assertTrue("one account dominates For You: $per", per.values.max() <= 3)
+        assertEquals(Stumps.forYou(s).size, Stumps.forYou(s).map { it.id }.toSet().size)
+    }
 }
