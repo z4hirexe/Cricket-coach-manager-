@@ -58,7 +58,8 @@ fun ProfileScreen(vm: GameVM, pid: String) {
     val ovr = gp?.overall() ?: a?.overall ?: 50
     val role = gp?.role ?: rp?.role ?: "BAT"
     val country = gp?.country ?: rp?.country ?: ""
-    val club = gp?.let { g -> s?.clubs?.get(g.clubId) }
+    // club side; in international careers the player belongs to his national squad
+    val club = gp?.let { g -> s?.clubs?.get(g.clubId) ?: s?.clubs?.values?.firstOrNull { it.kind == "NATION" && g.id in it.squad } }
     val nat = Consts.nationByCountry(country)
     val primary = club?.let { Color(it.primary) } ?: nat?.let { Color(it.primary) } ?: Color(0xFF1B5E20)
     val secondary = club?.let { Color(it.secondary) } ?: nat?.let { Color(it.secondary) } ?: C.Gold
@@ -227,6 +228,7 @@ private fun ProfileHero(pid: String, name: String, rp: RealPlayer?, gp: GPlayer?
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(when {
+                    club != null && club.kind == "NATION" && gp?.clubId.isNullOrEmpty() -> "${club.name} squad"
                     club != null -> "${club.name}${gp?.let { if (it.clubId.isNotEmpty()) "  •  ${Money.fmt(it.salary)}/season, ${it.contractYears} yr" else "" } ?: ""}"
                     gp?.academy == true -> "Academy"; gp != null -> "Free agent"; else -> rp?.ipl?.let { "IPL: $it" } ?: ""
                 }, color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)

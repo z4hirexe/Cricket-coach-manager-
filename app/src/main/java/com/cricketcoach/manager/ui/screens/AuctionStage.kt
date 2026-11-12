@@ -78,7 +78,7 @@ internal fun AuctionStage(vm: GameVM, s: CareerSave, a: AuctionState, preview: I
         Row(Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp)) {
             // ---- auctioneer + lot strip
             Column(Modifier.width(132.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
-                LedChip("${if (a.type == "MEGA") "MEGA" else "MINI"} AUCTION", C.Gold)
+                LedChip("● LIVE", C.Red)
                 Spacer(Modifier.height(4.dp))
                 Text("LOT ${(a.index + 1).coerceAtMost(a.lots.size)}", color = Color.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 30.sp)
                 Text("of ${a.lots.size}", color = C.Sub, fontSize = 11.sp)
@@ -452,7 +452,7 @@ private fun SoldStamp(s: CareerSave, pid: String, club: Club?, price: Double, mi
     }
     LaunchedEffect(pid, price) { delay(120); ring.animateTo(1f, tween(700, easing = LinearOutSlowInEasing)) }
     val col = when { !sold -> Color(0xFF9AA4B8); mine -> C.Positive; else -> C.Gold }
-    Box(Modifier.fillMaxSize().background(Color(0xB3000000)), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().background(Color(0xE6000000)), contentAlignment = Alignment.Center) {
         // team-colour burst behind the stamp
         Canvas(Modifier.fillMaxSize()) {
             val ctr = Offset(size.width / 2, size.height / 2)

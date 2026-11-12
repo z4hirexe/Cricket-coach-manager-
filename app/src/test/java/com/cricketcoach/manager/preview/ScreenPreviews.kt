@@ -118,6 +118,9 @@ class ScreenPreviews {
 
     /** Phase 7: redesigned player profile (hero, radar, condition, form) for a real star and a career-mode view. */
     @Test fun profileStar() { val vm = careerVm(Modes.INTL, "N_IND", 2); inShell(vm, Screen.Profile("ba607b88"), "72_profile_kohli.png", 1600) { ProfileScreen(vm, "ba607b88") } }
+    /** Full-length profile overview (tall canvas) so the radar, gauges and form chart are visible. */
+    @Config(sdk = [34], qualifiers = "w891dp-h1250dp-xxhdpi")
+    @Test fun profileOverviewFull() { val vm = careerVm(Modes.IPL, "F_MI", 2); vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Profile("462411b3")); shot("74_profile_overview_full.png", 1600) { ProfileScreen(vm, "462411b3") } }
     @Test fun profileBowler() { val vm = careerVm(Modes.IPL, "F_MI", 2); inShell(vm, Screen.Profile("462411b3"), "73_profile_bumrah.png", 1600) { ProfileScreen(vm, "462411b3") } }
 
     @Test fun commentaryEnglish() = commentaryShot("EN", "60_commentary_en.png")
