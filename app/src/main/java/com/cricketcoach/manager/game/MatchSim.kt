@@ -83,11 +83,24 @@ class MatchSim(
 
     /* Match-day variance: team and individual "on the day" form, so upsets happen (more in T20). */
     private fun gauss(): Double { val u1 = rnd.nextDouble().coerceAtLeast(1e-9); val u2 = rnd.nextDouble(); return kotlin.math.sqrt(-2 * kotlin.math.ln(u1)) * kotlin.math.cos(2 * Math.PI * u2) }
-    private val sdTeam = when (cfg.format) { "T20" -> 7.0; "ODI" -> 5.5; else -> 4.5 }
-    private val sdPlayer = when (cfg.format) { "T20" -> 8.0; "ODI" -> 6.5; else -> 5.5 }
+    private val sdTeam = SD_SCALE * when (cfg.format) { "T20" -> 7.0; "ODI" -> 5.5; else -> 4.5 }
+    private val sdPlayer = SD_SCALE * when (cfg.format) { "T20" -> 8.0; "ODI" -> 6.5; else -> 5.5 }
     private val teamDay = hashMapOf(home.id to gauss() * sdTeam, away.id to gauss() * sdTeam)
     private val playerDay = HashMap<String, Double>()
     private fun pDay(pid: String) = playerDay.getOrPut(pid) { gauss() * sdPlayer }
+    /** v2.5 Phase G: domestic sides have a much smaller bat-v-ball rating gap than internationals (weaker attacks),
+     *  which produced 420-run Ranji first innings. Re-centre the gap on the international level for domestic games. */
+    val levelAdj: Double = run {
+        if (home.kind != "DOMESTIC" || away.kind != "DOMESTIC") return@run 0.0
+        fun gap(ids: List<String>): Double {
+            val xi = ids.mapNotNull { players[it] }; if (xi.size < 7) return INTL_GAP
+            val b = xi.map { it.tech * 0.6 + it.power * 0.4 }.sortedDescending().take(7).average()
+            val w = xi.map { it.bowl.toDouble() }.sortedDescending().take(5).average()
+            return b - w
+        }
+        val g = (gap(homeXI) + gap(awayXI)) / 2
+        (-(g - INTL_GAP) * LEVEL_F).coerceIn(-12.0, 3.0)
+    }
 
     var tossWinner = ""; var decision = ""
     var userTeam = ""
@@ -349,15 +362,28 @@ class MatchSim(
         return b
     }
 
+    companion object {
+        var DIFF_BIAS = 12.0
+        var DIFF_CAP = 0.22
+        var SD_SCALE = 1.0
+        /** average bat-v-ball gap of the top international sides (tools/simharness Gap.kt) */
+        const val INTL_GAP = -12.8
+        var LEVEL_F = 0.9
+        var FC_DOT = 0.70
+        var FC_WK = 0.0185
+    }
+
     /** Returns probabilities: 0 dot,1,2,3,4,6(index 5),wicket(index 6). */
     private fun probs(inn: Inns, batPid: String, card: BatCard, bowlPid: String): DoubleArray {
         val p = when (cfg.format) {
             "T20" -> doubleArrayOf(0.33, 0.35, 0.08, 0.006, 0.12, 0.06, 0.054)
             "ODI" -> doubleArrayOf(0.47, 0.33, 0.07, 0.006, 0.075, 0.018, 0.027)
-            else -> doubleArrayOf(0.72, 0.16, 0.04, 0.008, 0.05, 0.004, 0.0165)
+            else -> doubleArrayOf(FC_DOT, 0.16, 0.04, 0.008, 0.05, 0.004, FC_WK)
         }
-        val diff = (effBat(batPid, card) + pDay(batPid) + (teamDay[inn.batTeam] ?: 0.0) -
-            effBowl(bowlPid, inn) - pDay(bowlPid) - (teamDay[inn.bowlTeam] ?: 0.0) + 12) / 100.0
+        val raw = (effBat(batPid, card) + pDay(batPid) + (teamDay[inn.batTeam] ?: 0.0) -
+            effBowl(bowlPid, inn) - pDay(bowlPid) - (teamDay[inn.bowlTeam] ?: 0.0) + DIFF_BIAS + levelAdj) / 100.0
+        // v2.5 Phase G: saturate the skill gap so a star v a part-timer can't produce 300-run T20 totals
+        val diff = DIFF_CAP * kotlin.math.tanh(raw / DIFF_CAP)
         p[6] *= exp(-diff * 2.4)
         p[4] *= exp(diff * 2.0); p[5] *= exp(diff * 2.2)
         p[0] *= exp(-diff * 1.0)
