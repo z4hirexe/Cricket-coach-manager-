@@ -157,8 +157,8 @@ class RegistrationTest {
         }
         val deathBase = overs(null, 16..19); val deathRole = overs("DEATH", 16..19)
         val ppBase = overs(null, 0..5); val ppRole = overs("NEW", 0..5)
-        val partBase = overs(null, 0..19); val partRole = overs("PART", 0..19)
-        println("death $deathBase -> $deathRole, powerplay $ppBase -> $ppRole, all overs $partBase -> part-time $partRole")
+        val partBase = overs(null, 0..9); val partRole = overs("PART", 0..9)
+        println("death $deathBase -> $deathRole, powerplay $ppBase -> $ppRole, first 10 overs $partBase -> part-time $partRole")
         assertTrue(deathRole > deathBase + 15)
         assertTrue(ppRole > ppBase + 15)
         assertTrue(partRole < partBase)

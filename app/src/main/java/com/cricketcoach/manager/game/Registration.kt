@@ -15,6 +15,9 @@ import kotlin.math.min
  */
 object Registration {
 
+    /** bowling rating that counts as a genuine bowling option (same threshold the match engine uses) */
+    const val BOWL_OPTION = 45
+
     class Rule(val min: Int, val max: Int, val overseasMax: Int, val minKeepers: Int, val minBowlers: Int, val replacements: Int, val label: String) {
         fun sizeText() = if (min == max) "$min players" else "$min-$max players"
     }
@@ -76,8 +79,12 @@ object Registration {
         val out = ArrayList<String>()
         if (ps.size < r.min) out += "Select at least ${r.min} players (${ps.size} selected)"
         if (ps.size > r.max) out += "At most ${r.max} players (${ps.size} selected)"
-        if (ps.count { it.role == "WK" } < r.minKeepers) out += "Register at least ${r.minKeepers} wicket-keeper"
-        if (ps.count { it.bowl >= 50 } < r.minBowlers) out += "Register at least ${r.minBowlers} bowling options (bowling 50+)"
+        // role minimums are capped by what the club squad can actually offer
+        val all = pool(save, comp)
+        val needWk = min(r.minKeepers, all.count { it.role == "WK" })
+        val needBowl = min(r.minBowlers, all.count { it.bowl >= BOWL_OPTION })
+        if (ps.count { it.role == "WK" } < needWk) out += "Register at least $needWk wicket-keeper"
+        if (ps.count { it.bowl >= BOWL_OPTION } < needBowl) out += "Register at least $needBowl bowling options (bowling $BOWL_OPTION+)"
         val os = ps.count { TeamSelector.isOverseas(it, c) }
         if (os > r.overseasMax) out += "Too many overseas players ($os/${r.overseasMax})"
         val notHere = ps.filter { it.id !in c.squad || it.retired }
@@ -95,7 +102,7 @@ object Registration {
         fun os() = pick.count { TeamSelector.isOverseas(it, c) }
         fun ok(p: GPlayer) = p !in pick && (!TeamSelector.isOverseas(p, c) || os() < r.overseasMax)
         pool.filter { it.role == "WK" }.take(2).forEach { if (ok(it)) pick += it }
-        pool.filter { it.role == "BOWL" || it.role == "AR" }.sortedByDescending { it.bowl + (if (it.injured) -30 else 0) }.forEach { if (pick.count { p -> p.bowl >= 50 } < r.minBowlers + 2 && ok(it)) pick += it }
+        pool.filter { it.bowl >= BOWL_OPTION }.sortedByDescending { it.bowl + (if (it.injured) -30 else 0) }.forEach { if (pick.count { p -> p.bowl >= BOWL_OPTION } < r.minBowlers + 2 && ok(it)) pick += it }
         pool.filter { it.role == "BAT" }.take(5).forEach { if (pick.size < target && ok(it)) pick += it }
         for (p in pool) { if (pick.size >= target) break; if (ok(p)) pick += p }
         return pick.take(r.max).map { it.id }

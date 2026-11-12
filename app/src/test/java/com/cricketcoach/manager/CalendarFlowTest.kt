@@ -38,7 +38,9 @@ class CalendarFlowTest {
         val u = ipl.userTeam!!
 
         // 1) Simulate a future fixture of two other teams: every earlier game (incl. ours) is played, the target too
-        val target = ipl.fixtures.filter { it.home != u && it.away != u && it.day >= 6 }.minByOrNull { it.day }!!
+        // (createSeason uses an unseeded schedule: pick a target after our first game so the test is deterministic)
+        val firstMine = ipl.fixtures.filter { it.home == u || it.away == u }.minOf { it.day }
+        val target = ipl.fixtures.filter { it.home != u && it.away != u && it.day >= 6 && it.day > firstMine }.minByOrNull { it.day }!!
         assertTrue(vm.userMatchesBefore(ipl.id, target.id) > 0)
         vm.calendarGo(ipl.id, target.id, false)
         waitIdle(vm)
