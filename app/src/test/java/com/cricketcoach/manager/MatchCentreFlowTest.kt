@@ -36,6 +36,9 @@ class MatchCentreFlowTest {
         vm.save = s; vm.goHome()
         vm.simToNextUserMatch(); waitIdle(vm)
         assertNotNull(vm.pending)
+        // GameVM's async session check may route to Login meanwhile; reopening with a pending match goes to the Match Centre
+        Thread.sleep(200); shadowOf(Looper.getMainLooper()).idle()
+        vm.goHome(); vm.simToNextUserMatch()
         assertEquals(Screen.PreMatch, vm.screen)
         val comp = vm.pendingComp()!!; val c = s.userClub()
 
