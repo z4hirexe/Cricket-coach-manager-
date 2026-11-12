@@ -64,3 +64,12 @@ Procedurally generated humans cannot match motion-captured, artist-sculpted, lic
 - Bowling roles change who bowls in powerplay/death overs (RegistrationTest).
 - Previews 88-94.
 - Leftovers: batting-tab still shows in-game career runs; bench FORM chip truncates; registration not yet linked from Calendar/Shell nav.
+
+## Phase F — True fullscreen landscape match (DONE, build-34, 2.5.0-alpha6, 104/104 tests)
+- LiveMatchScreen rewritten (ui/screens/LiveBroadcast.kt): stadium is full-bleed (no top bar / split pane), keep-screen-on, cutout-safe overlays.
+- Right control rail (128-144 dp, adaptive 36/42 dp buttons): Ball, Over, Innings, Auto/Pause, Sim End, Declare (Tests only), Defend/Normal/Attack, Commentary, Highlights, Scorecard, Wagon (+Manhattan/Worm/Events). Consistent drawn icon set.
+- TV scoreboard: team slab, R/W, overs, CRR, RRR/PROJ, target, striker & non-striker runs (balls), bowler O-R-W, last 6 balls, partnership, last wicket, situation; Tests: innings, day, session, lead/trail, overs left.
+- Win-% bug, LIVE badge, commentary ticker, replay badge, result card (Scorecard / Continue).
+- LiveBroadcastUiTest (3 Compose UI tests on Robolectric) taps every rail control and checks the engine state.
+- Previews 95-102 (incl. 740x360 small phone).
+- Leftovers: no real-device GPU test; Robolectric previews use the legacy 2D-projected stadium (Filament 3D only on device).
