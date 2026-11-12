@@ -7,6 +7,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cricketcoach.manager.data.Repo
 import com.cricketcoach.manager.ui.CcmTheme
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Modifier
 import com.cricketcoach.manager.ui.GameVM
 import com.cricketcoach.manager.ui.Screen
 import com.cricketcoach.manager.ui.screens.*
@@ -82,6 +85,20 @@ class ScreenPreviews {
         vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); if (scr != Screen.Dashboard) vm.stack.add(scr)
         shot(name, ms) { com.cricketcoach.manager.ui.GameShell(vm) { content() } }
     }
+
+    /** Commentary 2.0 feed after a few overs of a live T20 (English booth and Hinglish booth). */
+    private fun commentaryShot(lang: String, name: String) {
+        val vm = careerVm(Modes.INTL, "N_IND", 0)
+        vm.settings.comLang = lang; vm.settings.comStyle = if (lang == "HG") 1 else 0
+        val s = vm.save!!
+        val comp = com.cricketcoach.manager.game.Competition(id = "PV", name = "Border Cup", key = "PV", format = "T20", kind = "NATION", series = true)
+        val m = com.cricketcoach.manager.game.Career.makeSim(s, comp, com.cricketcoach.manager.game.Fixture("pv", "N_IND", "N_AUS", "Match", 0, 1), Random(7))
+        m.autoToss()
+        repeat(9 * 6 + 2) { if (!m.finished) { m.nextBall(); vm.updateCommentary(m) } }
+        shot(name) { Box(Modifier.fillMaxSize().background(com.cricketcoach.manager.ui.C.Bg)) { Row(Modifier.fillMaxSize()) { Box(Modifier.weight(1f)) { CommentaryFeed(vm) } } } }
+    }
+    @Test fun commentaryEnglish() = commentaryShot("EN", "60_commentary_en.png")
+    @Test fun commentaryHinglish() = commentaryShot("HG", "61_commentary_hinglish.png")
 
     @Test fun dashboardDomestic() { val vm = careerVm(); inShell(vm, Screen.Dashboard, "30_dashboard_bengal.png") { Dashboard(vm) } }
     @Test fun dashboardIntl() { val vm = careerVm(Modes.INTL, "N_IND", 4); inShell(vm, Screen.Dashboard, "33_dashboard_india.png") { Dashboard(vm) } }

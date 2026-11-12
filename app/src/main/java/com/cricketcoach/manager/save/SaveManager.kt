@@ -135,6 +135,10 @@ class Settings(ctx: Context, val userKey: String = SaveManager.GUEST) {
     /** Commentary language: "EN", "HI" (Hindi) or "MIX" (alternating); style: 0 Classic, 1 Excited, 2 Analytical */
     var comLang: String get() = sp.getString("comLang", "EN") ?: "EN"; set(v) = sp.edit().putString("comLang", v).apply()
     var comStyle: Int get() = sp.getInt("comStyle", 0); set(v) = sp.edit().putInt("comStyle", v).apply()
+    /** Second voice in the booth (expert analysis after wickets, milestones, every few overs). */
+    var comExpert: Boolean get() = sp.getBoolean("comExpert", true); set(v) = sp.edit().putBoolean("comExpert", v).apply()
+    /** End-of-over scoreboard cards in the commentary feed. */
+    var comOverCards: Boolean get() = sp.getBoolean("comOverCards", true); set(v) = sp.edit().putBoolean("comOverCards", v).apply()
     var view3d: Boolean get() = sp.getBoolean("view3d", true); set(v) = sp.edit().putBoolean("view3d", v).apply()
     var camMode: Int get() = sp.getInt("cam", 0); set(v) = sp.edit().putInt("cam", v).apply()
     /** live-match playback speed 1/2/4/6/8x - always free (3D animation and simulation both follow it) */
@@ -149,7 +153,7 @@ class Settings(ctx: Context, val userKey: String = SaveManager.GUEST) {
     var profileDirty: Boolean get() = sp.getBoolean("profDirty", false); set(v) = sp.edit().putBoolean("profDirty", v).apply()
 
     private val syncKeys = listOf("speed", "economy", "difficulty", "autosave", "volume", "volCom", "volCrowd", "volBat", "volMusic", "mute",
-        "comLang", "comStyle", "view3d", "cam", "gfx", "photos")
+        "comLang", "comStyle", "comExpert", "comOverCards", "view3d", "cam", "gfx", "photos")
 
     /** Settings that follow the account across devices. */
     fun toJson(): JsonObject {

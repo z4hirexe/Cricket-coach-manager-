@@ -332,10 +332,21 @@ fun SettingsScreen(vm: GameVM) {
             var lang by remember { mutableStateOf(st.comLang) }
             var style by remember { mutableIntStateOf(st.comStyle) }
             var voice by remember { mutableStateOf(st.voice) }
+            var expertOn by remember { mutableStateOf(st.comExpert) }
+            var overCards by remember { mutableStateOf(st.comOverCards) }
             Sub("Language")
-            FlowRowSimple(listOf("EN", "HI", "MIX"), lang, mapOf("EN" to "English", "HI" to "हिंदी Hindi", "MIX" to "Hindi + English")) { lang = it; st.comLang = it; vm.saveSettingsToCloud() }
+            FlowRowSimple(listOf("EN", "HI", "HG", "MIX"), lang, mapOf("EN" to "English", "HI" to "हिंदी Hindi", "HG" to "Hinglish", "MIX" to "English + Hindi booth")) { lang = it; st.comLang = it; vm.saveSettingsToCloud() }
             Sub("Style")
             FlowRowSimple(listOf("0", "1", "2"), style.toString(), mapOf("0" to "Classic", "1" to "Excited", "2" to "Analytical")) { style = it.toInt(); st.comStyle = style; vm.saveSettingsToCloud() }
+            val booth = com.cricketcoach.manager.game.Commentary.boothFor(lang, style)
+            Text("On air: " + booth.joinToString("  &  ") { "${it.name} (${it.role})" } + if (!expertOn) " - analyst off" else "", color = C.Gold, fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) { Switch(expertOn, { expertOn = it; st.comExpert = it; vm.saveSettingsToCloud() }); Spacer(Modifier.width(8.dp)); Text("Expert analyst (second voice: insight after wickets, milestones, every few overs)", color = C.Text) }
+            Row(verticalAlignment = Alignment.CenterVertically) { Switch(overCards, { overCards = it; st.comOverCards = it; vm.saveSettingsToCloud() }); Spacer(Modifier.width(8.dp)); Text("End-of-over scoreboard cards", color = C.Text) }
+            Row { OutlineBtn("Preview voices") {
+                val b = booth
+                GameAudio.speakAs(when (lang) { "HI" -> "छक्का! गेंद सीधी स्टैंड्स में!"; "HG" -> "Kya shot hai! Seedha stands mein chhakka!"; else -> "That's huge! Into the stands for six!" }, if (lang == "HI") "HI" else "EN", b[0], true)
+                if (expertOn) GameAudio.speakAs(when (lang) { "HI", "MIX" -> "बेहतरीन टाइमिंग, कोई ताक़त की ज़रूरत नहीं थी।"; "HG" -> "Perfect timing, power ki zaroorat hi nahi thi."; else -> "Beautiful timing - he barely needed any power." }, if (lang == "HI" || lang == "MIX") "HI" else "EN", b[1], false)
+            } }
             Row(verticalAlignment = Alignment.CenterVertically) { Switch(voice, { voice = it; st.voice = it; GameAudio.refresh() }); Spacer(Modifier.width(8.dp)); Text("Spoken commentary (phone text-to-speech)", color = C.Text) }
             if (lang != "EN" && !GameAudio.hindiVoiceAvailable()) Sub("Hindi voice is not installed on this phone: Hindi commentary is shown as text. To hear it, install 'Hindi (India)' in Android Settings → Text-to-speech → Google → Install voice data.", size = 11)
 

@@ -73,17 +73,43 @@ object GameAudio {
     private var ttsLang = "EN"
 
     /** Speaks a commentary line in English (en-IN) or Hindi (hi-IN) at the Commentary channel volume. */
-    fun speak(text: String, lang: String = "EN") {
+    fun speak(text: String, lang: String = "EN") = speakAs(text, lang, null, true)
+
+    private var ttsVoiceKey = ""
+    /**
+     * Speaks a commentary line as [caster] (distinct voice where the phone has several, plus the caster's pitch and pace).
+     * [flush] = true interrupts whatever is being said (new delivery); false queues it (analyst follow-up).
+     * Hinglish ("HG") is Roman-script, so it uses the Indian-English voice.
+     */
+    fun speakAs(text: String, lang: String, caster: com.cricketcoach.manager.game.Caster?, flush: Boolean) {
         val v = channel("voice")
         if (settings == null || !ttsReady || paused || v <= 0.01f) return
         val t = tts ?: return
-        if (lang != ttsLang) {
-            val r = t.setLanguage(if (lang == "HI") Locale("hi", "IN") else Locale("en", "IN"))
-            if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) { if (lang == "HI") return else t.setLanguage(Locale.UK) }
-            ttsLang = lang
-        }
-        val b = android.os.Bundle().apply { putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, v.coerceIn(0f, 1f)) }
-        t.speak(text, TextToSpeech.QUEUE_FLUSH, b, "ccm")
+        try {
+            val l = if (lang == "HI") "HI" else "EN"
+            if (l != ttsLang) {
+                val r = t.setLanguage(if (l == "HI") Locale("hi", "IN") else Locale("en", "IN"))
+                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) { if (l == "HI") return else t.setLanguage(Locale.UK) }
+                ttsLang = l; ttsVoiceKey = ""
+            }
+            if (caster != null) {
+                val key = "$l/${caster.female}"
+                if (key != ttsVoiceKey) {
+                    ttsVoiceKey = key
+                    // pick an offline voice of this language; female casters get a different voice than male ones when available
+                    val lc = if (l == "HI") "hi" else "en"
+                    val voices = t.voices?.filter { it.locale.language == lc && (it.locale.country == "IN" || lc == "en") && !it.isNetworkConnectionRequired }
+                        ?.sortedWith(compareBy({ it.locale.country != "IN" }, { it.name })) ?: emptyList()
+                    val femaleHint = voices.filter { it.name.contains("female", true) || it.name.contains("-x-ene") || it.name.contains("-x-cxx") || it.name.contains("-x-hie") }
+                    val maleHint = voices.filter { it.name.contains("male", true) && !it.name.contains("female", true) || it.name.contains("-x-end") || it.name.contains("-x-ahp") || it.name.contains("-x-hia") }
+                    val chosen = (if (caster.female) femaleHint.firstOrNull() ?: voices.getOrNull(0) else maleHint.firstOrNull() ?: voices.getOrNull(1) ?: voices.getOrNull(0))
+                    if (chosen != null) t.voice = chosen
+                }
+                t.setPitch(caster.pitch); t.setSpeechRate(caster.rate)
+            } else { t.setPitch(1f); t.setSpeechRate(1f) }
+            val b = android.os.Bundle().apply { putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, v.coerceIn(0f, 1f)) }
+            t.speak(text, if (flush) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD, b, "ccm${System.nanoTime()}")
+        } catch (_: Exception) { }
     }
 
     fun hindiVoiceAvailable(): Boolean = try {

@@ -441,16 +441,34 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     /* ---------------- commentary ---------------- */
     /** Generates commentary for new deliveries of [m]; returns the newest line (to be spoken). */
     fun updateCommentary(m: MatchSim): ComLine? {
-        if (comFor !== m) { comFor = m; comDone = 0; comLines.clear(); commentary = Commentary(settings.comLang, settings.comStyle) }
+        if (comFor !== m) {
+            comFor = m; comDone = 0; comLines.clear()
+            commentary = Commentary(settings.comLang, settings.comStyle, expert = settings.comExpert)
+        }
         val c = commentary ?: return null
         val evs = m.events
         if (evs.size <= comDone) return null
-        val start = if (evs.size - comDone > 8) evs.size - 8 else comDone // fast-forwarded: only describe the latest balls
+        val start = if (evs.size - comDone > 8) evs.size - 8 else comDone // fast-forwarded: describe only the latest balls (stats still tracked)
         var last: ComLine? = null
-        for (i in start until evs.size) { last = c.line(evs[i], m, live = i == evs.size - 1); comLines.add(0, last) }
-        while (comLines.size > 300) comLines.removeAt(comLines.size - 1)
+        for (i in comDone until evs.size) {
+            val lines = c.process(evs[i], m, emit = i >= start)
+            for (l in lines) { if (l.kind == "OVER" && !settings.comOverCards) continue; comLines.add(0, l) }
+            lines.firstOrNull { it.kind == evs[i].kind }?.let { last = it }
+        }
+        while (comLines.size > 400) comLines.removeAt(comLines.size - 1)
         comDone = evs.size
         return last
+    }
+
+    /** Commentators on air for the current match (lead, analyst). */
+    fun booth(): List<Caster> = commentary?.booth ?: Commentary.boothFor(settings.comLang, settings.comStyle)
+
+    /** Speaks everything said about delivery [evId]: the lead's call, then queued special calls and the analyst. */
+    fun speakBall(evId: Int) {
+        val c = commentary ?: return
+        val lines = comLines.filter { it.evId == evId && it.spoken }.reversed()
+        var first = true
+        for (l in lines) { GameAudio.speakAs(l.text, l.lang, c.booth.getOrNull(l.speaker), first); first = false }
     }
 
     /* ---------------- career lifecycle ---------------- */
