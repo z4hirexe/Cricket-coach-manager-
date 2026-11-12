@@ -112,7 +112,17 @@ private fun statLine(comp: Competition, p: GPlayer): String {
         if (b != null && b.inn > 0) parts += "${b.runs}r" + (b.avg()?.let { " @%.1f".format(it) } ?: "")
         if (w != null && w.balls > 0) parts += "${w.wk}w" + (w.econ()?.let { " e%.1f".format(it) } ?: "")
         "THIS COMP " + parts.joinToString(" · ").ifBlank { "${b?.m ?: w?.m ?: 0} m" }
-    } else "CAREER ${p.careerM}m · ${p.careerRuns}r · ${p.careerWk}w"
+    } else {
+        // real record in this format (Cricsheet data) when available, otherwise the in-game career
+        val key = when { comp.key == "IPL" -> "IPL"; comp.format == "TEST" || comp.format == "FC" -> "Test"; comp.format == "ODI" || comp.format == "LIST_A" -> "ODI"; else -> "T20I" }
+        val st = com.cricketcoach.manager.data.Repo.byId[p.id]?.stats?.let { it[key] ?: it[key.uppercase()] }
+        if (st != null && st.m > 0) {
+            val parts = arrayListOf("$key ${st.m}m")
+            if (st.inn > 0) parts += "${st.runs}r" + (st.avg?.let { " @%.1f".format(it) } ?: "") + (st.sr?.takeIf { key != "Test" }?.let { " SR %.0f".format(it) } ?: "")
+            if (st.wk > 0) parts += "${st.wk}w"
+            parts.joinToString(" · ")
+        } else if (p.careerM > 0) "CAREER ${p.careerM}m · ${p.careerRuns}r · ${p.careerWk}w" else if (p.fictional) "FICTIONAL · no record yet" else "No recorded matches in this format"
+    }
 }
 
 /* ===================================================================================================== Match Centre */
@@ -182,7 +192,7 @@ private fun TabStrip(tabs: List<String>, sel: Int, onSel: (Int) -> Unit) {
 @Composable
 private fun MatchHeader(s: CareerSave, comp: Competition, fx: Fixture, m: MatchSim?) {
     val h = s.clubs[fx.home]!!; val a = s.clubs[fx.away]!!
-    Row(Modifier.fillMaxWidth().height(60.dp).background(Brush.horizontalGradient(listOf(Color(h.primary).copy(alpha = 0.35f), Color(0xFF0A1530), Color(0xFF0A1530), Color(a.primary).copy(alpha = 0.35f))))
+    Row(Modifier.fillMaxWidth().height(72.dp).background(Brush.horizontalGradient(listOf(Color(h.primary).copy(alpha = 0.35f), Color(0xFF0A1530), Color(0xFF0A1530), Color(a.primary).copy(alpha = 0.35f))))
         .drawBehind { drawLine(Brush.horizontalGradient(listOf(Color.Transparent, C.Gold, Color.Transparent)), Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 2f) }
         .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         TeamSide(s, h, Modifier.weight(1f), alignEnd = false)
@@ -241,7 +251,7 @@ private fun StartPanel(vm: GameVM, s: CareerSave, comp: Competition, c: Club, m:
     Spacer(Modifier.height(2.dp))
     Step(1, "Tournament squad", regOk,
         when { rule == null -> "No registration needed"; !regOk -> "Register ${rule.sizeText()} before the first match"
-            else -> "${comp.reg.size} registered${if (Registration.locked(s, comp)) " · LOCKED" else " · editable until match 1"}" }) {
+            else -> "${comp.reg.size} registered${if (Registration.locked(s, comp)) " · LOCKED" else " · open until match 1"}" }) {
         if (rule != null) Pill(if (regOk) "View" else "Register", !regOk) { vm.nav(Screen.SquadRegistration(comp.id)) }
     }
     val xiOk = regOk && c.xi.size == 11 && errors.none { it.startsWith("Pick") || it.startsWith("Injured") || it.startsWith("Not reg") || it.startsWith("No longer") || it.startsWith("Max 4") }
@@ -318,12 +328,12 @@ private fun SheetRow(s: CareerSave, comp: Competition, c: Club, p: GPlayer, idx:
                 if (avail.isNotEmpty()) TagChip(avail, if (avail == "TIRED") Warn else C.Red)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(roleShort(p.role), color = roleColor(p.role), fontSize = 8.5.sp, fontWeight = FontWeight.Black)
-                Text("  ${p.overall()} OVR", color = C.Text, fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
+                Text(roleShort(p.role), color = roleColor(p.role), fontSize = 8.5.sp, fontWeight = FontWeight.Black, maxLines = 1, softWrap = false)
+                Text("  ${p.overall()} OVR", color = C.Text, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                 val fc = when { p.fitness >= 80 -> Ok; p.fitness >= 60 -> Warn; else -> C.Red }
-                Text("  FIT ${p.fitness}", color = fc, fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
+                Text("  FIT ${p.fitness}", color = fc, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                 val (sym, col) = when { p.form >= 72 -> "▲" to Ok; p.form < 45 -> "▼" to C.Red; else -> "●" to Color(0xFF8899BB) }
-                Text("  FORM $sym${p.form}", color = col, fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
+                Text("  FORM $sym${p.form}", color = col, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
             }
             Text(statLine(comp, p), color = C.Sub, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
