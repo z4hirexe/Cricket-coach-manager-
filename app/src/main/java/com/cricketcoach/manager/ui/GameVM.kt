@@ -792,7 +792,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     fun stepInnings() { sim?.endInnings(); simTick++; if (sim?.finished == true) { autoPlay = false; applyMatch() } }
     fun simRest() { sim?.simToEnd(); simTick++; autoPlay = false; applyMatch() }
     fun declare() { sim?.declare(); simTick++; if (sim?.finished == true) applyMatch() }
-    fun setAggression(a: Int) { val m = sim ?: return; val id = userSideId() ?: return; m.club(id).aggression = a; simTick++; bump() }
+    fun setAggression(a: Int) { val m = sim ?: return; val id = userSideId() ?: m.userTeam.takeIf { it.isNotEmpty() } ?: return; m.club(id).aggression = a; simTick++; bump() }
 
     fun applyMatch() {
         if (matchApplied) return

@@ -146,21 +146,24 @@ private fun DrawScope.drawGlyph(icon: RIcon, col: Color) {
 /* ===================================================================================================== rail */
 
 @Composable
+private val LocalRailH = compositionLocalOf { 42.dp }
+
+@Composable
 private fun RailBtn(label: String, icon: RIcon, modifier: Modifier = Modifier, active: Boolean = false, accent: Color = C.Gold, enabled: Boolean = true, onClick: () -> Unit) {
     val bg = when { active -> Brush.verticalGradient(listOf(accent, accent.copy(alpha = 0.78f))); else -> Brush.verticalGradient(listOf(Color(0xFF18264C), Color(0xFF101B3A))) }
     val fg = when { !enabled -> C.Sub.copy(alpha = 0.4f); active -> Color(0xFF0B1226); else -> C.Text }
-    Column(modifier.height(42.dp).clip(RoundedCornerShape(9.dp)).background(bg)
+    Column(modifier.height(LocalRailH.current).clip(RoundedCornerShape(9.dp)).background(bg)
         .border(BorderStroke(1.dp, if (active) accent else Color(0x29E9C46A)), RoundedCornerShape(9.dp))
         .semantics { contentDescription = label }
         .clickable(enabled = enabled, role = Role.Button) { GameAudio.click(); onClick() },
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         RailGlyph(icon, if (active || !enabled) fg else accent.copy(alpha = 0.95f), 15.dp)
-        Text(label.uppercase(), color = fg, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.4.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(top = 2.dp))
+        Text(label.uppercase(), color = fg, fontSize = if (label.length > 8) 7.5.sp else 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.4.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(top = 2.dp))
     }
 }
 
 @Composable
-private fun RailLabel(text: String) = Text(text, color = C.Gold.copy(alpha = 0.8f), fontSize = 7.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp,
+private fun RailLabel(text: String) = if (LocalRailH.current < 40.dp) Unit else Text(text, color = C.Gold.copy(alpha = 0.8f), fontSize = 7.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp,
     modifier = Modifier.padding(start = 2.dp, top = 2.dp, bottom = 1.dp))
 
 /* ===================================================================================================== scoreboard */
@@ -197,13 +200,13 @@ fun boardInfo(m: MatchSim): BoardInfo {
         }
         val situation = if (m.finished) m.resultText else lt + (if (inn.followOn) " (following on)" else "")
         return BoardInfo(inn, situation, "DAY $day · SESSION $session", "LEAD" to (if (m.innings.size == 1) "-" else "%+d".format(ld)),
-            if (tgt != null) "TGT" to "$tgt" else "OVS LEFT" to "${maxOf(0, (m.testBallsTotal - m.testBallsUsed) / 6)}", "$ord INNINGS · DAY $day · SESSION $session")
+            if (tgt != null) "TGT" to "$tgt" else "OV LEFT" to "${maxOf(0, (m.testBallsTotal - m.testBallsUsed) / 6)}", "$ord INNINGS · DAY $day · SESSION $session")
     }
     val left = inn.maxBalls - inn.balls
     val phase = m.phaseLabel().uppercase()
     return if (tgt != null) {
         val need = tgt - inn.runs
-        val rrr = if (left > 0) "%.2f".format(need * 6.0 / left) else "-"
+        val rrr = if (left > 0 && need > 0 && !m.finished) "%.2f".format(need * 6.0 / left) else "-"
         val wp = m.winProbability()
         BoardInfo(inn, if (m.finished) m.resultText else "$bat need $need off $left ball${if (left == 1) "" else "s"}${wp?.let { " · win $it%" } ?: ""}", phase,
             "RRR" to rrr, "TGT" to "$tgt", null)
@@ -294,9 +297,9 @@ fun TvScoreboard(m: MatchSim, modifier: Modifier = Modifier) {
 
 @Composable
 private fun RateRow(k: String, v: String, hi: Boolean = false) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(15.dp)) {
-        Text(k, color = C.Sub, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.6.sp, modifier = Modifier.width(42.dp), maxLines = 1, softWrap = false)
-        Text(v, color = if (hi) C.GoldLight else Color.White, fontSize = 11.5.sp, fontWeight = FontWeight.Black, maxLines = 1, softWrap = false)
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(16.dp)) {
+        Text(k, color = C.Sub, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, modifier = Modifier.width(46.dp), maxLines = 1, softWrap = false)
+        Text(v, color = if (hi) C.GoldLight else Color.White, fontSize = 11.sp, lineHeight = 12.sp, fontWeight = FontWeight.Black, maxLines = 1, softWrap = false)
     }
 }
 
@@ -421,7 +424,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
             }
 
             /* ---- slide-in panel ---- */
-            AnimatedVisibility(panel != 0, Modifier.align(Alignment.TopEnd).padding(top = 52.dp, end = railW + 6.dp, bottom = 102.dp),
+            AnimatedVisibility(panel != 0, Modifier.align(Alignment.TopEnd).padding(top = 64.dp, end = railW + 6.dp, bottom = 102.dp),
                 enter = slideInHorizontally(tween(220)) { it / 2 } + fadeIn(tween(220)), exit = slideOutHorizontally(tween(180)) { it / 2 } + fadeOut(tween(180))) {
                 val shown = panel.takeIf { it != 0 } ?: 1
                 Column(Modifier.width(panelW).fillMaxHeight().clip(RoundedCornerShape(12.dp)).background(Color(0xEE081127)).border(1.dp, Hair, RoundedCornerShape(12.dp))) {
@@ -501,6 +504,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
             }
 
             /* ---- right: control rail ---- */
+            CompositionLocalProvider(LocalRailH provides if (maxHeight < 400.dp) 36.dp else 42.dp) {
             Column(Modifier.align(Alignment.CenterEnd).width(railW).fillMaxHeight()
                 .background(Brush.horizontalGradient(listOf(Color(0xCC07102A), Color(0xF2081127))))
                 .drawBehind { drawLine(Brush.verticalGradient(listOf(Color.Transparent, C.Gold.copy(alpha = 0.6f), Color.Transparent)), Offset(0f, 0f), Offset(0f, size.height), 2f) }
@@ -536,6 +540,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
                     RailBtn("Scorecard", RIcon.LIST, Modifier.weight(1f), active = panel == 3) { toggle(3) }
                     RailBtn("Wagon", RIcon.WAGON, Modifier.weight(1f), active = panel == 4) { toggle(4) }
                 }
+            }
             }
 
             /* ---- result card ---- */
