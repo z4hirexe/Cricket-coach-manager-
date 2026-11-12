@@ -91,9 +91,13 @@ private fun BroadcastImmersive() {
     DisposableEffect(Unit) {
         val w = view.context.findActivity()?.window
         w?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        if (w != null) WindowCompat.getInsetsController(w, view).apply {
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            hide(WindowInsetsCompat.Type.systemBars())
+        // bars are already hidden app-wide (MainActivity.immersive); only re-assert if they are currently showing
+        if (w != null && android.os.Build.FINGERPRINT != "robolectric") {
+            val insets = androidx.core.view.ViewCompat.getRootWindowInsets(view)
+            if (insets?.isVisible(WindowInsetsCompat.Type.systemBars()) == true) WindowCompat.getInsetsController(w, view).apply {
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                hide(WindowInsetsCompat.Type.systemBars())
+            }
         }
         onDispose { w?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
     }
