@@ -60,6 +60,7 @@ fun MainMenu(vm: GameVM) {
     val last = vm.saves.firstOrNull { it.slot == vm.settings.lastSlot } ?: vm.saves.maxByOrNull { it.updated }
     BoxWithConstraints(Modifier.fillMaxSize().background(DS.Navy)) {
         val landscape = maxWidth > maxHeight
+        val fullW = maxWidth
         Image(painterResource(R.drawable.stadium_bg), null, Modifier.fillMaxSize().graphicsLayer { scaleX = k; scaleY = k; transformOrigin = TransformOrigin(0.5f, 0.35f) },
             contentScale = ContentScale.Crop)
         // controlled navy grade: darker towards the menu side, readable everywhere, no colourful gradients
@@ -84,7 +85,7 @@ fun MainMenu(vm: GameVM) {
         } else {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 26.dp, vertical = 56.dp).graphicsLayer { alpha = a },
                 horizontalAlignment = Alignment.CenterHorizontally) {
-                BrandLogo((maxWidth * 0.72f).coerceAtMost(320.dp))
+                BrandLogo((fullW * 0.72f).coerceAtMost(320.dp))
                 Spacer(Modifier.height(6.dp))
                 Text(Brand.TAGLINE.uppercase(), color = DS.Gold, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, maxLines = 1, softWrap = false)
                 Spacer(Modifier.height(26.dp))
