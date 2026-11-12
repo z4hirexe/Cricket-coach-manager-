@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.CricketCoachManager" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ccm_background</item>
+        <item name="android:statusBarColor">@color/ccm_background</item>
+        <item name="android:navigationBarColor">@color/ccm_background</item>
+    </style>
+</resources>

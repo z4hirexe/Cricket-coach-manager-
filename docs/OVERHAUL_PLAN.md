@@ -1,0 +1,47 @@
+# Cricket Coach Manager — Premium Overhaul: Architecture & Migration Plan
+
+## 1. Compatibility check (done before any change)
+
+| Item | Current | Result |
+|---|---|---|
+| Language / UI | Kotlin 1.9.24, Jetpack Compose (BOM 2024.06) | Keep. All game logic (career, auction, tournaments, saves, stats) stays untouched. |
+| Build | AGP 8.5.2, Gradle 8.7, JDK 17, minSdk 26, targetSdk 34 | Compatible with Filament (min API 21, needs OpenGL ES 3.0, which every Android 8+ phone has). |
+| Old "3D" view | Compose Canvas with software projection (v1.1) | **Replaced.** It was a 2D canvas drawing projected lines, not a real 3D renderer. It remains only as the "Low / 2D" fallback. |
+| New 3D engine | **Google Filament 1.75.1** (`filament-android` + `gltfio-android`) | Real GPU renderer: physically based materials, real-time shadows, image-based lighting, ACES tone mapping, SSAO, bloom, MSAA, and skinned skeletal animation from glTF 2.0. Both AARs are pure Java (no Kotlin metadata), so the transitive kotlin-stdlib 2.4 dependency is excluded and the project stays on Kotlin 1.9. Native libraries are shipped for arm64-v8a and armeabi-v7a only (~10 MB). |
+
+### Why Filament and not Unity / Godot (decision record)
+* **Unity**: the Unity Editor (GUI, licence-activated) cannot run in this CI or build environment. The engine would also have to be rewritten in C#: 5,000+ lines of tested Kotlin game logic, which breaks the rule "do not destroy the existing engine". The APK would grow by 40–60 MB. It is possible later as *Unity-as-a-Library* for the match scene only. See §5.
+* **Godot 4**: the full game would have to be rewritten in GDScript or C#. Same objection.
+* **Filament** runs inside the existing app. The Kotlin match engine drives the 3D scene directly and Compose draws the UI over it. Assets are standard glTF 2.0, so artist-made models (Blender, Maya, mocap) can replace the generated ones later without code changes.
+
+## 2. Asset pipeline (reproducible, original assets)
+`tools/assets/build_assets.py` generates all 3D assets as glTF 2.0 binary files (`app/src/main/assets/models/*.glb`):
+* **Stadium**: a tiered oval bowl (concrete, seating and roof canopy). Also: a mown outfield with a normal-mapped grass texture, a worn pitch, creases, a boundary rope, advertising boards with original sponsor names, sight screens, 4 floodlight towers with emissive panels, and baked crowd sections in seated and standing variants.
+* **Cricketer**: an anatomically proportioned human mesh built from a signed-distance-field body and marching cubes. It has a skull, jaw, nose, ears, clavicles, deltoids and calf muscles. It uses a 20-joint skeleton with smooth skin weights and comes in two builds (athletic and heavy) plus runtime height scaling. Kit regions (shirt, trim, trousers, skin, shoes) are separate PBR materials, so every team gets its own colours. Accessories are helmet with grille, cap, batting pads, gloves, bat, ball, and several hair and beard styles.
+* **Animations**: keyframed clips baked into the glb: batting stance, defence, cover drive, straight drive, pull, hook, cut, sweep, reverse sweep, lofted drive, leave and play-and-miss. Also fast and spin bowling run-ups with delivery strides, fielder ready/run/dive/catch/throw, keeper crouch/collect, umpire signals (out, four, six, wide), appeals and celebrations. Left-handers and left-arm bowlers are mirrored at runtime.
+
+## 3. Legal constraints (stated clearly, not hidden)
+* **Real cricketers' 3D likenesses (faces and hairstyles) are not used.** A 3D likeness needs image-rights licences from the players and their boards, which official games buy. The 3D models use generic faces. Each player gets a deterministic combination of skin tone, hair, beard and build, so players look different without imitating anyone.
+* **Real faces appear only as photos**: freely licensed Wikimedia Commons portraits, credited on each profile (343 of 901 players). Players without a free photo are marked as having no photo.
+* **IPL and league kits use team colours only.** No official logos, crests or sponsor marks.
+* **Player height is not in the verified dataset.** The game does not invent it. Model height is cosmetic and is never displayed as data.
+
+## 4. Phases
+| Phase | Scope | Status |
+|---|---|---|
+| 0 | Architecture and compatibility check (this document) | ✅ done. Filament 1.80 needs compileSdk 37/AGP 9, so the project is pinned to **1.75.1**, the newest release with Java 17 bytecode and no compileSdk floor. Build verified. |
+| 1 | Filament engine integration, stadium, cricketer models, skeletal animation, Low/Medium/High graphics settings | ✅ 2.0.0-alpha1. Compiles, 9/9 unit tests pass, and the GLBs are validated by an independent software renderer (docs/previews). **Not yet verified on a physical GPU.** If the engine fails, the app falls back to the Low renderer. |
+| 2 | 3D match presentation: run-ups, delivery, shot-specific batting animations, fielding, keeper, umpire signals, broadcast cameras, replays, day/night/day-night lighting, weather (overcast, rain) | 🟡 alpha1 has: the BallEv-driven choreography (run-up, release, bounce, 10 shot types by real direction, chases, throws, catches, bowled/LBW/stumped/run-out mechanics, running between wickets, 4/6/out/wide signals), 4 cameras with slow-motion replay, and day / overcast / day-night / night lighting by format and weather. Still to do: animated crowd, rain visuals, a dedicated highlights reel, and per-player custom actions. |
+| 3 | Title screen: live 3D stadium background with a featured player, logo, menu | ✅ alpha1: floodlit 3D stadium with an orbiting camera, a featured star playing shots, a real photo and verified stats card, and an animated menu. |
+| 4 | Commentary system: English and Hindi, multiple commentator styles, situation-aware, no immediate repeats, special calls for maiden/50/100/hat-trick | planned (next) |
+| 5 | Social feed: auto posts from real game events, likes and followers from progression, user posts, optional Supabase sync | planned |
+| 6 | Auction and signing presentation with a 3D player on the podium, signing announcements, transfer news | planned |
+| 7 | Profile redesign: 3D model preview, form graph, achievements, transfer history; full UI and typography pass | planned |
+| 8 | Audio upgrade: recorded CC0 stadium audio where available, run-up, release and umpire sounds | planned |
+
+## 5. Path to "AAA" realism (honest scope)
+Procedurally generated humans cannot match motion-captured, artist-sculpted, licensed models like those in console cricket games. The engine is ready for them: drop artist glTF files into `assets/models/` with the same joint names and clip names, and the game uses them. Recommended next steps if a budget exists:
+1. Commission or buy rigged sports-character glTFs. Mixamo-compatible rigs can be retargeted to our 20 joint names.
+2. Get mocap cricket animation packs.
+3. Licence player likenesses through a players' association, which is required for real faces.
+4. Optionally add a Unity-as-a-Library match scene behind the same `MatchPresenter` interface.
