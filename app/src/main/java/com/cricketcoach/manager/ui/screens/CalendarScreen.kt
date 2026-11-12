@@ -58,6 +58,13 @@ fun calColor(cat: String): Color = when (cat) {
     else -> Color(0xFFEF5350)
 }
 
+/** Label of the calendar's "next step" button (same action as SIMULATE on the calendar). */
+fun calendarStepLabel(vm: GameVM): String {
+    val s = vm.save ?: return "Continue"
+    if (vm.pending != null) return "Go to match"
+    return when (s.phase) { "PRESEASON" -> "Start season"; "OFFSEASON" -> "Season review"; else -> "Advance day" }
+}
+
 private val DATE_FMT = DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.ENGLISH)
 
 @Composable
@@ -84,7 +91,7 @@ fun CalendarScreen(vm: GameVM, initialDate: LocalDate? = null) {
     }
 
     ScreenScaffold(vm, "Cricket Calendar", actions = {
-        CalAction("Advance day", Color(0xFF1E3A8A), enabled = !vm.busy) { vm.calendarAdvanceDay() }
+        CalAction(calendarStepLabel(vm), Color(0xFF1E3A8A), enabled = !vm.busy) { vm.calendarAdvanceDay() }
         Spacer(Modifier.width(6.dp))
         CalAction(if (vm.pending != null) "Go to match" else "Sim to my next match", null, enabled = !vm.busy) { vm.simToNextUserMatch() }
         Spacer(Modifier.width(4.dp))

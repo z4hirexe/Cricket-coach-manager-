@@ -127,9 +127,26 @@ object Auction {
         hammer(save, st)
     }
 
-    fun autoComplete(save: CareerSave, st: AuctionState, rnd: Random = Random.Default) {
+    /** Squad size the "SIM ALL" auto-bidder aims for on the user's behalf. */
+    const val AUTO_TARGET = 18
+
+    /**
+     * SIM ALL: every remaining lot is resolved instantly. With [bidForUser] the user's club joins the
+     * bidding like an AI franchise (same valuation, same purse reserve) until it has [AUTO_TARGET] players,
+     * so a simmed auction never leaves the user with an unplayable squad.
+     */
+    fun autoComplete(save: CareerSave, st: AuctionState, rnd: Random = Random.Default, bidForUser: Boolean = true) {
         var guard = 0
-        while (!st.done && guard++ < 1000) resolveLot(save, st, rnd)
+        val u = save.userClub()
+        while (!st.done && guard++ < 1000) {
+            val p = cur(save, st)
+            if (bidForUser && p != null && u.squad.size < AUTO_TARGET && st.curBidder != u.id && eligible(save, u, p, nextAmount(st)) &&
+                Career.canJoin(save, u, p, nextAmount(st)) == null) {
+                // a little more eager the emptier the squad is
+                st.aiVal[u.id] = valuation(save, u, p, rnd) * (if (u.squad.size < 12) 1.15 else 1.0)
+            } else st.aiVal.remove(u.id)
+            resolveLot(save, st, rnd)
+        }
     }
 
     private fun noteBid(st: AuctionState, club: String) {

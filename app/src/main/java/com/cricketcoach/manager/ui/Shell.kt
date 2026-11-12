@@ -213,14 +213,14 @@ private fun ShellTopBar(vm: GameVM) {
         }
         Spacer(Modifier.width(10.dp))
         // simulate / continue
-        val label = continueLabel(vm).removeSuffix(" ▶")
         val inSeason = vm.pending == null && (s.phase == "LEAGUE" || s.phase == "PLAYOFFS")
         val onCal = vm.screen == Screen.Calendar
         // SIMULATE opens the cricket calendar (schedule centre); on the calendar it advances one day.
-        val text = when { !inSeason -> label; onCal -> "Advance day"; else -> "Simulate" }
+        // Always: SIMULATE opens the calendar first; on the calendar the same button runs the next step.
+        val text = if (onCal) calendarStepLabel(vm) else "Simulate"
         Row(Modifier.height(38.dp).clip(RoundedCornerShape(9.dp)).background(if (vm.busy) Brush.horizontalGradient(listOf(Color(0xFF334155), Color(0xFF334155))) else UI.SimBrush)
-            .clickable(enabled = !vm.busy) { GameAudio.click(); if (inSeason && !onCal) vm.navRoot(Screen.Calendar) else vm.continueAction() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (inSeason && !onCal) Glyph("calendar", Color.White, 16.dp) else Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(18.dp))
+            .clickable(enabled = !vm.busy) { GameAudio.click(); if (!onCal) vm.navRoot(Screen.Calendar) else vm.continueAction() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (!onCal) Glyph("calendar", Color.White, 16.dp) else Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(5.dp))
             Text(text.uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp, maxLines = 1)
         }

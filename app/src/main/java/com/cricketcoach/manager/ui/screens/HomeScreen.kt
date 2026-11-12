@@ -73,7 +73,7 @@ fun Dashboard(vm: GameVM) {
 private fun Hero(vm: GameVM, s: CareerSave, next: Pair<Competition, Fixture>?, matchDay: Boolean) {
     val shape = RoundedCornerShape(16.dp)
     Box(Modifier.fillMaxWidth().height(222.dp).clip(shape).border(1.5.dp, UI.Cyan.copy(alpha = 0.55f), shape)
-        .clickable { GameAudio.click(); if (next != null && !matchDay && s.phase != "PRESEASON") vm.navRoot(Screen.Calendar) else vm.continueAction() }) {
+        .clickable { GameAudio.click(); vm.navRoot(Screen.Calendar) }) {
         Image(painterResource(R.drawable.stadium_bg), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0x99050A18), Color(0x55050A18), Color(0xE6050A18)))))
         Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color(0x88000000), Color.Transparent, Color(0x88000000)))))

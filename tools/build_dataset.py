@@ -34,6 +34,10 @@ IPL_ALIASES = {"Delhi Daredevils": "Delhi Capitals", "Kings XI Punjab": "Punjab 
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")  # persisted Wikidata/Wikipedia caches
 
+# Manual corrections for wrong Wikidata birth dates (verified against Wikipedia infoboxes).
+DOB_FIX = {"23eeb873": "1992-08-07",  # Deepak Chahar (Wikidata had 1972)
+           "e824e6ee": "1992-04-02"}  # Tom Latham (Wikidata had 1923)
+
 def new_fmt():
     return dict(m=0, inn=0, no=0, runs=0, bf=0, hs=0, hsNo=False, f50=0, f100=0, f200=0,
                 fours=0, sixes=0, bInn=0, balls=0, rc=0, wk=0, bbW=0, bbR=0, w5=0, w10=0,
@@ -350,6 +354,7 @@ def main(src, out_path):
         hand = (" ".join(w.get("hand", [])) + " " + clean_wiki(ib.get("batting", ""))).lower()
         bowl_style = clean_wiki(ib.get("bowling", "")) or ", ".join(sorted(w.get("bowl", [])))
         dob = w.get("dob") or birth_from_infobox(ib.get("birth_date", ""))
+        dob = DOB_FIX.get(pid, dob)  # Wikidata P569 errors spotted in review
         bat_style = "Left-hand bat" if "left" in hand else ("Right-hand bat" if "right" in hand else "")
         log = sorted(innings_log[pid], reverse=True)[:5]
         blog = sorted(bowl_log[pid], reverse=True)[:5]

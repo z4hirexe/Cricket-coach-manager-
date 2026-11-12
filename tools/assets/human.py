@@ -23,9 +23,9 @@ def smax(a, b, k): return -smin(-a, -b, k)
 
 def lerp(a, b, t): return np.asarray(a) * (1 - t) + np.asarray(b) * t
 
-def body_prims(heavy=False):
-    """(name, bone, region, sdf_fn, k)"""
-    t = 1.13 if heavy else 1.0; l = 1.07 if heavy else 1.0
+def body_prims(heavy=False, slim=False):
+    """(name, bone, region, sdf_fn, k).  Builds: slim (wiry quick bowlers / young batters), athletic (default), heavy."""
+    t = 1.13 if heavy else (0.92 if slim else 1.0); l = 1.07 if heavy else (0.94 if slim else 1.0)
     P = []
     add = lambda n, b, reg, f, k=0.035: P.append((n, b, reg, f, k))
     add("pelvis", "hips", "trousers", lambda p: ell(p, (0, 0.95, -0.005), np.array((0.165, 0.12, 0.115)) * (t ** 0.8)))
@@ -114,8 +114,8 @@ def rigid(v, bone):
     return j, w
 
 # ---------------------------------------------------------------- body + accessories
-def build_body(heavy, h, target):
-    prims = body_prims(heavy)
+def build_body(heavy, h, target, slim=False):
+    prims = body_prims(heavy, slim)
     v, f = mc(lambda p: eval_field(prims, p)[0], (-0.75, -0.01, -0.2), (0.75, 1.86, 0.24), h, target)
     _, lab = eval_field(prims, v.astype(float))
     regions = np.array([prims[i][2] for i in lab], dtype=object); bones = [prims[i][1] for i in lab]
@@ -162,6 +162,32 @@ def build_accessories():
         return smax(shell, (line - p[:, 1]) + 0.02 * (1 - ears) * (p[:, 1] < 1.72), 0.008)
     acc["hair_short"] = (mc(hair, (-0.11, 1.58, -0.13), (0.11, 1.83, 0.12), 0.005, 900), "head", "hair")
     acc["hair_long"] = (mc(lambda p: hair(p, True), (-0.11, 1.55, -0.13), (0.11, 1.83, 0.12), 0.005, 900), "head", "hair")
+    # Phase C: more hair styles (each a separate mesh, picked per player)
+    def buzz(p):
+        shell = ell(p, (0, 1.716, -0.006), (0.0835, 0.1035, 0.1015))
+        line = 1.722 + 0.025 * np.clip(p[:, 2] / 0.08, 0, 1) - 0.06 * np.clip(-p[:, 2] / 0.06, 0, 1)
+        return smax(shell, line - p[:, 1], 0.006)
+    acc["hair_buzz"] = (mc(buzz, (-0.11, 1.60, -0.13), (0.11, 1.83, 0.12), 0.004, 900), "head", "hair")
+    def curly(p):
+        bump = 0.006 * (np.sin(p[:, 0] * 160) * np.sin(p[:, 1] * 150) * np.sin(p[:, 2] * 170))
+        shell = ell(p, (0, 1.735, -0.012), (0.100, 0.115, 0.115)) + bump
+        line = 1.712 + 0.035 * np.clip(p[:, 2] / 0.08, 0, 1) - 0.06 * np.clip(-p[:, 2] / 0.06, 0, 1)
+        return smax(shell, line - p[:, 1], 0.01)
+    acc["hair_curly"] = (mc(curly, (-0.13, 1.60, -0.15), (0.13, 1.87, 0.14), 0.005, 1200), "head", "hair")
+    def bun(p):
+        knot = ell(p, (0, 1.80, -0.075), (0.034, 0.03, 0.034))
+        return smin(hair(p), knot, 0.015)
+    acc["hair_bun"] = (mc(bun, (-0.11, 1.58, -0.13), (0.11, 1.85, 0.12), 0.005, 1000), "head", "hair")
+    def stubble(p):
+        jaw = smin(ell(p, (0, 1.647, 0.035), (0.066, 0.050, 0.065)), ell(p, (0, 1.617, 0.075), (0.030, 0.024, 0.024)), 0.02)
+        return smax(smax(jaw, p[:, 1] - 1.666 - 0.02 * (np.abs(p[:, 0]) > 0.05), 0.006), -p[:, 2] + 0.0, 0.006)
+    acc["beard_stubble"] = (mc(stubble, (-0.09, 1.57, -0.02), (0.09, 1.70, 0.11), 0.003, 900), "head", "stubble")
+    def goatee(p):
+        chin = ell(p, (0, 1.622, 0.074), (0.034, 0.030, 0.029))
+        tache = ell(p, (0, 1.662, 0.092), (0.030, 0.007, 0.012))
+        return smin(smax(chin, p[:, 1] - 1.652, 0.004), tache, 0.008)
+    acc["beard_goatee"] = (mc(goatee, (-0.06, 1.58, 0.03), (0.06, 1.68, 0.11), 0.003, 600), "head", "hair")
+    acc["moustache"] = (mc(lambda p: ell(p, (0, 1.663, 0.093), (0.031, 0.0075, 0.012)), (-0.05, 1.645, 0.07), (0.05, 1.68, 0.11), 0.0025, 300), "head", "hair")
     def beard(p):
         jaw = smin(ell(p, (0, 1.646, 0.036), (0.069, 0.053, 0.068)), ell(p, (0, 1.616, 0.076), (0.033, 0.027, 0.027)), 0.02)
         return smax(smax(jaw, p[:, 1] - 1.668 - 0.02 * (np.abs(p[:, 0]) > 0.05), 0.006), -p[:, 2] + 0.0, 0.006)
@@ -200,8 +226,58 @@ def bat_mesh():
 MATS = {"skin": ((0.55, 0.38, 0.28, 1), 0.0, 0.55), "jersey": ((0.1, 0.3, 0.8, 1), 0.0, 0.75), "trim": ((1, 0.75, 0.1, 1), 0.0, 0.7),
         "trousers": ((0.08, 0.15, 0.45, 1), 0.0, 0.8), "shoe": ((0.92, 0.92, 0.92, 1), 0.0, 0.5), "eye": ((0.12, 0.08, 0.06, 1), 0.0, 0.15),
         "helmet": ((0.06, 0.1, 0.3, 1), 0.15, 0.3), "grille": ((0.75, 0.76, 0.78, 1), 0.9, 0.35), "cap": ((0.1, 0.3, 0.8, 1), 0.0, 0.8),
-        "hair": ((0.05, 0.035, 0.03, 1), 0.0, 0.65), "pads": ((0.95, 0.95, 0.93, 1), 0.0, 0.6), "gloves": ((0.95, 0.95, 0.93, 1), 0.0, 0.65),
+        "hair": ((0.05, 0.035, 0.03, 1), 0.0, 0.65), "stubble": ((0.2, 0.14, 0.11, 1), 0.0, 0.8), "number": ((1, 0.8, 0.2, 1), 0.0, 0.6), "pads": ((0.95, 0.95, 0.93, 1), 0.0, 0.6), "gloves": ((0.95, 0.95, 0.93, 1), 0.0, 0.65),
         "willow": ((0.86, 0.72, 0.48, 1), 0.0, 0.5), "grip": ((0.55, 0.05, 0.05, 1), 0.0, 0.8)}
+
+# ---------------------------------------------------------------- shirt numbers (Phase C)
+SEGS = {"a": (0, 1, 1, 0.14), "b": (1, 1, 0.5, 1), "c": (1, 0.5, 0, 1), "d": (0, 0, 1, 0.14), "e": (0, 0.5, 0, 0), "f": (0, 1, 0.5, 0), "g": (0, 0.5, 1, 0.5)}
+DIGITS = {0: "abcdef", 1: "bc", 2: "abged", 3: "abgcd", 4: "fgbc", 5: "afgcd", 6: "afgedc", 7: "abc", 8: "abcdefg", 9: "abcdfg"}
+NUM_W, NUM_H, NUM_B, NUM_Y = 0.064, 0.120, 0.016, 1.285
+
+def back_z(x, y):
+    """outer surface of the athletic jersey back (chest ellipsoid + smin bulge) at (x, y)."""
+    q = 1 - (x / 0.172) ** 2 - ((y - 1.30) / 0.15) ** 2
+    return -0.112 * np.sqrt(np.maximum(q, 0.05)) - 0.013
+
+def digit_mesh(d, cx):
+    """seven-segment digit on the shirt back, centred at x=cx (character space), as boxes facing -z.  Returns v, n, f in chest-local space."""
+    V, N, F = [], [], []
+    def quad(a, b, c, e, nrm):
+        i = len(V); V.extend([a, b, c, e]); N.extend([nrm] * 4); F.extend([(i, i + 1, i + 2), (i, i + 2, i + 3)])
+    for s in DIGITS[d]:
+        kind = SEGS[s]
+        # segment rectangle in digit units (u right, v up), u,v in [0,1]
+        if s in "adg":
+            v0 = {"a": 1, "d": 0, "g": 0.5}[s]; u0, u1 = 0.0, 1.0; vv0, vv1 = v0 - 0.5 * NUM_B / NUM_H, v0 + 0.5 * NUM_B / NUM_H
+            vv0, vv1 = max(vv0, 0), min(vv1, 1); 
+            if s == "a": vv0 = 1 - NUM_B / NUM_H
+            if s == "d": vv1 = NUM_B / NUM_H
+        else:
+            u = 1.0 if s in "bc" else 0.0; u0, u1 = (1 - NUM_B / NUM_W, 1.0) if u == 1 else (0.0, NUM_B / NUM_W)
+            vv0, vv1 = (0.5, 1.0) if s in "bf" else (0.0, 0.5)
+        corners = [(u0, vv0), (u1, vv0), (u1, vv1), (u0, vv1)]
+        def P(u, v, inset):
+            x = cx - (u - 0.5) * NUM_W          # viewer behind the player: viewer's right is character -x
+            y = NUM_Y + (v - 0.5) * NUM_H
+            z = back_z(x, y) + inset
+            return np.array([x, y, z]) - BIND["chest"]
+        out = [P(u, v, 0.0) for u, v in corners]; inn = [P(u, v, 0.004) for u, v in corners]
+        quad(out[0], out[3], out[2], out[1], (0, 0, -1))          # facing -z (CCW seen from behind)
+        for k in range(4):
+            a, b = out[k], out[(k + 1) % 4]; c, e = inn[(k + 1) % 4], inn[k]
+            nn = np.cross(b - a, e - a); nn = nn / (np.linalg.norm(nn) + 1e-9)
+            quad(a, b, c, e, tuple(nn))
+    return np.array(V, np.float32), np.array(N, np.float32), np.array(F, np.int32)
+
+# ---------------------------------------------------------------- ground contact (Phase C: no clipping into the turf)
+def skin_points(local, root, v, jo, we):
+    R, P = fk(local, root)
+    M = np.stack([qmat(R[j]) for j in JOINTS]); T = np.stack([P[j] for j in JOINTS]); B = np.stack([BIND[j] for j in JOINTS])
+    out = np.zeros((len(v), 3))
+    for k in range(4):
+        j = jo[:, k].astype(int); w = we[:, k][:, None]
+        out += w * (np.einsum("nij,nj->ni", M[j], v - B[j]) + T[j])
+    return out
 
 def build(out_path, lod1=True, preview=None):
     g = GLB(); mi = {k: g.material(k, c, m, r) for k, (c, m, r) in MATS.items()}
@@ -229,12 +305,14 @@ def build(out_path, lod1=True, preview=None):
             prims.append(g.primitive(v[used], nrm[used], remap[fm], mi[reg], joints=jo[used], weights=we[used]))
         meshes.append(g.node(name, mesh=g.mesh(name, prims), skin=skin)); stats[name] = len(f)
     body_cache = {}
-    for heavy in (False, True):
+    for build_name in ("athletic", "heavy", "slim"):
+        heavy = build_name == "heavy"; slim = build_name == "slim"
         for lod, (h, tgt) in enumerate([(0.008, 11000), (0.014, 3200)]):
             if lod == 1 and not lod1: continue
-            v, f, reg, jo, we = build_body(heavy, h, tgt)
-            body_cache[(heavy, lod)] = (v, f, reg, jo, we)
-            add_skinned(f"body_{'heavy' if heavy else 'athletic'}_lod{lod}", v, f, reg, jo, we)
+            v, f, reg, jo, we = build_body(heavy, h, tgt, slim)
+            body_cache[(build_name, lod)] = (v, f, reg, jo, we)
+            add_skinned(f"body_{build_name}_lod{lod}", v, f, reg, jo, we)
+            print("built body", build_name, lod, len(f), flush=True)
     for name, ((v, f), bone, mat) in build_accessories().items():
         if name.startswith("pad") or name.startswith("glove"):
             jo, we = weights_for(v.astype(float), [bone] * len(v))
@@ -249,7 +327,17 @@ def build(out_path, lod1=True, preview=None):
     q = qarc((0, 1, 0), bind_dir("hand_R"))
     batn = g.node("bat", mesh=g.mesh("bat", prims), r=q)
     g.g["nodes"][jn["hand_R"]].setdefault("children", []).append(batn); stats["bat"] = len(bf)
+    # shirt numbers: rigid children of the chest joint; tens (t), units (u) and centred single digit (c)
+    for slot, cx in (("t", 0.040), ("u", -0.040), ("c", 0.0)):
+        for d in range(10):
+            dv, dn, df = digit_mesh(d, cx)
+            nd = g.node(f"num_{slot}{d}", mesh=g.mesh(f"num_{slot}{d}", [g.primitive(dv, dn, df, mi["number"])]))
+            g.g["nodes"][jn["chest"]].setdefault("children", []).append(nd); stats[f"num_{slot}{d}"] = len(df)
     rig_root = g.node("cricketer", children=[jn["hips"]] + meshes, root=True)
+    # ground probe: the heaviest body + both pads (fielding dives, sweeps and keeper crouches must stay above the turf)
+    probe = [body_cache[("heavy", 1 if lod1 else 0)]]
+    acc_probe = [(v, *weights_for(v.astype(float), [bone] * len(v))) for name, ((v, f), bone, mat) in build_accessories().items() if name.startswith("pad")]
+    ground = {}
     # animations
     for cname, keys in C.CLIPS.items():
         res_keys = [(t, solve(p)[2]) for t, p in keys]
@@ -259,12 +347,25 @@ def build(out_path, lod1=True, preview=None):
             k = max(i for i in range(len(res_keys)) if res_keys[i][0] <= t + 1e-9); k = min(k, len(res_keys) - 2)
             t0, a = res_keys[k]; t1, b = res_keys[k + 1]
             u = 0 if t1 == t0 else np.clip((t - t0) / (t1 - t0), 0, 1); u = u * u * (3 - 2 * u)
-            local, root, _ = solve(lerp_spec(a, b, u))
+            spec = lerp_spec(a, b, u)
+            for _it in range(5):
+                local, root, _ = solve(spec)
+                lo = min(min(skin_points(local, root, pv[0].astype(float), pv[3], pv[4])[:, 1].min() for pv in probe),
+                         min(skin_points(local, root, av.astype(float), aj, aw)[:, 1].min() for av, aj, aw in acc_probe))
+                if lo >= 0.0035: break
+                # raise the hips in the IK spec: planted feet stay on their targets, the knees simply bend less
+                r0 = np.asarray(spec.get("root", BIND["hips"]), float); spec = dict(spec); spec["root"] = tuple(r0 + np.array((0, 0.004 - lo, 0)))
+            lift = max(0.0, 0.004 - lo)          # residual: lift the whole body (keeps 4 mm of clearance)
+            root = np.asarray(root, float) + np.array((0, lift, 0))
+            ground[cname] = min(ground.get(cname, 9.0), lo + lift)
+            ground[cname + "#lift"] = max(ground.get(cname + "#lift", 0.0), lift)
             for j in JOINTS: rots[j].append(local[j])
             hipT.append(root)
         ch = [(jn[j], "rotation", times, np.array(rots[j])) for j in JOINTS] + [(jn["hips"], "translation", times, np.array(hipT))]
         g.animation(cname, ch)
     size = g.save(out_path)
+    import json
+    json.dump({k: round(float(v), 4) for k, v in ground.items()}, open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ground_report.json"), "w"), indent=1)
     return size, stats, body_cache
 
 if __name__ == "__main__":

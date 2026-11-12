@@ -42,6 +42,33 @@ class AuctionPresentationTest {
         assertTrue(a.retained.map { it.pid }.intersect(a.sold.map { it.pid }.toSet()).isEmpty())
     }
 
+    @Test fun simAllBidsForTheUser() {
+        val s = Modes.newCareer(1, "T", Modes.IPL, "F_KKR", 1.0, 1, Random(3))
+        val a = Auction.start(s, "MEGA"); s.auction = a
+        Auction.confirmRetention(s, a, emptyList())
+        val before = s.userClub().squad.size
+        Auction.autoComplete(s, a, Random(9))
+        assertTrue(a.done)
+        val u = s.userClub()
+        // the auto-bidder fills the squad towards 18 within the salary cap and overseas limit
+        assertTrue("user squad ${u.squad.size} (was $before)", u.squad.size >= 15)
+        assertTrue(Career.purse(s, u) >= 0.0)
+        assertTrue(Career.overseasCount(s, u) <= 8)
+        assertTrue(a.sold.count { it.club == u.id } >= 15 - before)
+        // and the old behaviour is still available
+        val s2 = Modes.newCareer(1, "T", Modes.IPL, "F_KKR", 1.0, 1, Random(3))
+        val a2 = Auction.start(s2, "MEGA"); s2.auction = a2
+        Auction.confirmRetention(s2, a2, emptyList())
+        Auction.autoComplete(s2, a2, Random(9), bidForUser = false)
+        assertEquals(0, a2.sold.count { it.club == s2.userClubId })
+    }
+
+    @Test fun birthDatesAreSane() {
+        // review found Wikidata DOB errors (Deepak Chahar 1972, Tom Latham 1923)
+        val bad = Repo.ds.players.filter { it.dob != null && it.dob!!.length >= 4 }.filter { val y = it.dob!!.take(4).toInt(); y < 1975 || y > 2012 }   // Vaibhav Suryavanshi (b. 2011) is real
+        assertTrue(bad.joinToString { it.name + " " + it.dob }, bad.isEmpty())
+    }
+
     @Test fun setLabelsAndKitNumbers() {
         val a = AuctionState(index = 25)
         assertEquals("SET 3 · WICKET-KEEPERS", auctionSetLabel(a, GPlayer(role = "WK")))

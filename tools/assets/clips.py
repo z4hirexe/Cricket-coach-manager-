@@ -32,7 +32,7 @@ HOOK_FOL = M(HOOK_IMP, chest=(0, -60, 0), bat=((-0.15, 1.45, -0.05), (-0.3, 0.7,
 CUT_IMP = M({**STANCE, **BACK}, footR=(-0.04, 0.08, 0.20), root=(0.0, 0.90, 0.08), chest=(4, 0, 0), bat=((0.12, 1.02, 0.48), (0.30, -0.25, 0.92)))
 CUT_FOL = M(CUT_IMP, bat=((0.18, 0.85, 0.45), (0.2, -0.9, 0.4)))
 SWEEPLEGS = dict(root=(0.12, 0.55, 0.02), hipR=(0, 10, 0), spine=(30, 10, 0), footL=(0.62, 0.08, 0.18), kneeL=(0.4, 0.3, 1),
-                 footR=(-0.40, 0.10, -0.10), kneeR=(-0.2, -1, 0.3), toeR=(-0.3, -0.9, 0.2))
+                 footR=(-0.40, 0.15, -0.10), kneeR=(-0.2, -1, 0.3), toeR=(-0.6, -0.56, 0.57))  # back foot on its toes (was digging 10 cm into the turf)
 SWEEP_IMP = M({**STANCE, **SWEEPLEGS}, bat=((0.34, 0.42, 0.30), (0.75, -0.30, -0.55)))
 SWEEP_FOL = M(SWEEP_IMP, bat=((0.15, 0.55, 0.0), (-0.2, -0.2, -0.95)))
 REV_IMP = M({**STANCE, **SWEEPLEGS}, bat=((0.34, 0.42, 0.30), (0.70, -0.30, 0.65)))

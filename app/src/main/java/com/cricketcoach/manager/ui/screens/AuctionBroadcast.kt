@@ -19,7 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.unit.em
 import androidx.compose.material3.Text
@@ -88,6 +90,7 @@ internal fun AuctionStage(vm: GameVM, s: CareerSave, a: AuctionState, preview: I
     }
     var show3d by remember { mutableStateOf(preview == 0 && vm.settings.gfx > 0) }
     var history by remember { mutableStateOf(false) }
+    var simAsk by remember { mutableStateOf(false) }
     val leader = s.clubs[a.curBidder]
     val tint by animateColorAsState(leader?.let { Color(it.primary) } ?: Color(0xFF1D3A8A), tween(600), label = "tint")
 
@@ -99,7 +102,7 @@ internal fun AuctionStage(vm: GameVM, s: CareerSave, a: AuctionState, preview: I
         StageBackdrop(tint)
         Column(Modifier.fillMaxSize()) {
             BroadcastHeader(vm, s, a, p, running, show3d, narrow,
-                onPause = { running = !running }, onAuto = { vm.auctionAuto() }, on3d = {
+                onPause = { running = !running }, onAuto = { simAsk = true }, on3d = {
                     if (vm.settings.gfx == 0 && !show3d) vm.msg("Set Graphics to Medium or High in Settings for the 3D player view") else show3d = !show3d
                 }, onHistory = { history = true })
             Row(Modifier.weight(1f).fillMaxWidth().padding(start = 6.dp, end = 6.dp, bottom = 6.dp)) {
@@ -131,6 +134,7 @@ internal fun AuctionStage(vm: GameVM, s: CareerSave, a: AuctionState, preview: I
                 }
             }
         }
+        if (simAsk) SimAllDialog(u.squad.size, onDismiss = { simAsk = false }) { forMe -> simAsk = false; vm.auctionAuto(forMe) }
         AnimatedVisibility(stampOn, enter = fadeIn(tween(150)), exit = fadeOut(tween(400))) {
             SoldStamp(s, a.lastPid, s.clubs[a.lastClub], a.lastPrice, a.lastClub == u.id)
         }
@@ -256,7 +260,7 @@ private fun Spotlight(s: CareerSave, a: AuctionState, p: GPlayer, u: Club, show3
 }
 
 /** Shirt number used on kits (stable per player). */
-fun kitNumber(pid: String): Int = (pid.hashCode().let { if (it < 0) -it else it } % 98) + 1
+fun kitNumber(pid: String): Int = com.cricketcoach.manager.render3d.Look.number(pid)   // same number as the 3D model's shirt
 
 /** Stylised full-body cricketer in his kit with the real photo / initials medallion as the head (no likeness modelling). */
 @Composable
@@ -455,7 +459,7 @@ private fun PriceRail(s: CareerSave, a: AuctionState, p: GPlayer?, leader: Club?
             Column {
                 Text(if (mine) "YOU LEAD" else "HIGHEST BIDDER", color = if (mine) C.Positive else C.Sub, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                 Text(leader?.name ?: "Awaiting paddles", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, lineHeight = 13.sp)
-                GoingPips(a.countdown)
+                GoingPips(a.countdown, compact = narrow)
             }
         }
     }
@@ -781,4 +785,23 @@ private fun ReportTile(label: String, value: String, col: Color, modifier: Modif
         Text(label, color = C.Sub, fontSize = 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
         Text(value, color = col, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 1)
     }
+}
+
+
+/** SIM ALL confirmation: let the club auto-bid for the user (fills towards 18) or let only the AI bid. */
+@Composable
+private fun SimAllDialog(squad: Int, onDismiss: () -> Unit, onGo: (Boolean) -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, containerColor = Navy1,
+        title = { Text("SIM REST OF AUCTION", fontFamily = Display, color = C.GoldLight, fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+        text = {
+            Text("Your squad has $squad players. Auto-bid makes your club bid like the AI franchises (same valuations and purse reserve) " +
+                "until you have ${Auction.AUTO_TARGET} players. AI only skips every remaining lot for you.", color = C.Text, fontSize = 13.sp)
+        },
+        confirmButton = { TextButton(onClick = { GameAudio.click(); onGo(true) }) { Text("AUTO-BID FOR ME", color = C.Gold, fontWeight = FontWeight.Black) } },
+        dismissButton = {
+            Row {
+                TextButton(onClick = { GameAudio.click(); onDismiss() }) { Text("CANCEL", color = C.Sub, fontWeight = FontWeight.Bold) }
+                TextButton(onClick = { GameAudio.click(); onGo(false) }) { Text("AI ONLY", color = C.Text, fontWeight = FontWeight.Bold) }
+            }
+        })
 }

@@ -124,6 +124,7 @@ class MatchDirector(private val a: Arena3D) {
 
     /** Advance by dt seconds of real time and apply transforms/animations/camera. */
     fun update(dtReal: Float) {
+        if (showroom) { updateShowroom(dtReal); return }
         if (title) { updateTitle(dtReal); return }
         val e = ev; val p = plan
         if (e == null || p == null || done) { idle(dtReal); return }
@@ -171,7 +172,7 @@ class MatchDirector(private val a: Arena3D) {
     /** Title screen: slow cinematic orbit with a featured star in the foreground. */
     private var tt0 = 0f
     fun setupTitle(starId: String, country: String, kit: Kit) {
-        title = true
+        title = true; showroom = false
         for (x in a.actors) x.active = false
         val star = a.actors[0]; star.active = true; star.dress(Look.of(starId, country), kit, Role.STRIKER, 0)
         place(star, 0f, 0f, 1.05f, -90f, false); star.play("bat_stance", true, 0.01f)
@@ -191,5 +192,56 @@ class MatchDirector(private val a: Arena3D) {
         val ang = tt0 * 0.06f
         val r = 4.2f + 1.2f * sin(tt0 * 0.1f)
         a.lookAt(-r * cos(ang) - 0.3f, 1.25f + 0.25f * sin(tt0 * 0.13f), 1.05f + r * sin(ang) + 1.4f, 0f, 1.05f, 1.6f + 6f * (0.5f + 0.5f * sin(tt0 * 0.05f)), 42f)
+    }
+
+    /* ------------------------------------------------------------ Phase C: player showroom (profile / auction 3D viewer) */
+    var showroom = false; private set
+    /** camera orbit around the player, degrees (dragged by the user); auto-spins slowly while [autoSpin] */
+    var orbitYaw = 205f
+    var orbitDist = 3.6f
+    var autoSpin = true
+    private var showSeq: List<String> = listOf("idle")
+    private var showIdx = 0
+    private var showClipT = 0f
+    private var showLook: Look? = null
+    private val SX = 6f; private val SZ = 9f          // on the square, well clear of both sets of stumps
+    private val drift = FloatArray(2)
+
+    /** Put [pid] alone on the square in his kit, playing the clips of [sc] (with the matching gear). */
+    fun setupShowroom(pid: String, country: String, kit: Kit, sc: Showcase) {
+        showroom = true; title = false
+        for (x in a.actors) x.active = false
+        val look = Look.of(pid, country); showLook = look
+        val star = a.actors[0]; star.active = true
+        star.dress(look, kit, if (sc.gear == Gear.KEEPING) Role.KEEPER else Role.STAR, 0, sc.gear, inMatch = false)
+        showSeq = sc.clips; showIdx = 0; showClipT = 0f
+        place(star, SX, 0f, SZ, 0f, false); star.resetDrive()
+        a.setTransform(a.ball, 0f, -5f, 0f)
+    }
+
+    private fun updateShowroom(dt: Float) {
+        val star = a.actors[0]
+        val clip = showSeq[showIdx % showSeq.size]
+        val single = showSeq.size == 1
+        val dur = ClipData.DUR[clip] ?: 1f
+        showClipT += dt
+        // hold the last frame of one-shot clips briefly, then move on through the sequence
+        val hold = if (clip.startsWith("bat_stance") || clip == "field_ready" || clip == "keep_crouch") 0.6f else 0.45f
+        if (!single && showClipT > dur + hold) { showIdx++; showClipT = 0f }
+        val c2 = showSeq[showIdx % showSeq.size]
+        val loop = single || c2 == "idle" || c2 == "run" || c2 == "bat_stance" || c2 == "field_ready" || c2 == "keep_crouch"
+        val cycle = max(dur + 0.6f, 0.1f)
+        val tt = if (single && !loop) showClipT % cycle else showClipT
+        val seg = when { single && loop -> 0f; single -> (showClipT / cycle).toInt() * 100f; else -> showIdx * 1000f }
+        val time = if (loop) tt else min(tt, dur)
+        // the run-up travels (its root drift is re-applied so the feet don't skate); each delivery restarts from the mark
+        if (c2.startsWith("bowl_")) ClipData.drift(c2, min(tt, dur), drift) else { drift[0] = 0f; drift[1] = 0f }
+        star.x = SX + drift[0] * star.scale; star.z = SZ + drift[1] * star.scale; star.yaw = 0f
+        star.drive(c2, loop, seg, time, 0.25f, dt)
+        if (autoSpin) orbitYaw += dt * 9f
+        val yr = Math.toRadians(orbitYaw.toDouble())
+        val s = showLook?.scale ?: 1f
+        val cx = star.x; val cz = star.z
+        a.lookAt((cx + orbitDist * sin(yr)).toFloat(), 1.15f * s + 0.2f, (cz + orbitDist * cos(yr)).toFloat(), cx, 0.95f * s, cz, 34f)
     }
 }

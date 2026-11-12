@@ -15,30 +15,6 @@ object Gfx { const val LOW = 0; const val MEDIUM = 1; const val HIGH = 2 }
 /** Lighting presets: day (Test), day-night (ODI), night under floodlights (T20). */
 object Lighting { const val DAY = 0; const val DUSK = 1; const val NIGHT = 2; const val OVERCAST = 3 }
 
-/** Deterministic, generic appearance for a player id (no real-person likeness in 3D - real faces only via credited photos). */
-class Look(val skin: FloatArray, val hair: Int, val hairCol: FloatArray, val beard: Boolean, val heavy: Boolean) {
-    companion object {
-        private val SKINS = arrayOf(floatArrayOf(0.62f, 0.43f, 0.31f), floatArrayOf(0.48f, 0.31f, 0.21f), floatArrayOf(0.36f, 0.23f, 0.15f),
-            floatArrayOf(0.25f, 0.16f, 0.11f), floatArrayOf(0.78f, 0.60f, 0.48f), floatArrayOf(0.70f, 0.52f, 0.40f))
-        private val HAIRS = arrayOf(floatArrayOf(0.03f, 0.025f, 0.02f), floatArrayOf(0.08f, 0.05f, 0.03f), floatArrayOf(0.20f, 0.13f, 0.07f), floatArrayOf(0.45f, 0.33f, 0.18f))
-        fun of(id: String, country: String = ""): Look {
-            val h = id.hashCode().toLong() and 0xffffffffL
-            val c = country.lowercase()
-            // broad regional skin-tone ranges keep crowds of generic models plausible; individual pick is hashed
-            val pool = when {
-                c in listOf("india", "pakistan", "sri lanka", "bangladesh", "afghanistan", "nepal", "uae", "oman") -> intArrayOf(0, 1, 2, 5)
-                c in listOf("west indies", "zimbabwe") -> intArrayOf(2, 3, 1)
-                c in listOf("england", "australia", "new zealand", "ireland", "scotland", "netherlands") -> intArrayOf(4, 5, 0, 4)
-                c == "south africa" -> intArrayOf(4, 2, 3, 5, 0)
-                else -> intArrayOf(0, 1, 2, 3, 4, 5)
-            }
-            val skin = SKINS[pool[(h % pool.size).toInt()]]
-            val hairCol = if (skin === SKINS[4] || skin === SKINS[5]) HAIRS[((h shr 5) % 4).toInt()] else HAIRS[((h shr 5) % 2).toInt()]
-            return Look(skin, ((h shr 9) % 3).toInt(), hairCol, (h shr 12) % 3 == 0L, (h shr 15) % 4 == 0L)
-        }
-    }
-}
-
 /** Kit colours for a side. */
 class Kit(val primary: Int, val secondary: Int, val whites: Boolean)
 
@@ -47,6 +23,8 @@ private fun MaterialInstance.color(r: Float, g: Float, b: Float) {
     if (material.hasParameter("baseColorFactor")) setParameter("baseColorFactor", Colors.RgbaType.LINEAR, r, g, b, 1f)
 }
 private fun MaterialInstance.colorInt(c: Int, k: Float = 1f) = color(lin(c, 16) * k, lin(c, 8) * k, lin(c, 0) * k)
+/** white blended towards a team colour by [k] */
+private fun MaterialInstance.mixInt(c: Int, k: Float) = color(0.92f * (1 - k) + lin(c, 16) * k, 0.92f * (1 - k) + lin(c, 8) * k, 0.92f * (1 - k) + lin(c, 0) * k)
 
 /** One animated cricketer (a gltfio instance of cricketer.glb). */
 class Actor(private val arena: Arena3D, val inst: FilamentInstance) {
@@ -68,7 +46,7 @@ class Actor(private val arena: Arena3D, val inst: FilamentInstance) {
     fun show(names: Collection<String>) {
         val want = names.toHashSet()
         for ((n, e) in parts) {
-            val isMesh = n.startsWith("body_") || n in MESHES
+            val isMesh = isMesh(n)
             if (!isMesh) continue
             val on = active && n in want
             if (on && n !in visible) { arena.scene.addEntity(e); visible.add(n) }
@@ -76,21 +54,47 @@ class Actor(private val arena: Arena3D, val inst: FilamentInstance) {
         }
     }
 
-    fun dress(look: Look, kit: Kit?, role: Role, lod: Int) {
-        val body = "body_${if (look.heavy) "heavy" else "athletic"}_lod$lod"
+    /** uniform scale from the player's height (feet stay on the turf: the rig's origin is at ground level) */
+    var scale = 1f
+
+    /**
+     * Phase C: dress this actor as one specific player - body build, height, skin, hair style/colour, facial hair,
+     * shirt number and the team kit (jersey, trousers, trim, helmet/cap, gloves, pads, shoes).
+     */
+    fun dress(look: Look, kit: Kit?, role: Role, lod: Int, gear: Gear? = null, inMatch: Boolean = true) {
+        val g = gear ?: when (role) { Role.STRIKER, Role.NONSTRIKER -> Gear.BATTING; Role.KEEPER -> Gear.KEEPING; Role.BOWLER -> Gear.BOWLING; else -> Gear.FIELDING }
+        val body = "body_${look.build.mesh}_lod$lod".let { if (it in parts) it else "body_${if (look.heavy) "heavy" else "athletic"}_lod$lod" }
         val list = ArrayList<String>(); list += body; list += "eyes"
-        val batting = role == Role.STRIKER || role == Role.NONSTRIKER
-        when (role) {
-            Role.STRIKER, Role.NONSTRIKER -> { list += listOf("helmet", "grille", "pad_L", "pad_R", "glove_L", "glove_R", "bat") }
-            Role.KEEPER -> { list += listOf("pad_L", "pad_R", "glove_L", "glove_R", "cap") }
-            Role.UMPIRE -> list += "cap"
-            Role.BOWLER, Role.FIELDER, Role.STAR -> if (look.hair == 0 && role == Role.FIELDER) list += "cap" else list += if (look.hair == 2) "hair_long" else "hair_short"
+        val headgear = when {
+            role == Role.UMPIRE -> "cap"
+            g == Gear.BATTING -> "helmet"
+            g == Gear.KEEPING -> "cap"
+            role == Role.FIELDER && look.hair == Hair.NONE -> "cap"
+            else -> null
         }
-        if (!batting && look.beard) list += "beard"
-        if (batting && look.beard) list += "beard"
+        when (g) {
+            Gear.BATTING -> list += listOf("helmet", "grille", "pad_L", "pad_R", "glove_L", "glove_R", "bat")
+            Gear.KEEPING -> list += listOf("pad_L", "pad_R", "glove_L", "glove_R", "cap")
+            else -> if (headgear == "cap") list += "cap"
+        }
+        // hair under a helmet/cap: only styles that show below it (long / top knot) are kept, everything else would clip
+        val hairMesh = Hair.mesh(look.hair)
+        if (hairMesh != null && (headgear == null || look.hair == Hair.LONG)) list += hairMesh
+        Facial.mesh(look.facial)?.let { list += it }
+        // shirt number on the back (two digits or one centred digit); umpires have none
+        if (role != Role.UMPIRE && kit != null) {
+            val n = look.number.coerceIn(0, 99)
+            if (n >= 10) { list += "num_t${n / 10}"; list += "num_u${n % 10}" } else list += "num_c$n"
+        }
         show(list)
+        // the digits are modelled on the athletic back; push them out/in to sit on the heavy/slim jersey surface
+        val dz = when (look.build) { Build.HEAVY -> -0.011f; Build.SLIM -> 0.005f; else -> 0f }
+        for (n in list) if (n.startsWith("num_")) parts[n]?.let { arena.setTransform(it, 0f, 0f, dz) }
+        scale = if (inMatch) look.matchScale else look.scale
         mats["skin"]?.color(look.skin[0], look.skin[1], look.skin[2])
         mats["hair"]?.color(look.hairCol[0], look.hairCol[1], look.hairCol[2])
+        // stubble = a short shadow between skin and hair colour
+        mats["stubble"]?.color(look.skin[0] * 0.55f + look.hairCol[0] * 0.45f, look.skin[1] * 0.55f + look.hairCol[1] * 0.45f, look.skin[2] * 0.55f + look.hairCol[2] * 0.45f)
         if (role == Role.UMPIRE) {
             mats["jersey"]?.color(0.55f, 0.72f, 0.88f); mats["trim"]?.color(0.05f, 0.05f, 0.08f)
             mats["trousers"]?.color(0.03f, 0.03f, 0.04f); mats["cap"]?.color(0.04f, 0.04f, 0.05f); mats["shoe"]?.color(0.05f, 0.05f, 0.05f); return
@@ -99,11 +103,16 @@ class Actor(private val arena: Arena3D, val inst: FilamentInstance) {
         if (k.whites) {
             mats["jersey"]?.color(0.86f, 0.84f, 0.76f); mats["trousers"]?.color(0.84f, 0.82f, 0.74f); mats["trim"]?.colorInt(k.primary)
             mats["cap"]?.colorInt(k.primary, 0.6f); mats["helmet"]?.colorInt(k.primary, 0.45f)
+            mats["number"]?.colorInt(k.primary, 0.7f)
+            mats["pads"]?.color(0.93f, 0.93f, 0.90f); mats["gloves"]?.color(0.92f, 0.92f, 0.90f)
+            mats["shoe"]?.color(0.88f, 0.88f, 0.86f)
         } else {
             mats["jersey"]?.colorInt(k.primary); mats["trim"]?.colorInt(k.secondary); mats["trousers"]?.colorInt(k.primary, 0.42f)
             mats["cap"]?.colorInt(k.primary); mats["helmet"]?.colorInt(k.primary, 0.5f)
+            mats["number"]?.colorInt(k.secondary)
+            // white-ball cricket: team-tinted pads/gloves and shoes with a hint of the team colour
+            mats["pads"]?.mixInt(k.primary, 0.18f); mats["gloves"]?.mixInt(k.secondary, 0.35f); mats["shoe"]?.mixInt(k.primary, 0.12f)
         }
-        mats["shoe"]?.color(0.85f, 0.85f, 0.85f)
     }
 
     fun play(name: String, loop: Boolean = true, fade: Float = 0.2f, speed: Float = 1f, from: Float = 0f) {
@@ -133,7 +142,7 @@ class Actor(private val arena: Arena3D, val inst: FilamentInstance) {
         animator.applyAnimation(clip, t)
         if (prev >= 0 && fade < 1f) animator.applyCrossFade(prev, prevT, 1f - fade)
         animator.updateBoneMatrices()
-        arena.setTransform(inst.root, x, y, z, yaw, if (mirror) -1f else 1f)
+        arena.setTransform(inst.root, x, y, z, yaw, if (mirror) -1f else 1f, scale = scale)
     }
     /** forget the current segment so the next [drive] starts clean (new delivery) */
     fun resetDrive() { segStart = Float.NaN; prev = -1; fade = 1f }
@@ -147,11 +156,14 @@ class Actor(private val arena: Arena3D, val inst: FilamentInstance) {
         animator.applyAnimation(clip, t)
         if (prev >= 0 && fade < 1f) animator.applyCrossFade(prev, prevT, 1f - fade)
         animator.updateBoneMatrices()
-        arena.setTransform(inst.root, x, y, z, yaw, if (mirror) -1f else 1f)
+        arena.setTransform(inst.root, x, y, z, yaw, if (mirror) -1f else 1f, scale = scale)
     }
 
     companion object {
-        val MESHES = setOf("helmet", "grille", "cap", "hair_short", "hair_long", "beard", "pad_L", "pad_R", "glove_L", "glove_R", "eyes", "bat")
+        val MESHES = setOf("helmet", "grille", "cap", "hair_short", "hair_long", "hair_buzz", "hair_curly", "hair_bun", "beard", "beard_stubble", "beard_goatee",
+            "moustache", "pad_L", "pad_R", "glove_L", "glove_R", "eyes", "bat") + (0..9).flatMap { d -> listOf("num_t$d", "num_u$d", "num_c$d") }
+        /** renderable part names that are toggled per player (everything else - the joints - is always in the scene) */
+        fun isMesh(n: String) = n.startsWith("body_") || n in MESHES
     }
 }
 
@@ -214,7 +226,7 @@ class Arena3D(private val ctx: Context, var quality: Int) {
         val a0 = actors[0].inst.animator
         clipDur = FloatArray(a0.animationCount) { a0.getAnimationDuration(it) }
         for (i in 0 until a0.animationCount) clipIndex[a0.getAnimationName(i)] = i
-        for (a in actors) for ((name, e) in a.parts) if (!(name.startsWith("body_") || name in Actor.MESHES)) scene.addEntity(e)
+        for (a in actors) for ((name, e) in a.parts) if (!Actor.isMesh(name)) scene.addEntity(e)
         applyQuality(quality)
         setLighting(Lighting.NIGHT)
     }
@@ -328,16 +340,17 @@ class Arena3D(private val ctx: Context, var quality: Int) {
         stadiumMats["pitch_wear"]?.let { m -> if (m.material.hasParameter("baseColorFactor")) m.setParameter("baseColorFactor", Colors.RgbaType.LINEAR, 1f, 1f, 1f, w) }
     }
 
-    fun setTransform(entity: Int, x: Float, y: Float, z: Float, yawDeg: Float = 0f, sx: Float = 1f, pitchDeg: Float = 0f, rollDeg: Float = 0f) {
+    fun setTransform(entity: Int, x: Float, y: Float, z: Float, yawDeg: Float = 0f, sx: Float = 1f, pitchDeg: Float = 0f, rollDeg: Float = 0f, scale: Float = 1f) {
         val ti = tm.getInstance(entity); if (ti == 0) return
         val cy = cos(Math.toRadians(yawDeg.toDouble())).toFloat(); val sy = sin(Math.toRadians(yawDeg.toDouble())).toFloat()
         val cp = cos(Math.toRadians(pitchDeg.toDouble())).toFloat(); val sp = sin(Math.toRadians(pitchDeg.toDouble())).toFloat()
         val cr = cos(Math.toRadians(rollDeg.toDouble())).toFloat(); val sr = sin(Math.toRadians(rollDeg.toDouble())).toFloat()
         // R = Ry * Rx * Rz ; columns
         val m = mat16
-        m[0] = (cy * cr + sy * sp * sr) * sx; m[1] = (cp * sr) * sx; m[2] = (-sy * cr + cy * sp * sr) * sx; m[3] = 0f
-        m[4] = -cy * sr + sy * sp * cr; m[5] = cp * cr; m[6] = sy * sr + cy * sp * cr; m[7] = 0f
-        m[8] = sy * cp; m[9] = -sp; m[10] = cy * cp; m[11] = 0f
+        val s = scale; val sxs = sx * scale
+        m[0] = (cy * cr + sy * sp * sr) * sxs; m[1] = (cp * sr) * sxs; m[2] = (-sy * cr + cy * sp * sr) * sxs; m[3] = 0f
+        m[4] = (-cy * sr + sy * sp * cr) * s; m[5] = cp * cr * s; m[6] = (sy * sr + cy * sp * cr) * s; m[7] = 0f
+        m[8] = sy * cp * s; m[9] = -sp * s; m[10] = cy * cp * s; m[11] = 0f
         m[12] = x; m[13] = y; m[14] = z; m[15] = 1f
         tm.setTransform(ti, m)
     }

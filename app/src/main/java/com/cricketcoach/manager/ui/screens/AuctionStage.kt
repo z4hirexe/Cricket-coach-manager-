@@ -88,63 +88,22 @@ internal fun LedChip(text: String, color: Color) {
     }
 }
 
-/* ----------------------------------------------------------------- auctioneer */
-
-/** Generic auctioneer silhouette at a lectern; the gavel strikes whenever [strikeKey] changes. */
 @Composable
-internal fun Auctioneer(strikeKey: Int, countdown: Int, modifier: Modifier = Modifier) {
-    val swing = remember { Animatable(0f) }
-    var first by remember { mutableStateOf(true) }
-    LaunchedEffect(strikeKey) {
-        if (first) { first = false; return@LaunchedEffect }
-        swing.animateTo(1f, tween(140, easing = FastOutLinearInEasing))
-        swing.animateTo(0f, spring(dampingRatio = 0.45f, stiffness = 260f))
-    }
-    val inf = rememberInfiniteTransition(label = "breath")
-    val breath by inf.animateFloat(0f, 1f, infiniteRepeatable(tween(2600), RepeatMode.Reverse), label = "b")
-    Canvas(modifier) {
-        val w = size.width; val h = size.height
-        val cx = w * 0.45f
-        val bob = breath * 2f
-        // body: suit + shirt + tie
-        val torso = Path().apply {
-            moveTo(cx - w * 0.30f, h * 0.70f); quadraticBezierTo(cx - w * 0.30f, h * 0.36f + bob, cx - w * 0.10f, h * 0.33f + bob)
-            lineTo(cx + w * 0.10f, h * 0.33f + bob); quadraticBezierTo(cx + w * 0.30f, h * 0.36f + bob, cx + w * 0.30f, h * 0.70f); close()
+internal fun GoingPips(countdown: Int, compact: Boolean = false) {
+    if (compact) {
+        // narrow screens: three lamps + the current call, fits ~90dp
+        Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+            for (i in 0 until 3) {
+                val on = countdown > i
+                val col by animateColorAsState(if (on) (if (i == 2) C.Red else C.Gold) else Color(0x40FFFFFF), label = "lamp")
+                Box(Modifier.size(7.dp).clip(CircleShape).background(col)); Spacer(Modifier.width(3.dp))
+            }
+            Spacer(Modifier.width(2.dp))
+            val word = when { countdown >= 3 -> "SOLD"; countdown == 2 -> "TWICE"; countdown == 1 -> "ONCE"; else -> "OPEN" }
+            Text(word, color = if (countdown > 0) C.Gold else C.Sub, fontSize = 8.sp, lineHeight = 9.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, softWrap = false)
         }
-        drawPath(torso, Brush.verticalGradient(listOf(Color(0xFF1E2A4A), Color(0xFF0C1226))))
-        val shirt = Path().apply { moveTo(cx - w * 0.07f, h * 0.335f + bob); lineTo(cx + w * 0.07f, h * 0.335f + bob); lineTo(cx, h * 0.52f); close() }
-        drawPath(shirt, Color(0xFFE8ECF5))
-        val tie = Path().apply { moveTo(cx - w * 0.02f, h * 0.35f + bob); lineTo(cx + w * 0.02f, h * 0.35f + bob); lineTo(cx + w * 0.03f, h * 0.50f); lineTo(cx, h * 0.53f); lineTo(cx - w * 0.03f, h * 0.50f); close() }
-        drawPath(tie, C.Gold)
-        // head (featureless, softly lit)
-        drawCircle(Brush.radialGradient(listOf(Color(0xFFB98A68), Color(0xFF6E4B35)), Offset(cx - w * 0.03f, h * 0.18f + bob), w * 0.14f), w * 0.11f, Offset(cx, h * 0.21f + bob))
-        drawArc(Color(0xFF1B1410), 180f, 180f, true, Offset(cx - w * 0.115f, h * 0.085f + bob), Size(w * 0.23f, h * 0.15f))
-        // gavel arm + gavel (pivot at the right hand)
-        val pivot = Offset(cx + w * 0.30f, h * 0.55f)
-        val angle = -55f + 55f * swing.value
-        drawLine(Color(0xFF1E2A4A), Offset(cx + w * 0.22f, h * 0.42f + bob), pivot, w * 0.07f)
-        rotate(angle, pivot) {
-            drawLine(Color(0xFF8D5A2B), pivot, Offset(pivot.x + w * 0.20f, pivot.y), w * 0.025f)
-            drawRoundRect(Brush.verticalGradient(listOf(Color(0xFFA86B36), Color(0xFF5E3615))), Offset(pivot.x + w * 0.17f, pivot.y - h * 0.06f), Size(w * 0.09f, h * 0.12f), CornerRadius(4f))
-            drawRect(C.Gold, Offset(pivot.x + w * 0.17f, pivot.y - h * 0.012f), Size(w * 0.09f, h * 0.024f))
-        }
-        // strike flash on the sound block
-        val block = Offset(pivot.x + w * 0.21f, h * 0.66f)
-        if (swing.value > 0.7f) drawCircle(C.GoldLight.copy(alpha = (swing.value - 0.7f) * 2.5f), w * 0.12f, block)
-        drawRoundRect(Color(0xFF4A2A10), Offset(block.x - w * 0.08f, block.y - h * 0.015f), Size(w * 0.16f, h * 0.035f), CornerRadius(3f))
-        // lectern
-        val lec = Path().apply { moveTo(w * 0.02f, h * 0.68f); lineTo(w * 0.98f, h * 0.68f); lineTo(w * 0.88f, h); lineTo(w * 0.12f, h); close() }
-        drawPath(lec, Brush.verticalGradient(listOf(Color(0xFF2A1A0C), Color(0xFF120A04)), h * 0.68f, h))
-        drawRect(C.Gold, Offset(w * 0.02f, h * 0.675f), Size(w * 0.96f, h * 0.02f))
-        drawCircle(C.GoldBrush, w * 0.09f, Offset(w * 0.5f, h * 0.84f))
-        drawCircle(Color(0xFF120A04), w * 0.065f, Offset(w * 0.5f, h * 0.84f))
-        drawCircle(C.Gold, w * 0.03f, Offset(w * 0.5f, h * 0.84f))
-        if (countdown > 0) drawCircle(C.Red.copy(alpha = 0.25f + 0.15f * breath), w * 0.02f, Offset(w * 0.9f, h * 0.73f))
+        return
     }
-}
-
-@Composable
-internal fun GoingPips(countdown: Int) {
     Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         listOf("ONCE", "TWICE", "SOLD").forEachIndexed { i, l ->
             val on = countdown > i

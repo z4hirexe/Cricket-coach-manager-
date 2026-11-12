@@ -70,20 +70,10 @@ fun ProfileScreen(vm: GameVM, pid: String) {
     ScreenScaffold(vm, name) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
             ProfileHero(pid, name, rp, gp, s, ovr, role, country, club, primary, secondary)
-            var show3d by remember { mutableStateOf(false) }
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = {
-                    if (vm.settings.gfx == 0 && !show3d) vm.msg("Set Graphics to Medium or High in Settings for the 3D view") else show3d = !show3d
-                }) { Text(if (show3d) "Hide 3D view" else "View in 3D (stadium close-up)", color = C.Gold, fontSize = 12.sp) }
-            }
-            if (show3d) Box(Modifier.fillMaxWidth().height(260.dp).clip(RoundedCornerShape(16.dp)).border(1.dp, secondary.copy(alpha = 0.6f), RoundedCornerShape(16.dp))) {
-                com.cricketcoach.manager.render3d.Player3DShowcase(pid, country, club?.primary ?: nat?.primary ?: 0xFF1565C0, club?.secondary ?: nat?.secondary ?: 0xFFFFC107,
-                    vm.settings.gfx, Modifier.fillMaxSize()) {
-                    Box(Modifier.fillMaxSize().background(C.Card), contentAlignment = Alignment.Center) { Sub("3D view is not available on this device.") }
-                }
-                Text("Generic 3D model in team kit — real likenesses are not used", color = Color.White.copy(alpha = 0.6f), fontSize = 9.sp,
-                    modifier = Modifier.align(Alignment.BottomStart).padding(8.dp))
-            }
+            // Phase C: the player's own 3D model (build, height, skin, hair, facial hair, shirt number, kit) + animation selector
+            val spin = (gp?.bowlType ?: a?.bowlType) == "SPIN"
+            Player3DPanel(vm, pid, name, country, role, spin, club?.primary ?: nat?.primary ?: 0xFF1565C0, club?.secondary ?: nat?.secondary ?: 0xFFFFC107,
+                club?.name ?: nat?.name ?: country)
             QuickStats(rp, gp, s, pid)
             Spacer(Modifier.height(6.dp))
             Tabs(listOf("Overview", "Real stats", "Career mode"), page) { page = it }

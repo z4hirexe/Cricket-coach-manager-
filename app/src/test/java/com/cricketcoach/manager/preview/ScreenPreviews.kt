@@ -10,6 +10,8 @@ import com.cricketcoach.manager.ui.CcmTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.cricketcoach.manager.ui.GameVM
 import com.cricketcoach.manager.ui.Screen
 import com.cricketcoach.manager.ui.screens.*
@@ -170,5 +172,34 @@ class ScreenPreviews {
         val vm = vm(); val s = Modes.newCareer(1, "Arjun Sen", Modes.IPL, "F_KKR", 1.0, 1, Random(4)); vm.save = s
         inShell(vm, Screen.Calendar, "78_calendar_preseason_auction.png", 1600) { CalendarScreen(vm, Schedule.seasonStart(s).minusDays(12)) }
     }
+    // ---- Phase C: per-player 3D appearance
+    @Test fun profileKeeper() { val vm = careerVm(Modes.IPL, "F_CSK", 2); inShell(vm, Screen.Profile("4a8a2e3b"), "77_profile_dhoni_keeper.png", 1600) { ProfileScreen(vm, "4a8a2e3b") } }
+    @Test fun looksGallery() {
+        val ids = listOf("ba607b88" to "India", "462411b3" to "India", "919a3be2" to "India", "4a8a2e3b" to "India", "8a75e999" to "Pakistan", "3241e3fd" to "West Indies",
+            "gen-1" to "India", "gen-7" to "England", "gen-12" to "South Africa", "gen-31" to "West Indies")
+        val gears = listOf(com.cricketcoach.manager.render3d.Gear.BATTING, com.cricketcoach.manager.render3d.Gear.BOWLING, com.cricketcoach.manager.render3d.Gear.BATTING,
+            com.cricketcoach.manager.render3d.Gear.KEEPING, com.cricketcoach.manager.render3d.Gear.BATTING, com.cricketcoach.manager.render3d.Gear.FIELDING,
+            com.cricketcoach.manager.render3d.Gear.FIELDING, com.cricketcoach.manager.render3d.Gear.BOWLING, com.cricketcoach.manager.render3d.Gear.FIELDING, com.cricketcoach.manager.render3d.Gear.KEEPING)
+        val kits = listOf(0xFF1565C0 to 0xFFFF9800, 0xFF0D47A1 to 0xFFFFC107, 0xFF1565C0 to 0xFFFF9800, 0xFFFDD835 to 0xFF0D47A1, 0xFF1B5E20 to 0xFFFFFFFF,
+            0xFF7B1F3A to 0xFFFFC107, 0xFF4A148C to 0xFFFFD54F, 0xFF0D2B6B to 0xFFE53935, 0xFF006B3F to 0xFFFFC107, 0xFF7B1F3A to 0xFFFFC107)
+        shot("82_looks_gallery.png", 800) {
+            androidx.compose.foundation.layout.Column(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFF071029)).padding(10.dp)) {
+                androidx.compose.material3.Text("PHASE C · PER-PLAYER MODELS (2D twin of the 3D look) — curated approximate looks + fictional generated looks",
+                    color = androidx.compose.ui.graphics.Color(0xFFE9B949), fontSize = 12.sp)
+                Row(Modifier.fillMaxSize()) {
+                    ids.forEachIndexed { i, (id, c) ->
+                        val l = com.cricketcoach.manager.render3d.Look.of(id, c)
+                        Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                            KitFigure(l, androidx.compose.ui.graphics.Color(kits[i].first), androidx.compose.ui.graphics.Color(kits[i].second), gears[i], Modifier.weight(1f).fillMaxWidth())
+                            androidx.compose.material3.Text((Repo.byId[id]?.name ?: "Fictional ${id.removePrefix("gen-")}").split(" ").last(),
+                                color = androidx.compose.ui.graphics.Color.White, fontSize = 10.sp, maxLines = 1)
+                            androidx.compose.material3.Text("${l.build.name.lowercase()} ${l.heightCm}cm", color = androidx.compose.ui.graphics.Color(0xFF8FA0C0), fontSize = 8.sp, maxLines = 1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test fun settings() { val vm = vm(); shot("50_settings.png") { SettingsScreen(vm) } }
 }

@@ -838,7 +838,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         if (hammered) persist() else bump()
     }
     fun auctionPass() { val s = save ?: return; val a = s.auction ?: return; val b = a.bidSeq; val c = a.countdown; val l = a.lastSeq; Auction.resolveLot(s, a, rnd); auctionCue(s, a, b, c, l); persist() }
-    fun auctionAuto() { val s = save ?: return; val a = s.auction ?: return; Auction.autoComplete(s, a, rnd); GameAudio.play("sold"); persist() }
+    fun auctionAuto(forMe: Boolean = true) { val s = save ?: return; val a = s.auction ?: return; Auction.autoComplete(s, a, rnd, bidForUser = forMe); GameAudio.play("sold"); persist() }
 
     /* ---------------- generic actions ---------------- */
     fun act(f: (CareerSave) -> String?) { val s = save ?: return; msg(f(s)); persist() }

@@ -5,6 +5,8 @@ import android.view.SurfaceView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
@@ -92,10 +94,41 @@ fun Title3DView(starId: String, country: String, kit: Kit, quality: Int, modifie
 }
 
 /**
- * Phase 6/7: a player "on the podium" - the floodlit 3D stadium close-up with the player in his team kit playing shots.
- * Used by the auction lot card and the profile's 3D view. Falls back to [fallback] if Filament can't start.
+ * Phase C: one player's own 3D model (build, height, skin, hair, facial hair, shirt number, team kit) alone on the square,
+ * playing the clips of [showcase].  Drag horizontally to turn the camera around him; it slowly auto-rotates otherwise.
+ * Falls back to [fallback] if Filament can't start (or Graphics is set to Low).
+ */
+@Composable
+fun Player3DViewer(
+    pid: String, country: String, primary: Long, secondary: Long, whites: Boolean, quality: Int, showcase: Showcase,
+    modifier: Modifier = Modifier, interactive: Boolean = true, fallback: @Composable () -> Unit
+) {
+    val host = rememberHost(quality.coerceIn(Gfx.MEDIUM, Gfx.HIGH))
+    if (host == null || host.failed) { fallback(); return }
+    var loading by remember { mutableStateOf(true) }
+    val d = host.director
+    LaunchedEffect(pid, primary, secondary, whites, showcase) {
+        host.arena.setLighting(Lighting.NIGHT)
+        d.setupShowroom(pid, country, Kit(primary.toInt(), secondary.toInt(), whites), showcase)
+        host.arena.onFirstFrame = { loading = false }
+    }
+    Box(modifier) {
+        AndroidView(factory = { c -> SurfaceView(c).also { host.arena.attach(it); host.start() } }, modifier = Modifier.fillMaxSize())
+        if (interactive) Box(Modifier.fillMaxSize().pointerInput(Unit) {
+            detectDragGestures(onDragStart = { d.autoSpin = false }, onDragEnd = { d.autoSpin = true }, onDragCancel = { d.autoSpin = true }) { ch, drag ->
+                ch.consume(); d.orbitYaw -= drag.x * 0.35f; d.orbitDist = (d.orbitDist + drag.y * 0.006f).coerceIn(2.2f, 6f)
+            }
+        })
+        AnimatedVisibility(loading, exit = fadeOut()) {
+            Box(Modifier.fillMaxSize().background(Color(0xFF050B12)), contentAlignment = Alignment.Center) { Text("Loading 3D model…", color = Color(0xFFE8C766), fontSize = 12.sp) }
+        }
+    }
+}
+
+/**
+ * Phase 6/7 entry point kept for callers: the player's own model in his team kit playing shots (auction lot card).
  */
 @Composable
 fun Player3DShowcase(pid: String, country: String, primary: Long, secondary: Long, quality: Int, modifier: Modifier = Modifier, fallback: @Composable () -> Unit) {
-    Title3DView(pid, country, Kit(primary.toInt(), secondary.toInt(), false), quality.coerceIn(Gfx.MEDIUM, Gfx.HIGH), modifier, fallback)
+    Player3DViewer(pid, country, primary, secondary, false, quality, Showcase.BAT, modifier, interactive = true, fallback = fallback)
 }

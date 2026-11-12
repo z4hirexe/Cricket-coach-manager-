@@ -67,6 +67,10 @@ for clip in ("bowl_fast", "bowl_spin", "field_throw", "field_dive"):
         print("patched", clip, "travel", np.round(d[-1], 3))
 g.set_binary_blob(bytes(blob)); g.save_binary(out_glb)
 
+# ---- ground report written by human.py (per-clip lowest skinned point after the anti-clipping pass)
+import json, os
+GROUND = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "ground_report.json")))
+
 # ---- Kotlin
 def fa(arr): return "floatArrayOf(" + ", ".join(f"{x:.3f}f" for x in np.asarray(arr).ravel()) + ")"
 L = ["package com.cricketcoach.manager.render3d", "",
@@ -85,6 +89,8 @@ L = ["package com.cricketcoach.manager.render3d", "",
      "    val HAND = mapOf(" + ",\n        ".join(f'"{k}" to {fa(v)}' for k, v in HANDS.items()) + ")",
      "    /** root travel removed from the clip (model-space x,z per 1/FPS s); the planner moves the actor by this instead */",
      "    val DRIFT = mapOf(" + ",\n        ".join(f'"{k}" to {fa(v)}' for k, v in DRIFT.items()) + ")",
+     "    /** lowest skinned point (body + pads, metres above the turf) over each clip - checked by tests: nothing clips into the ground */",
+     "    val GROUND_MIN = mapOf(" + ", ".join(f'"{k}" to {v:.4f}f' for k, v in GROUND.items() if not k.endswith("#lift")) + ")",
      "",
      "    private fun sample(a: FloatArray, stride: Int, t: Float, loop: Boolean, out: FloatArray) {",
      "        val n = a.size / stride; if (n == 0) { out.fill(0f); return }",
