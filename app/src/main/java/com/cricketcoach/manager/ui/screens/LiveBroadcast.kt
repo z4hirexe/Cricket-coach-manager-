@@ -148,7 +148,7 @@ private fun DrawScope.drawGlyph(icon: RIcon, col: Color) {
 private val LocalRailH = compositionLocalOf { 42.dp }
 
 @Composable
-private fun RailBtn(label: String, icon: RIcon, modifier: Modifier = Modifier, active: Boolean = false, accent: Color = C.Gold, enabled: Boolean = true, onClick: () -> Unit) {
+private fun RailBtn(label: String, icon: RIcon, modifier: Modifier = Modifier, active: Boolean = false, accent: Color = C.Gold, enabled: Boolean = true, narrow: Boolean = false, onClick: () -> Unit) {
     val bg = when { active -> Brush.verticalGradient(listOf(accent, accent.copy(alpha = 0.78f))); else -> Brush.verticalGradient(listOf(Color(0xFF18264C), Color(0xFF101B3A))) }
     val fg = when { !enabled -> C.Sub.copy(alpha = 0.4f); active -> Color(0xFF0B1226); else -> C.Text }
     Column(modifier.height(LocalRailH.current).clip(RoundedCornerShape(9.dp)).background(bg)
@@ -157,7 +157,7 @@ private fun RailBtn(label: String, icon: RIcon, modifier: Modifier = Modifier, a
         .clickable(enabled = enabled, role = Role.Button) { GameAudio.click(); onClick() },
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         RailGlyph(icon, if (active || !enabled) fg else accent.copy(alpha = 0.95f), 15.dp)
-        Text(label.uppercase(), color = fg, fontSize = if (label.length > 8) 7.5.sp else 8.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.4.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(top = 2.dp))
+        Text(label.uppercase(), color = fg, fontSize = if (label.length > 8 || narrow) 7.5.sp else 8.5.sp, letterSpacing = if (narrow) 0.sp else 0.4.sp, fontWeight = FontWeight.Black, maxLines = 1, softWrap = false, modifier = Modifier.padding(top = 2.dp))
     }
 }
 
@@ -528,7 +528,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0) {
                     val agg = m.club(me).aggression
                     for ((v, l, ic) in listOf(Triple(0, "Defend", RIcon.DEFEND), Triple(1, "Normal", RIcon.NORMAL), Triple(2, "Attack", RIcon.ATTACK))) {
                         val acc = when (v) { 0 -> Color(0xFF38BDF8); 1 -> C.Gold; else -> Color(0xFFF97316) }
-                        RailBtn(l, ic, Modifier.weight(1f), active = agg == v, accent = acc, enabled = live) { vm.setAggression(v) }
+                        RailBtn(l, ic, Modifier.weight(1f), active = agg == v, accent = acc, enabled = live, narrow = railW < 140.dp) { vm.setAggression(v) }
                     }
                 }
                 RailLabel("VIEW")
