@@ -41,7 +41,7 @@ class DeliveryPlanDump {
         val rhbPace = PlanCast(false, false, false)
         scene("delivery", ev(7, "RUN", 1, 1, "", 60f, 0.4f), rhbPace) { p -> listOf("runup" to p.tRel - 0.9f, "release" to p.tRel + 0.02f, "bounce" to p.tRel + 0.33f) }
         scene("contact", ev(11, "FOUR", 4, 4, "", 62f, 1f), rhbPace) { p -> listOf("impact" to p.tImp, "after" to p.tImp + 0.12f) }
-        scene("catch", ev(23, "WICKET", 0, 0, "c F b Bowl", 300f, 0.5f), PlanCast(false, false, false, catcher = 6)) { p -> listOf("skied" to p.tImp + (p.tOut - p.tImp) * 0.5f, "taken" to p.tOut - 0.03f, "celebrate" to p.tOut + 1.0f) }
+        scene("catch", ev(23, "WICKET", 0, 0, "c F b Bowl", 300f, 0.5f), PlanCast(false, false, false, catcher = 6)) { p -> listOf("skied" to p.tImp + (p.tOut - p.tImp) * 0.5f, "taken" to p.tOut + 0.03f, "celebrate" to p.tOut + 1.0f) }
         scene("running", ev(31, "RUN", 2, 2, "", 115f, 0.7f), PlanCast(true, false, false)) { p -> listOf("first" to p.tImp + 1.6f, "turn" to p.tImp + 0.5f + 3.2f + 0.2f, "throw" to p.tImp + 4.5f) }
         scene("runout", ev(43, "WICKET", 0, 0, "run out (F)", 40f, 0.05f), PlanCast(false, false, false, outIsStriker = true, runOutFielder = 4)) { p -> listOf("throw" to p.tImp + 2.2f, "break" to p.tOut + 0.08f, "after" to p.tOut + 0.9f) }
         scene("stumping", ev(53, "WICKET", 0, 0, "st †K b Bowl", 0f, 0.05f), PlanCast(false, false, true)) { p -> listOf("beaten" to p.tImp + 0.05f, "stumped" to p.tOut + 0.08f) }

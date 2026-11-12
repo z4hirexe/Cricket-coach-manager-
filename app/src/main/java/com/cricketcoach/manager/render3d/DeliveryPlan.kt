@@ -585,7 +585,33 @@ class DeliveryPlan(val ev: BallEv, val pc: PlanCast) {
         bowlerAfter?.invoke()
         segs.sortBy { it.t0 }
         tEnd = end.coerceAtMost(tImp + 26f)
+        settle()
     }
+    /**
+     * Nobody freezes on the last frame of a one-shot clip: when a clip finishes well before that actor's next key, he walks
+     * (if still being moved) or relaxes into his idle pose.
+     */
+    private fun settle() {
+        for (i in 0 until N) {
+            val tk = T(i); val add = ArrayList<Triple<Float, String, Boolean>>()
+            for ((j, k) in tk.keys.withIndex()) {
+                if (k.loop) continue
+                val te = k.t + (ClipData.DUR[k.clip] ?: continue) / max(0.1f, k.speed)
+                val next = tk.keys.getOrNull(j + 1)?.t ?: Float.MAX_VALUE
+                if (next - te < 0.25f || te >= tEnd) continue
+                val moving = tk.paths.any { it.t0 <= te + 0.05f && it.tEnd > te + 0.05f && hypot(it.x1 - it.x0, it.z1 - it.z0) > 0.3f }
+                val clip = when {
+                    moving -> "walk"
+                    i == UMB || i == UML -> "ump_idle"
+                    i >= F0 && te < tOut -> "field_ready"
+                    else -> "idle"
+                }
+                add += Triple(te, clip, true)
+            }
+            for ((t, c, l) in add) tk.key(t, c, l, Float.NaN, if (c == "walk") 0.9f else 1f, 0.3f)
+        }
+    }
+
     /** bat sweet spot in world space for [shot] with the striker at depth [z] */
     private fun sweet(shot: String, z: Float, o: FloatArray) = toWorld(sx, z, sYaw, pc.strikerLeft, ClipData.SWEET[shot]!!, o)
 
@@ -806,15 +832,11 @@ class DeliveryPlan(val ev: BallEv, val pc: PlanCast) {
         }
         val runsEnd = tRun0 + nRuns * roDur + (nRuns - 1) * turn
         if (runOut) {
-            // freeze both where they are when the stumps are hit; the out batter walks off
+            // both carry on into the crease (the out man too late); he then trudges off
             val tb = if (pc.outIsStriker) breakBowl else breakBat
-            for (w in listOf(sT, nT)) {
-                w.cutAt(tb)
-                w.keys.removeAll { it.t > tb }
-                w.key(tb + 0.01f, "idle", true, Float.NaN, 1f, 0.25f)
-            }
-            celebrate(tb, F0 + ci); walkOff(if (pc.outIsStriker) STR else NON, tb + 1.4f)
-            return tb to (tb + 3.4f)
+            sT.key(runsEnd, "idle", true, Float.NaN, 1f, 0.3f); nT.key(runsEnd, "idle", true, Float.NaN, 1f, 0.3f)
+            celebrate(tb, F0 + ci); walkOff(if (pc.outIsStriker) STR else NON, max(tb + 1.4f, runsEnd + 0.5f))
+            return tb to max(tb + 3.4f, runsEnd + 2.0f)
         }
         sT.key(runsEnd, "idle", true, Float.NaN, 1f, 0.3f); nT.key(runsEnd, "idle", true, Float.NaN, 1f, 0.3f)
         if (ev.milestone) sT.key(runsEnd + 0.2f, "bat_celebrate", false, Float.NaN)
