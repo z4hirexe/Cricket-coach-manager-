@@ -9,3 +9,8 @@
 .cxx/
 app/build/
 __pycache__/
+
+# Release signing keystore lives in GitHub Actions secrets, never in the repo
+signing/
+*.keystore
+*.jks

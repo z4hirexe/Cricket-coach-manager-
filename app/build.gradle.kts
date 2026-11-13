@@ -12,16 +12,35 @@ android {
         applicationId = "com.cricketcoach.manager"
         minSdk = 26
         targetSdk = 34
-        versionCode = 19
-        versionName = "2.6.0-beta3"
+        versionCode = 20
+        versionName = "2.6.0-beta4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+    }
+
+    // Stable release signing. CI decodes the keystore from the SIGNING_KEYSTORE_BASE64 secret into
+    // SIGNING_KEYSTORE_PATH; every build is then signed with the SAME key so updates install over the
+    // previous version without a signature conflict. Local builds without the key fall back to unsigned.
+    signingConfigs {
+        create("release") {
+            val ksPath = System.getenv("SIGNING_KEYSTORE_PATH")
+            if (!ksPath.isNullOrBlank() && file(ksPath).exists()) {
+                storeFile = file(ksPath)
+                storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            val ksPath = System.getenv("SIGNING_KEYSTORE_PATH")
+            if (!ksPath.isNullOrBlank() && file(ksPath).exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
