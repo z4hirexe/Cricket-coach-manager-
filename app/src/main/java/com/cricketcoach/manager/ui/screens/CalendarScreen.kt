@@ -330,7 +330,7 @@ private fun EventRow(vm: GameVM, s: CareerSave, e: Schedule.Entry) {
         Schedule.AUCTION -> if (s.auction != null && s.auction?.done != true) ({ vm.nav(Screen.AuctionScr) }) else if (s.phase == "PRESEASON" && !s.auctionDoneThisSeason) ({ vm.startMiniAuction() }) else null
         Schedule.TRANSFER -> ({ vm.nav(Screen.Transfers) })
         Schedule.TRAINING -> ({ vm.nav(Screen.MyClub) })
-        else -> if (e.comp != null && s.tournament?.id != e.comp.id) ({ vm.nav(Screen.Table) }) else if (e.comp != null) ({ vm.nav(Screen.TournamentsScr) }) else null
+        else -> if (e.comp != null && s.tournament?.id != e.comp.id) ({ vm.nav(Screen.Table) }) else if (e.comp != null && vm.standalone) ({ vm.nav(Screen.TournamentsScr) }) else null
     }
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(shape).background(col.copy(alpha = 0.10f)).border(1.dp, col.copy(alpha = 0.35f), shape)
         .then(if (action != null) Modifier.clickable { GameAudio.click(); action() } else Modifier).padding(horizontal = 10.dp, vertical = 6.dp),

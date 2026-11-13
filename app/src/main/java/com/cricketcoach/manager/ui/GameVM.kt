@@ -96,6 +96,8 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     var simulationVisible by mutableStateOf(false)
     var simulationDate by mutableStateOf("")
     var simulationStatus by mutableStateOf("")
+    var simulationMatchDates by mutableStateOf<Set<String>>(emptySet())
+    var simulationSelectionDates by mutableStateOf<Set<String>>(emptySet())
     private var simulationStopRequested = false
     var saves by mutableStateOf<List<SaveMeta>>(emptyList())
     /** Standalone tournaments run in memory and never write to the three career slots. */
@@ -352,6 +354,9 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         }
         simulationStopRequested = false
         simulationDate = Schedule.today(s).toString()
+        // Snapshot event markers before background simulation mutates fixture lists.
+        simulationMatchDates = s.league.flatMap { c -> c.fixtures.filter { f -> !f.played && c.userTeam != null && (f.home == c.userTeam || f.away == c.userTeam) }.map { Schedule.fixtureDate(s, c, it).toString() } }.toSet()
+        simulationSelectionDates = s.league.filter { !it.regDone && it.selectionDate.isNotEmpty() }.map { it.selectionDate }.toSet()
         simulationStatus = "Simulating to your next selection or match"
         simulationVisible = true; busy = true
         viewModelScope.launch {

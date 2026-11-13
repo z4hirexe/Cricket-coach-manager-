@@ -30,8 +30,8 @@ fun SimulationPopup(vm: GameVM) {
     val start = date.withDayOfMonth(1)
     val offset = start.dayOfWeek.value - 1
     val count = start.lengthOfMonth()
-    val matchDates = save.league.flatMap { c -> c.fixtures.filter { f -> !f.played && c.userTeam != null && (f.home == c.userTeam || f.away == c.userTeam) }.map { Schedule.fixtureDate(save, c, it) } }.toSet()
-    val selectDates = save.league.filter { !it.regDone }.mapNotNull { runCatching { LocalDate.parse(it.selectionDate) }.getOrNull() }.toSet()
+    val matchDates = vm.simulationMatchDates
+    val selectDates = vm.simulationSelectionDates
     Dialog(onDismissRequest = { vm.stopCalendarSimulation() }) {
         Surface(shape = RoundedCornerShape(18.dp), color = C.Surface, tonalElevation = 8.dp,
             modifier = Modifier.widthIn(max = 380.dp).fillMaxWidth().border(1.dp, C.Gold.copy(alpha = 0.5f), RoundedCornerShape(18.dp))) {
@@ -60,7 +60,7 @@ fun SimulationPopup(vm: GameVM) {
                                         Box(Modifier.size(22.dp).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
                                             Text("$n", color = if (current) Color.Black else C.Text, fontSize = 11.sp, fontWeight = if (current) FontWeight.Black else FontWeight.Normal)
                                         }
-                                        Box(Modifier.size(3.dp).clip(CircleShape).background(if (d in selectDates) C.Gold else if (d in matchDates) C.Green else Color.Transparent))
+                                        Box(Modifier.size(3.dp).clip(CircleShape).background(if (d.toString() in selectDates) C.Gold else if (d.toString() in matchDates) C.Green else Color.Transparent))
                                     }
                                 }
                             }

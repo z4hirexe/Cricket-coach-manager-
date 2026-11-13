@@ -582,6 +582,11 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
                     Spacer(Modifier.width(8.dp))
                     Text(score, color = Color.White, fontWeight = FontWeight.Black, fontSize = 19.sp)
                     Text("   $overs OV", color = C.Sub, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Spacer(Modifier.width(12.dp))
+                    if (outcomeRevealed) boardInfo(m).rate2?.let { rate ->
+                        Text(rate.first, color = C.Sub, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text(" ${rate.second}", color = C.Text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                     Spacer(Modifier.weight(1f))
                     Text(if (!outcomeRevealed) "BALL IN PLAY" else boardInfo(m).situation, color = C.GoldLight, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
