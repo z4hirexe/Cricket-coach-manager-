@@ -42,11 +42,12 @@ class CalendarFlowTest {
         val firstMine = ipl.fixtures.filter { it.home == u || it.away == u }.minOf { it.day }
         val target = ipl.fixtures.filter { it.home != u && it.away != u && it.day >= 6 && it.day > firstMine }.minByOrNull { it.day }!!
         assertTrue(vm.userMatchesBefore(ipl.id, target.id) > 0)
-        // Phase G: the IPL squad isn't registered yet -> the sim stops at the registration screen before our first game
+        // Stage 2: the calendar stops at the selection window, five calendar days before our first match
         assertTrue(Registration.required(s, ipl) && !Registration.registered(s, ipl))
         vm.calendarGo(ipl.id, target.id, false)
         waitIdle(vm)
-        assertEquals(Screen.SquadRegistration(ipl.id), vm.screen)
+        assertEquals(Screen.SeriesSelection(ipl.id), vm.screen)
+        assertEquals(ipl.selectionDate, Schedule.today(s).toString())
         assertFalse(target.played)
         assertTrue("stopped before our first match", ipl.fixtures.filter { it.home == u || it.away == u }.none { it.played })
         assertEquals(ipl.id, Registration.nextPending(s)?.id)

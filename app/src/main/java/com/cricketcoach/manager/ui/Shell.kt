@@ -68,7 +68,7 @@ private fun regNav(vm: GameVM, s: com.cricketcoach.manager.game.CareerSave): Nav
     val pend = Registration.nextPending(s)
     val any = pend ?: s.league.firstOrNull { Registration.required(s, it) && it.fixtures.any { f -> !f.played } } ?: return null
     return NavItem("register", if (pend != null) "Register Squad" else "Registered Squads", "squad", null, badge = if (pend != null) 1 else 0, star = pend != null) {
-        vm.nav(Screen.SquadRegistration(any.id))
+        vm.nav(Screen.SeriesSelection(any.id))
     }
 }
 

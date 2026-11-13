@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.cricketcoach.manager.data.Repo
 import com.cricketcoach.manager.game.*
+import com.cricketcoach.manager.ui.PendingMatch
 import com.cricketcoach.manager.ui.GameVM
 import com.cricketcoach.manager.ui.Screen
 import org.junit.Assert.*
@@ -35,8 +36,13 @@ class MatchCentreFlowTest {
         assertNull(Career.startSeason(s))
         vm.save = s; vm.goHome()
         vm.simToNextUserMatch(); waitIdle(vm)
-        assertNotNull(vm.pending)
-        // GameVM's async session check may route to Login meanwhile; reopening with a pending match goes to the Match Centre
+        val opening = s.league.first { it.key == "IPL" }
+        assertEquals(Screen.SeriesSelection(opening.id), vm.screen)
+        assertEquals(opening.selectionDate, Schedule.today(s).toString())
+        // Exercise the fallback gate for old saves that already have a pending match but no registration.
+        val fixture = opening.fixtures.filter { it.home == opening.userTeam || it.away == opening.userTeam }.minByOrNull { it.day }!!
+        vm.pending = PendingMatch(opening.id, fixture.id)
+        // Reopening with a pending match goes to the Match Centre
         Thread.sleep(200); shadowOf(Looper.getMainLooper()).idle()
         vm.goHome(); vm.simToNextUserMatch()
         assertEquals(Screen.PreMatch, vm.screen)

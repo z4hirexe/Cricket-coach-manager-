@@ -383,7 +383,11 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         val nextDay = s.league.flatMap { it.fixtures }.filter { !it.played }.minOfOrNull { it.day }
             ?: run { Career.endSeason(s, rnd); return DayOut.SeasonEnd }
         // Stage 2: stop on the selection date (5 days before the opener) so the popup can open.
-        if (stopForSelection) selectionStop(s, nextDay)?.let { s.selectionToday = it.selectionDate; return DayOut.Selection(it.id) }
+        if (stopForSelection) selectionStop(s, nextDay)?.let {
+            val current = Schedule.today(s).toString()
+            s.selectionToday = maxOf(current, it.selectionDate)
+            return DayOut.Selection(it.id)
+        }
         s.selectionToday = ""
         val list = Career.fixturesOnDay(s, nextDay)
         // stop before the day is played when the user's squad for that competition still has to be registered
