@@ -116,7 +116,7 @@ object Yorker {
         val r = fx.res ?: return
         val h = save.clubs[fx.home] ?: return; val a = save.clubs[fx.away] ?: return
         val key = "${comp.id}:${fx.id}"
-        val mine = fx.home == save.userClubId || fx.away == save.userClubId
+        val mine = comp.userTeam != null && (fx.home == comp.userTeam || fx.away == comp.userTeam)
         val big = comp.kind == "FRANCHISE" || comp.kind == "NATION"
         val ht = "#${h.short.filter { it.isLetterOrDigit() }}v${a.short.filter { it.isLetterOrDigit() }}"
         val score = "${h.short} ${r.hScore} · ${a.short} ${r.aScore}"
@@ -128,7 +128,7 @@ object Yorker {
         if (mine) {
             val potm = r.potm.takeIf { it.isNotEmpty() }?.let { save.players[it]?.name }
             post(save, "m:desk", "${fx.stage} | ${h.name} v ${a.name}: ${r.text}.${if (potm != null) " Player of the match: $potm." else ""} $ht", "RESULT", rnd, matchKey = key)
-            val u = save.userClub()
+            val u = save.clubs[comp.userTeam ?: save.userClubId] ?: save.userClub()
             if (r.winner == u.id) post(save, "m:fans", listOf("What a night for ${u.short} fans! 🔥", "${u.short} ka jalwa! Another win in the bag.", "Coach ${save.manager} getting the tactics right 👏").random(rnd) + " #${u.short}", "WIN", rnd, club = u.id, matchKey = key)
             else if (r.winner != null) post(save, "m:fans", listOf("Tough watch for ${u.short} fans today. Changes needed?", "${u.short} need answers after that one.", "Back to the drawing board for ${u.short}.").random(rnd) + " #${u.short}", "LOSS", rnd, club = u.id, matchKey = key)
         }

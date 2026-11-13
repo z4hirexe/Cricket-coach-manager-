@@ -48,7 +48,8 @@ class SaveManager(private val ctx: Context) : SQLiteOpenHelper(ctx, "ccm_saves.d
 
     fun metaOf(s: CareerSave): SaveMeta {
         val u = s.clubs[s.userClubId]
-        return SaveMeta(s.slot, s.manager, u?.name ?: "", s.season, u?.division ?: 4, System.currentTimeMillis(), s.mode)
+        val name = if (s.isMultiTeam) (u?.name ?: "") + " +${s.managedTeamIds.size - 1} teams" else u?.name ?: ""
+        return SaveMeta(s.slot, s.manager, name, s.season, u?.division ?: 4, System.currentTimeMillis(), s.mode)
     }
 
     fun save(s: CareerSave) = write(metaOf(s), toJson(s))

@@ -490,7 +490,7 @@ private fun StatusTag(status: String) {
 private fun RegistrationBanner(vm: GameVM, s: CareerSave) {
     val c = Registration.nextPending(s) ?: return
     val r = Registration.rule(s, c) ?: return
-    val first = c.fixtures.filter { !it.played && (it.home == s.userClubId || it.away == s.userClubId) }.minOfOrNull { it.day }
+    val first = c.fixtures.filter { !it.played && (it.home == c.userTeam || it.away == c.userTeam) }.minOfOrNull { it.day }
     val inDays = first?.let { (it - s.day).coerceAtLeast(0) }
     Row(Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(12.dp))
         .background(Brush.horizontalGradient(listOf(Color(0xFF3A2A06), Color(0xFF1A2440)))).border(1.dp, C.Gold.copy(alpha = 0.7f), RoundedCornerShape(12.dp))

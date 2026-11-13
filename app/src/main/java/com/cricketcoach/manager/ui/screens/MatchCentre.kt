@@ -714,11 +714,12 @@ fun SquadRegistrationScreen(vm: GameVM, compId: String) {
                         OutlineBtn("Clear", Modifier.weight(1f)) { sel = emptySet() }
                     }
                     val poolSize = Registration.pool(s, comp).size
-                    if (poolSize < rule.min && (s.mode == Modes.INTL || s.mode == Modes.DOMESTIC)) GreenButton("Top up squad to ${rule.min}", Modifier.fillMaxWidth()) {
+                    val meKind = s.clubs[me]?.kind
+                    if (poolSize < rule.min && (meKind == "NATION" || meKind == "DOMESTIC")) GreenButton("Top up squad to ${rule.min}", Modifier.fillMaxWidth()) {
                         Registration.topUpPool(s, comp, rule.min); sel = Registration.autoSelect(s, comp).toSet(); vm.persist(); vm.tick++
                         vm.msg("Squad topped up to ${Registration.pool(s, comp).size} players")
                     }
-                    if (s.mode == Modes.INTL || s.mode == Modes.DOMESTIC) OutlineBtn(if (s.mode == Modes.INTL) "Call up more players" else "Sign more players", Modifier.fillMaxWidth()) { vm.nav(Screen.Selection) }
+                    if (meKind == "NATION" || meKind == "DOMESTIC") OutlineBtn(if (meKind == "NATION") "Call up more players" else "Sign more players", Modifier.fillMaxWidth()) { vm.switchTeam(me); vm.nav(Screen.Selection) }
                     Text("You can change the registration until your first ${Registration.short(comp)} match is played. Then it locks.", color = C.Sub, fontSize = 9.5.sp, lineHeight = 12.sp, modifier = Modifier.padding(top = 4.dp))
                 } else {
                     Text("REPLACEMENTS ${comp.regRepl}/${rule.replacements}", color = C.Gold, fontSize = 10.5.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)

@@ -64,7 +64,7 @@ fun TransfersScreen(vm: GameVM) {
     @Suppress("UNUSED_VARIABLE") val t = vm.tick
     var tab by remember { mutableIntStateOf(0) }
     var role by remember { mutableStateOf("All") }
-    val u = s.userClub()
+    val u = s.marketClub()
     ScreenScaffold(vm, "Transfers") {
         Row(Modifier.fillMaxWidth().background(C.Surface).padding(10.dp)) {
             Column(Modifier.weight(1f)) { Sub("Balance"); Text(Money.fmt(u.balance), color = C.Gold, fontWeight = FontWeight.Bold) }
@@ -78,7 +78,7 @@ fun TransfersScreen(vm: GameVM) {
             0, 1, 2 -> {
                 val list = s.players.values.filter { p ->
                     !p.retired && !p.academy && p.clubId != u.id && (role == "All" || p.role == role) && when (tab) {
-                        0 -> p.clubId.isEmpty(); 1 -> p.forSale && p.clubId.isNotEmpty(); else -> p.clubId.isNotEmpty() && s.clubs[p.clubId]?.kind == "CLUB"
+                        0 -> p.clubId.isEmpty(); 1 -> p.forSale && p.clubId.isNotEmpty(); else -> p.clubId.isNotEmpty() && s.clubs[p.clubId]?.kind == Modes.marketKind(s)
                     }
                 }.sortedByDescending { it.overall() }.take(150)
                 LazyColumn(Modifier.padding(horizontal = 12.dp)) {

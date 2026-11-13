@@ -35,13 +35,15 @@ private fun ordinal(n: Int) = "$n" + when { n % 100 in 11..13 -> "th"; n % 10 ==
 fun Dashboard(vm: GameVM) {
     val s = vm.save ?: return
     @Suppress("UNUSED_VARIABLE") val t = vm.tick
-    val u = s.userClub()
-    val myFixtures = remember(vm.tick, s.day, s.phase) {
+    val activeId = vm.pendingComp()?.userTeam ?: s.userClubId
+    val u = s.clubs[activeId] ?: s.userClub()
+    val myFixtures = remember(vm.tick, s.day, s.phase, u.id) {
         s.league.flatMap { c -> c.fixtures.filter { !it.played && (it.home == u.id || it.away == u.id) }.map { c to it } }.sortedBy { it.second.day }
     }
     val pendingPair = vm.pendingComp()?.let { c -> vm.pendingFixture()?.let { c to it } }
     val next = pendingPair ?: myFixtures.firstOrNull()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp)) {
+        if (s.isMultiTeam) { TeamSwitcher(vm, s); Spacer(Modifier.height(8.dp)) }
         Hero(vm, s, next, pendingPair != null)
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
@@ -66,6 +68,26 @@ fun Dashboard(vm: GameVM) {
             }
         }
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+/** Multi-team career: quick switch between the national side, state team and IPL franchise (portrait + landscape). */
+@Composable
+private fun TeamSwitcher(vm: GameVM, s: CareerSave) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xCC0A1224)).border(1.dp, UI.Line, RoundedCornerShape(12.dp)).padding(6.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        for (t in s.managedTeams()) {
+            val on = t.id == s.userClubId
+            Row(Modifier.weight(1f).clip(RoundedCornerShape(9.dp)).background(if (on) DS.Navy4 else Color.Transparent)
+                .border(if (on) 1.dp else 0.dp, if (on) C.Gold else Color.Transparent, RoundedCornerShape(9.dp))
+                .clickable { GameAudio.click(); vm.switchTeam(t.id) }.padding(horizontal = 6.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                TeamFlag(t, 26.dp); Spacer(Modifier.width(5.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(t.short, color = if (on) C.Gold else C.Text, fontWeight = FontWeight.Black, fontSize = 11.sp, maxLines = 1)
+                    Text(when (t.kind) { "NATION" -> "INTL"; "DOMESTIC" -> "STATE"; else -> "IPL" }, color = C.Sub, fontSize = 8.sp, letterSpacing = 0.8.sp, maxLines = 1)
+                }
+            }
+        }
     }
 }
 
@@ -129,8 +151,9 @@ private fun Hero(vm: GameVM, s: CareerSave, next: Pair<Competition, Fixture>?, m
                     val uw = comp.fixtures.count { it.played && it.res?.winner == fx.home }; val ow = comp.fixtures.count { it.played && it.res?.winner == fx.away }
                     boxLabel = "SERIES STATUS"; boxValue = "$uw - $ow"
                 } else {
-                    val tbl = runCatching { CompEngine.table(comp, if (comp.groups.size > 1) comp.groups.indexOfFirst { s.userClubId in it }.takeIf { it >= 0 } else null) }.getOrNull()
-                    val pos = tbl?.indexOfFirst { it.team == s.userClubId } ?: -1
+                    val me = comp.userTeam ?: s.userClubId
+                    val tbl = runCatching { CompEngine.table(comp, if (comp.groups.size > 1) comp.groups.indexOfFirst { me in it }.takeIf { it >= 0 } else null) }.getOrNull()
+                    val pos = tbl?.indexOfFirst { it.team == me } ?: -1
                     boxLabel = "POSITION"; boxValue = if (pos >= 0 && (tbl?.getOrNull(pos)?.p ?: 0) > 0) "${ordinal(pos + 1)} · ${tbl!![pos].pts} PTS" else "-"
                 }
                 Column(Modifier.clip(RoundedCornerShape(8.dp)).background(Color(0xCC0B111C)).border(1.dp, UI.Line, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 5.dp)) {
@@ -164,7 +187,7 @@ private fun CompetitionCentre(vm: GameVM, s: CareerSave, comp: Competition?, mod
     Panel(modifier, border = UI.Amber.copy(alpha = 0.45f)) {
         PanelHeader(if (comp?.series == true) "Tour Centre" else "Competition Centre", UI.Amber, "trophy") { vm.navRoot(Screen.Table) }
         if (comp == null) { Sub("No competition yet.", Modifier.padding(14.dp)); return@Panel }
-        val u = s.userClubId
+        val u = comp.userTeam ?: s.userClubId
         Column(Modifier.padding(horizontal = 14.dp)) {
             if (comp.series) {
                 val oppId = comp.teams.firstOrNull { it != u } ?: ""

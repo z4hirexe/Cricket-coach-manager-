@@ -553,7 +553,7 @@ private fun BidDialog(vm: GameVM, s: CareerSave, p: GPlayer, onClose: () -> Unit
         text = {
             Column {
                 Sub("Club: ${s.clubs[p.clubId]?.name} • valuation ≈ ${Money.fmt(ask)} • his salary ${Money.fmt(p.salary)}")
-                Sub("Your balance ${Money.fmt(s.userClub().balance)} • cap room ${Money.fmt(Career.purse(s, s.userClub()))}")
+                Sub("Your balance ${Money.fmt(s.marketClub().balance)} • cap room ${Money.fmt(Career.purse(s, s.marketClub()))}")
                 Spacer(Modifier.height(8.dp))
                 Text("Offer: ${Money.fmt(fee.toDouble())}", color = C.Gold, fontWeight = FontWeight.Bold)
                 Slider(fee, { fee = (Math.round(it * 20) / 20f) }, valueRange = (ask * 0.4).toFloat()..(ask * 2).toFloat())
@@ -565,7 +565,7 @@ private fun BidDialog(vm: GameVM, s: CareerSave, p: GPlayer, onClose: () -> Unit
 
 @Composable
 private fun SwapDialog(vm: GameVM, s: CareerSave, p: GPlayer, onClose: () -> Unit) {
-    val mine = s.userClub().squad.mapNotNull { s.players[it] }.sortedByDescending { it.overall() }
+    val mine = s.marketClub().squad.mapNotNull { s.players[it] }.sortedByDescending { it.overall() }
     AlertDialog(onDismissRequest = onClose, containerColor = C.Surface, title = { Text("Swap for ${p.name} (${p.overall()})") },
         text = {
             Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {

@@ -72,7 +72,7 @@ private val GoldEdge = Brush.linearGradient(listOf(Color(0xFFFFE7A6), Color(0xFF
 @Composable
 internal fun AuctionStage(vm: GameVM, s: CareerSave, a: AuctionState, preview: Int = 0) {
     val p = Auction.cur(s, a)
-    val u = s.userClub()
+    val u = Auction.team(s, a)
     var running by remember { mutableStateOf(preview == 0) }
     var seenSeq by remember { mutableIntStateOf(if (preview == 2) a.lastSeq - 1 else a.lastSeq) }
     var stampSeq by remember { mutableIntStateOf(-1) }
@@ -498,7 +498,7 @@ private fun RecentTicker(s: CareerSave, a: AuctionState, onOpen: () -> Unit) {
 private fun TeamPanels(s: CareerSave, a: AuctionState, modifier: Modifier) {
     val kind = Modes.marketKind(s)
     val all = s.clubs.values.filter { it.kind == kind }
-    val ordered = (listOfNotNull(s.clubs[s.userClubId]) + listOfNotNull(s.clubs[a.curBidder]) + a.lotBidders.reversed().mapNotNull { s.clubs[it] } +
+    val ordered = (listOfNotNull(s.clubs[Auction.team(s, a).id]) + listOfNotNull(s.clubs[a.curBidder]) + a.lotBidders.reversed().mapNotNull { s.clubs[it] } +
         all.sortedByDescending { Career.purse(s, it) }).distinctBy { it.id }.take(10)
     val shape = RoundedCornerShape(12.dp)
     Column(modifier.clip(shape).background(Color(0xE6060D24)).border(1.dp, GoldEdge, shape).padding(horizontal = 6.dp, vertical = 4.dp)) {
@@ -511,7 +511,7 @@ private fun TeamPanels(s: CareerSave, a: AuctionState, modifier: Modifier) {
         LazyColumn(Modifier.fillMaxSize()) {
             items(ordered, key = { it.id }) { c ->
                 val state = when { c.id == a.curBidder -> 2; c.id in a.lotBidders -> 1; else -> 0 }
-                TeamRow(s, c, state, c.id == s.userClubId, a.bidSeq, Modifier.animateItemPlacement())
+                TeamRow(s, c, state, c.id == Auction.team(s, a).id, a.bidSeq, Modifier.animateItemPlacement())
             }
         }
     }
@@ -581,7 +581,7 @@ internal fun AuctionHistoryDialog(vm: GameVM, s: CareerSave, a: AuctionState, on
                 Text("AUCTION HISTORY", fontFamily = Display, color = C.GoldLight, fontWeight = FontWeight.Bold, fontSize = 20.sp, letterSpacing = 1.5.sp, modifier = Modifier.weight(1f))
                 Box(Modifier.size(32.dp).clip(CircleShape).clickable { onClose() }, contentAlignment = Alignment.Center) { Icon(Icons.Filled.Close, "Close", tint = C.Sub) }
             }
-            val mine = a.sold.filter { it.club == s.userClubId }
+            val mine = a.sold.filter { it.club == Auction.team(s, a).id }
             val tabs = listOf("SOLD ${a.sold.size}", "UNSOLD ${a.unsold.size}", "RETAINED ${a.retained.size}", "MY BUYS ${mine.size}")
             Row(Modifier.padding(vertical = 4.dp)) {
                 tabs.forEachIndexed { i, t ->
@@ -630,7 +630,7 @@ internal fun AuctionHistoryDialog(vm: GameVM, s: CareerSave, a: AuctionState, on
 @Composable
 internal fun AuctionBoard(vm: GameVM, s: CareerSave, a: AuctionState) {
     var history by remember { mutableStateOf(false) }
-    val u = s.userClub()
+    val u = Auction.team(s, a)
     CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.copy(lineHeight = 1.18.em)) {
     Box(Modifier.fillMaxSize().background(Navy0).windowInsetsPadding(WindowInsets.displayCutout)) {
         StageBackdrop(Color(u.primary))
@@ -660,7 +660,7 @@ internal fun AuctionBoard(vm: GameVM, s: CareerSave, a: AuctionState) {
 
 @Composable
 private fun RetentionBoard(vm: GameVM, s: CareerSave, a: AuctionState) {
-    val u = s.userClub()
+    val u = Auction.team(s, a)
     val picks = remember { mutableStateListOf<String>() }
     val squad = u.squad.mapNotNull { s.players[it] }.sortedByDescending { it.overall() }
     Column(Modifier.fillMaxSize().padding(8.dp)) {
@@ -709,7 +709,7 @@ private fun RetentionBoard(vm: GameVM, s: CareerSave, a: AuctionState) {
 
 @Composable
 private fun AuctionReport(vm: GameVM, s: CareerSave, a: AuctionState, onHistory: () -> Unit) {
-    val u = s.userClub()
+    val u = Auction.team(s, a)
     val mine = a.sold.filter { it.club == u.id }.sortedByDescending { it.price }
     Row(Modifier.fillMaxSize().padding(8.dp)) {
         Column(Modifier.weight(1f).fillMaxHeight()) {

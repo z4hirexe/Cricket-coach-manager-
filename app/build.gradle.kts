@@ -12,8 +12,8 @@ android {
         applicationId = "com.cricketcoach.manager"
         minSdk = 26
         targetSdk = 34
-        versionCode = 20
-        versionName = "2.6.0-beta4"
+        versionCode = 21
+        versionName = "2.6.0-beta5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }

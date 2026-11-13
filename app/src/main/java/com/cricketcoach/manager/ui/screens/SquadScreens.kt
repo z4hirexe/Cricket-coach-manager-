@@ -20,7 +20,7 @@ import com.cricketcoach.manager.ui.*
 
 fun editableClub(vm: GameVM, clubId: String): Boolean {
     val s = vm.save ?: return false
-    if (clubId == s.userClubId) return true
+    if (s.isManaged(clubId)) return true
     return s.tournament?.userTeam == clubId && s.tournament?.stage != "DONE"
 }
 

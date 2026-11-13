@@ -121,7 +121,9 @@ class Competition(
 class AuctionSale(var pid: String = "", var club: String = "", var price: Double = 0.0)
 
 class AuctionState(
-    var type: String = "MINI", var phase: String = "LIVE", var lots: MutableList<String> = mutableListOf(),
+    var type: String = "MINI", var phase: String = "LIVE",
+    /** Franchise that runs this auction in a multi-team career (empty = the active club, for older saves). */
+    var teamId: String = "", var lots: MutableList<String> = mutableListOf(),
     var index: Int = 0, var curBid: Double = 0.0, var curBidder: String = "", var countdown: Int = 0,
     var log: MutableList<String> = mutableListOf(), var sold: MutableList<AuctionSale> = mutableListOf(),
     var unsold: MutableList<String> = mutableListOf(), var userPassed: Boolean = false,
@@ -157,9 +159,21 @@ class CareerSave(
     // v2.5 Phase E: fixture id whose team sheet the user confirmed in the Match Centre
     var sheetFx: String = "",
     // v2.6: Yorker (text / photo social network) and the save-format version (migrations in SaveMigration)
-    var yorker: YorkerState = YorkerState(), var dataVersion: Int = 0
+    var yorker: YorkerState = YorkerState(), var dataVersion: Int = 0,
+    // v2.6 Stage 1: one manager, three teams (IPL franchise + national side + Indian state). Empty for single-team careers.
+    var multiCareer: Boolean = false, var managedTeamIds: MutableList<String> = mutableListOf(), var activeTeamId: String = ""
 ) {
+    val isMultiTeam: Boolean get() = multiCareer || managedTeamIds.size > 1
     fun userClub(): Club = clubs[userClubId]!!
+    fun managedTeams(): List<Club> = managedTeamIds.mapNotNull { clubs[it] }
+    fun managedTeam(kind: String): Club? = managedTeams().firstOrNull { it.kind == kind }
+    fun isManaged(id: String): Boolean = id == userClubId || id in managedTeamIds
+    /** The club that uses the transfer market / auction: the IPL franchise in a multi-team career. */
+    fun marketClub(): Club = if (isMultiTeam) (managedTeam("FRANCHISE") ?: userClub()) else userClub()
+    fun setActiveTeam(id: String) {
+        if (!isManaged(id)) return
+        activeTeamId = id; userClubId = id
+    }
     fun p(id: String): GPlayer? = players[id]
     fun addNews(s: String) { news.add(0, "S$season D$day • $s"); if (news.size > 120) news.removeAt(news.size - 1) }
 }

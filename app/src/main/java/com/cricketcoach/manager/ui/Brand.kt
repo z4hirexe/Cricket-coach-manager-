@@ -47,7 +47,7 @@ object Brand {
     const val FULL = "$NAME $YEAR$TM"
     const val EDITION = "Beta"
     /** Shown in the menu / About; keep in sync with app/build.gradle.kts versionName. */
-    const val VERSION = "2.6.0-beta4"
+    const val VERSION = "2.6.0-beta5"
     const val TAGLINE = "Manage \u2022 Compete \u2022 Make History"
     /** Careers start in the 2026 season; the product brand stays 2027. */
     const val CAREER_START = 2026

@@ -8,8 +8,11 @@ import kotlin.random.Random
 object Auction {
     private val DIV_SCALE = listOf(1.0, 0.6, 0.4, 0.25)
 
+    /** The franchise bidding in this auction. Multi-team careers always auction for the IPL franchise, even if the active team is the national or state side. */
+    fun team(save: CareerSave, st: AuctionState): Club = save.clubs[st.teamId.ifEmpty { save.marketClub().id }] ?: save.marketClub()
+
     fun start(save: CareerSave, type: String): AuctionState {
-        val st = AuctionState(type = type)
+        val st = AuctionState(type = type, teamId = save.marketClub().id)
         if (type == "MEGA") {
             st.phase = "RETENTION"
             st.log.add("MEGA AUCTION: every club may retain up to 4 players. Everyone else enters the auction pool.")
@@ -34,7 +37,7 @@ object Auction {
             for (pid in c.squad.filter { it !in keep }) save.players[pid]?.let { it.clubId = ""; it.forSale = false }
             c.squad = keep.toMutableList(); c.xi.clear(); c.bowlers.clear(); c.captain = ""; c.vice = ""; c.impact = ""; c.keeper = ""
         }
-        val u = save.userClub()
+        val u = team(save, st)
         st.log.add("Retained by you: " + (u.squad.mapNotNull { save.players[it]?.name }.joinToString().ifEmpty { "none" }))
         st.lots = save.players.values.filter { it.clubId.isEmpty() && !it.retired && !it.academy }
             .sortedByDescending { it.overall() }.take(150).map { it.id }.toMutableList()
@@ -77,14 +80,14 @@ object Auction {
 
     fun userBid(save: CareerSave, st: AuctionState): String? {
         val p = cur(save, st) ?: return "No player on the block."
-        if (st.curBidder == save.userClubId) return "You are already the highest bidder."
+        val u = team(save, st)
+        if (st.curBidder == u.id) return "You are already the highest bidder."
         val amt = nextAmount(st)
-        val u = save.userClub()
         Career.canJoin(save, u, p, amt)?.let { return it }
         val reserve = 0.2 * save.economy * max(0, 15 - u.squad.size - 1)
         if (Career.purse(save, u) - amt < reserve)
             return "You must keep ${Money.fmt(reserve)} of cap room to complete a 15-man squad (max bid now ${Money.fmt(Career.purse(save, u) - reserve)})."
-        st.curBid = amt; st.curBidder = save.userClubId; st.countdown = 0; st.userPassed = false; noteBid(st, save.userClubId)
+        st.curBid = amt; st.curBidder = u.id; st.countdown = 0; st.userPassed = false; noteBid(st, u.id)
         st.log.add("YOU bid ${Money.fmt(amt)}"); trimLog(st)
         return null
     }
@@ -137,7 +140,7 @@ object Auction {
      */
     fun autoComplete(save: CareerSave, st: AuctionState, rnd: Random = Random.Default, bidForUser: Boolean = true) {
         var guard = 0
-        val u = save.userClub()
+        val u = team(save, st)
         while (!st.done && guard++ < 1000) {
             val p = cur(save, st)
             if (bidForUser && p != null && u.squad.size < AUTO_TARGET && st.curBidder != u.id && eligible(save, u, p, nextAmount(st)) &&
@@ -217,10 +220,10 @@ object Auction {
             while (c.squad.size < 16 && g++ < 20) Career.signBestFreeAgent(save, c)
             TeamSelector.autoPick(c, save.players)
         }
-        val mine = st.sold.filter { it.club == save.userClubId }
+        val u = team(save, st)
+        val mine = st.sold.filter { it.club == u.id }
         st.log.add("AUCTION COMPLETE. You bought ${mine.size} player(s) for ${Money.fmt(mine.sumOf { it.price })}. Unsold players are now free agents.")
         save.auctionDoneThisSeason = true
-        val u = save.userClub()
         if (u.squad.size < 15) st.log.add("⚠ Your squad has ${u.squad.size} players — sign free agents in Transfers to reach 15.")
         TeamSelector.autoPick(u, save.players)
     }

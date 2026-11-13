@@ -27,7 +27,7 @@ object Registration {
 
     /** Registration rule for the user team in [comp], or null when no registration is required. */
     fun rule(save: CareerSave, comp: Competition): Rule? {
-        if (comp.userTeam == null || comp.userTeam != save.userClubId) return null
+        if (comp.userTeam == null || !save.isManaged(comp.userTeam!!)) return null
         if (save.tournament?.id == comp.id) return null
         return when {
             comp.key == "IPL" -> Rule(18, 25, 8, 1, 6, 4, "IPL squad")
@@ -66,8 +66,8 @@ object Registration {
 
     /** Next competition (in season order) that still needs the user's registration. */
     fun nextPending(save: CareerSave): Competition? {
-        val u = save.userClubId
-        return save.league.filter { required(save, it) && !registered(save, it) && it.fixtures.any { f -> !f.played && (f.home == u || f.away == u) } }
+        val ids = if (save.isMultiTeam) save.managedTeamIds.toSet() else setOf(save.userClubId)
+        return save.league.filter { required(save, it) && !registered(save, it) && it.fixtures.any { f -> !f.played && (f.home in ids || f.away in ids) } }
             .minByOrNull { c -> c.fixtures.filter { !it.played }.minOfOrNull { it.day } ?: 9999 }
     }
 
@@ -171,14 +171,15 @@ object Registration {
 
     /** National / state pools smaller than the minimum get free call-ups (unattached players only, never guest professionals). */
     fun topUpPool(save: CareerSave, comp: Competition, min: Int) {
-        if (save.mode != Modes.INTL && save.mode != Modes.DOMESTIC) return
+        val c = save.clubs[comp.userTeam ?: return] ?: return
+        if (c.kind != "NATION" && c.kind != "DOMESTIC") return
         var g = 0
         while (pool(save, comp).size < min && g++ < 30) {
-            val p = Modes.selectionPool(save).firstOrNull { save.mode == Modes.INTL || it.clubId.isEmpty() } ?: break
-            Modes.callUp(save, p.id)
+            val p = Modes.selectionPool(save, c.id).firstOrNull { c.kind == "NATION" || it.clubId.isEmpty() || (save.isMultiTeam && save.clubs[it.clubId]?.kind == "FRANCHISE") } ?: break
+            Modes.callUp(save, p.id, c.id)
         }
         // no unattached players left: the state side adds clearly-labelled fictional domestic players
-        if (save.mode == Modes.DOMESTIC && pool(save, comp).size < min) save.clubs[comp.userTeam ?: return]?.let { Modes.fillDomestic(save, it, min, kotlin.random.Random.Default) }
+        if (c.kind == "DOMESTIC" && pool(save, comp).size < min) Modes.fillDomestic(save, c, min, kotlin.random.Random.Default)
     }
 
     /** Season start: remind the user which squads must be registered. */

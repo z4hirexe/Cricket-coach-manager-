@@ -321,16 +321,17 @@ object Career {
     fun leagueFinished(save: CareerSave) = save.league.all { it.stage == "DONE" }
 
     fun startSeason(save: CareerSave): String? {
-        val u = save.userClub()
+        val teams = if (save.isMultiTeam) save.managedTeams() else listOf(save.userClub())
         if (save.auction != null && !save.auction!!.done) return "Finish the auction first."
-        if (u.squad.size < 15) return "You need at least 15 players in your squad (currently ${u.squad.size}). Sign free agents in Transfers."
+        for (t in teams) if (t.squad.size < 15) return "${t.name} need at least 15 players (currently ${t.squad.size}). Sign free agents or call players up."
+        val u = save.marketClub()
         if (u.sponsor.isEmpty()) {
             val best = save.sponsorOffers.maxByOrNull { it.value }
             if (best != null) { u.sponsor = best.name; u.sponsorValue = best.value }
         }
         save.auction = null
         save.phase = "LEAGUE"; save.day = 0
-        save.addNews(if (save.mode == Modes.CLUB) "Season ${save.season} begins! Division ${u.division} campaign under way." else "Season ${save.season} (${save.year}) begins for ${u.name}!")
+        save.addNews(if (save.mode == Modes.CLUB && !save.isMultiTeam) "Season ${save.season} begins! Division ${u.division} campaign under way." else "Season ${save.season} (${save.year}) begins for ${teams.joinToString { it.name }}!")
         Registration.onSeasonStart(save)
         return null
     }
@@ -374,7 +375,7 @@ object Career {
             if (!c.isUser && c.squad.size < 17 && rnd.nextDouble() < 0.5) signBestFreeAgent(save, c)
         }
         // offers for listed players
-        val u = save.userClub()
+        val u = save.marketClub()
         if (u.balance < 0) {
             u.reputation = max(5, u.reputation - 1)
             for (pid in u.squad) save.players[pid]?.let { it.morale = max(10, it.morale - 1) }
@@ -439,7 +440,7 @@ object Career {
     fun signFreeAgent(save: CareerSave, pid: String): String {
         val p = save.players[pid] ?: return "Unknown player"
         if (p.clubId.isNotEmpty()) return "Player is not a free agent."
-        val u = save.userClub()
+        val u = save.marketClub()
         val sal = max(0.2 * save.economy, Money.value(p.overall(), p.age(save.year), save.economy))
         canJoin(save, u, p, sal)?.let { return it }
         p.salary = sal; p.contractYears = 2
@@ -452,7 +453,8 @@ object Career {
     fun bidForPlayer(save: CareerSave, pid: String, fee: Double, rnd: Random = Random.Default): String {
         val p = save.players[pid] ?: return "Unknown player"
         val seller = save.clubs[p.clubId] ?: return signFreeAgent(save, pid)
-        val u = save.userClub()
+        val u = save.marketClub()
+        if (save.isMultiTeam && seller.kind != "FRANCHISE") return "Only franchise players can be transferred in a multi-team career."
         if (seller.isUser) return "Already your player."
         if (u.balance < fee) return "Not enough funds (balance ${Money.fmt(u.balance)})."
         canJoin(save, u, p, p.salary)?.let { return it }
@@ -473,7 +475,8 @@ object Career {
         val mine = save.players[myPid] ?: return "?"
         val theirs = save.players[theirPid] ?: return "?"
         val other = save.clubs[theirs.clubId] ?: return "That player is a free agent — just sign him."
-        val u = save.userClub()
+        val u = save.marketClub()
+        if (save.isMultiTeam && other.kind != "FRANCHISE") return "Only franchise players can be swapped in a multi-team career."
         val vm = Money.value(mine.overall(), mine.age(save.year), 1.0)
         val vt = Money.value(theirs.overall(), theirs.age(save.year), 1.0)
         if (vm < vt * 1.05) return "${other.name} rejected the trade — they value ${theirs.name} more."
@@ -487,7 +490,7 @@ object Career {
 
     fun release(save: CareerSave, pid: String): String {
         val p = save.players[pid] ?: return "?"
-        val u = save.userClub()
+        val u = save.marketClub()
         if (u.squad.size <= 11) return "You need at least 11 players."
         val comp = p.salary * 0.5
         u.balance -= comp
@@ -504,7 +507,7 @@ object Career {
         val o = save.offers.firstOrNull { it.id == id } ?: return "Offer expired"
         val p = save.players[o.pid] ?: return "?"
         val buyer = save.clubs[o.fromClub] ?: return "?"
-        val u = save.userClub()
+        val u = save.marketClub()
         save.offers.removeAll { it.pid == o.pid }
         if (p.clubId != u.id) return "Player no longer at your club."
         u.squad.remove(p.id); u.xi.remove(p.id); u.bowlers.remove(p.id)
@@ -616,7 +619,7 @@ object Career {
     /* ---------------- season end ---------------- */
     fun endSeason(save: CareerSave, rnd: Random = Random.Default) {
         val sum = mutableListOf<String>()
-        val u = save.userClub()
+        val u = if (save.isMultiTeam) save.marketClub() else save.userClub()
         val e = save.economy
         val moves = HashMap<String, Int>()
         if (save.mode != Modes.CLUB) Modes.endSeason(save, sum)
@@ -672,7 +675,14 @@ object Career {
             val retireP = when { age >= 40 -> 1.0; age >= 35 -> (age - 34) * 0.15; age >= 32 && p.overall() < 50 -> 0.3; else -> 0.0 }
             if (rnd.nextDouble() < retireP) {
                 p.retired = true
-                save.clubs[p.clubId]?.let { c -> c.squad.remove(p.id); c.xi.remove(p.id); c.bowlers.remove(p.id); if (c.isUser) retired.add(p.name) }
+                val retiredNames = linkedSetOf<String>()
+                for (c in save.clubs.values) {
+                    if (p.id in c.squad || p.id in c.xi || p.id in c.bowlers) {
+                        c.squad.remove(p.id); c.xi.remove(p.id); c.bowlers.remove(p.id)
+                        if (c.isUser) retiredNames.add(p.name)
+                    }
+                }
+                retired.addAll(retiredNames)
                 p.history.add("Season ${save.season}: Retired aged $age")
                 p.clubId = ""
                 if (p.real && p.overall() >= 75) save.addNews("RETIREMENT: ${p.name} (age $age) retires from the game.")

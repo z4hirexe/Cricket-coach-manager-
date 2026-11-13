@@ -228,7 +228,7 @@ object Schedule {
         if (mineDates.isNotEmpty()) {
             var d = minOf(start, mineDates.first()); val end = mineDates.last()
             var guard = 0
-            while (!d.isAfter(end) && guard++ < 400) {
+            while (!d.isAfter(end) && guard++ < 800) {
                 if (d !in mineDates) {
                     val rest = d.minusDays(1) in mineDates
                     out.add(Entry(d, TRAINING, if (rest) "Rest & recovery" else "Training day", if (rest) "Light session, physio and ice baths" else "Nets, fielding drills and fitness"))

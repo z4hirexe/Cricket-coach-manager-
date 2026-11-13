@@ -61,6 +61,8 @@ fun CareerTypeScreen(vm: GameVM) {
         Column(Modifier.fillMaxSize().padding(12.dp)) {
             Sub("Slot $pendingSlot • saved on this device")
             Spacer(Modifier.height(8.dp))
+            GoldButton("MULTI-TEAM CAREER · INTERNATIONAL + STATE + IPL", Modifier.fillMaxWidth(), enabled = !vm.busy) { vm.nav(Screen.MultiTeamSetup) }
+            Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxSize()) {
                 val icons = mapOf(Modes.INTL to Icons.Filled.Star, Modes.DOMESTIC to Icons.Filled.Place, Modes.IPL to Icons.Filled.ShoppingCart, Modes.CLUB to Icons.Filled.Create)
                 Modes.TYPES.forEachIndexed { i, t ->
@@ -151,6 +153,84 @@ fun ChooseTeamScreen(vm: GameVM, mode: String) {
                 Spacer(Modifier.height(10.dp))
                 GoldButton("START CAREER", Modifier.fillMaxWidth(), enabled = !vm.busy) { vm.newModeCareer(pendingSlot, manager, mode, sel.id) }
             }
+        }
+    }
+}
+
+/** v2.6 Stage 1: pick International -> State -> IPL franchise for one merged career. Mobile-friendly vertical flow. */
+@Composable
+fun MultiTeamScreen(vm: GameVM) {
+    val nations = remember { teamInfos(Modes.INTL) }
+    val states = remember { teamInfos(Modes.DOMESTIC) }
+    val franchises = remember { teamInfos(Modes.IPL) }
+    var step by remember { mutableIntStateOf(0) }
+    var nation by remember { mutableStateOf(nations.firstOrNull { it.short == "IND" } ?: nations.first()) }
+    var state by remember { mutableStateOf(states.firstOrNull { it.short == "MUM" } ?: states.first()) }
+    var franchise by remember { mutableStateOf(franchises.firstOrNull { it.short == "KKR" } ?: franchises.first()) }
+    var manager by remember { mutableStateOf("") }
+    val teams = when (step) { 0 -> nations; 1 -> states; else -> franchises }
+    val sel = when (step) { 0 -> nation; 1 -> state; else -> franchise }
+    val titles = listOf("International", "State team", "IPL franchise")
+    ScreenScaffold(vm, "Multi-Team Career • ${step + 1}/3") {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
+            Sub("Slot $pendingSlot • one manager runs all three teams. Season order: IPL → International → Domestic.")
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                titles.forEachIndexed { i, t ->
+                    val on = i == step; val done = i < step
+                    Column(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (on) DS.Navy4 else C.Card)
+                        .border(if (on) 1.dp else 0.dp, if (on) C.Gold else Color.Transparent, RoundedCornerShape(10.dp))
+                        .clickable { step = i }.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(if (done) "✓" else "${i + 1}", color = if (on || done) C.Gold else C.Sub, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                        Text(t.uppercase(), color = if (on) C.Text else C.Sub, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, textAlign = TextAlign.Center)
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Brush.verticalGradient(listOf(Color(0xF2122453), Color(0xF20A1530))))
+                .border(1.dp, C.Gold.copy(alpha = 0.6f), RoundedCornerShape(14.dp)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Badge(sel.short, sel.primary, sel.secondary, (sel.id.hashCode() and 7), 64.dp)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(sel.name, color = C.Gold, fontWeight = FontWeight.Black, fontSize = 18.sp, maxLines = 1)
+                    Sub(sel.venue)
+                    Text(when (step) {
+                        0 -> "${sel.realPlayers} real ${sel.note} players in the database"
+                        1 -> "${sel.note} • ${sel.realPlayers} real players at their current state side"
+                        else -> "${sel.realPlayers} players from the real latest-season roster"
+                    }, color = C.Sub, fontSize = 10.sp, maxLines = 2)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(manager, { manager = it.take(24) }, label = { Text("Head coach name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            Text("CHOOSE ${titles[step].uppercase()}", color = C.Gold, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.5.sp)
+            Spacer(Modifier.height(4.dp))
+            LazyVerticalGrid(GridCells.Adaptive(104.dp), Modifier.fillMaxWidth().height(320.dp)) {
+                items(teams, key = { it.id }) { t ->
+                    val on = t.id == sel.id
+                    Column(Modifier.padding(3.dp).clip(RoundedCornerShape(10.dp))
+                        .background(if (on) Brush.verticalGradient(listOf(Color(0xFF2A4A8F), Color(0xFF14295A))) else Brush.verticalGradient(listOf(C.Card, C.Surface)))
+                        .border(if (on) 2.dp else 1.dp, if (on) C.Gold else Color(0x33E9B949), RoundedCornerShape(10.dp))
+                        .clickable { GameAudio.click(); when (step) { 0 -> nation = t; 1 -> state = t; else -> franchise = t } }.padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally) {
+                        Badge(t.short, t.primary, t.secondary, (t.id.hashCode() and 7), 38.dp)
+                        Text(t.name, color = if (on) C.Gold else C.Text, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, textAlign = TextAlign.Center)
+                        Text(if (step == 1) "${t.realPlayers} real" else t.short, color = C.Sub, fontSize = 9.sp, maxLines = 1)
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (step > 0) OutlineBtn("BACK", Modifier.weight(1f)) { step-- }
+                if (step < 2) GoldButton("NEXT: ${titles[step + 1].uppercase()}", Modifier.weight(1.4f)) { step++ }
+                else GoldButton("START MULTI-TEAM CAREER", Modifier.weight(1.4f), enabled = !vm.busy) {
+                    vm.newMultiCareer(pendingSlot, manager, nation.id, state.id, franchise.id)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("You will manage ${nation.name}, ${state.name} and ${franchise.name}. Existing single-team careers are unchanged.", color = C.Sub, fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

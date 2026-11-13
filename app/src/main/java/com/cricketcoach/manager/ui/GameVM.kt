@@ -59,6 +59,7 @@ sealed class Screen(val title: String) {
     data class MatchReport(val compId: String, val fxId: String) : Screen("Match Report")
     object About : Screen("About")
     object NewGame : Screen("New Game")
+    object MultiTeamSetup : Screen("Multi-Team Career")
 }
 
 class PendingMatch(val compId: String, val fixtureId: String)
@@ -237,6 +238,28 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** v2.6 Stage 1: one career, three managed teams (IPL + International + Domestic). */
+    fun newMultiCareer(slot: Int, manager: String, nationId: String, stateId: String, franchiseId: String) {
+        if (!slotAllowed(slot)) { msg("Invalid career slot."); return }
+        busy = true
+        viewModelScope.launch {
+            val s = withContext(Dispatchers.Default) { Modes.newMultiCareer(slot, manager.ifBlank { "Coach" }, nationId, stateId, franchiseId, settings.economy.toDouble(), settings.difficulty) }
+            save = s; settings.lastSlot = slot; busy = false
+            pending = null; sim = null
+            stack.clear(); stack.add(Screen.Main); stack.add(Screen.Dashboard)
+            persist()
+        }
+    }
+
+    /** Switch the active team in a multi-team career. The merged calendar and pending match are unchanged. */
+    fun switchTeam(id: String) {
+        val s = save ?: return
+        if (!s.isManaged(id) || s.userClubId == id) return
+        s.setActiveTeam(id)
+        persist()
+        msg("Active team: ${s.userClub().name}")
+    }
+
     fun newCareer(slot: Int, manager: String, club: String, short: String, country: String, primary: Long, secondary: Long, logo: Int, jersey: Int, setup: String,
                   stadium: String = "", logoFile: String = "", boost: Boolean = false) {
         if (!slotAllowed(slot)) { msg("Invalid career slot."); return }
@@ -297,7 +320,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
 
     /** v2.5 Phase G: a registration-gated competition whose user fixture is on [day] and isn't registered yet (the sim stops for it). */
     private fun registrationStop(s: CareerSave, list: List<Pair<Competition, Fixture>>): Competition? =
-        list.firstOrNull { (c, f) -> (f.home == s.userClubId || f.away == s.userClubId) && Registration.required(s, c) && !Registration.registered(s, c) }?.first
+        list.firstOrNull { (c, f) -> c.userTeam != null && (f.home == c.userTeam || f.away == c.userTeam) && Registration.required(s, c) && !Registration.registered(s, c) }?.first
 
     private fun openRegistration(compId: String) {
         val c = compById(compId) ?: return
@@ -320,7 +343,8 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         val hosts = list.map { it.second.home }.toSet()
         var userFx: Pair<Competition, Fixture>? = null
         for ((c, f) in list) {
-            if (f.home == s.userClubId || f.away == s.userClubId) { if (simUser || userFx != null) Career.quickSim(s, c, f, rnd) else userFx = c to f }
+            val mine = c.userTeam != null && (f.home == c.userTeam || f.away == c.userTeam)
+            if (mine) { if (simUser || userFx != null) Career.quickSim(s, c, f, rnd) else userFx = c to f }
             else Career.quickSim(s, c, f, rnd)
         }
         if (s.weeklyDoneDay != nextDay) { Career.weeklyUpdate(s, hosts, rnd); s.weeklyDoneDay = nextDay }
@@ -638,8 +662,8 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     /** Sound cue for whatever the last auction step did (rival paddle, going once/twice, SOLD / UNSOLD). */
     private fun auctionCue(s: CareerSave, a: AuctionState, bidSeq: Int, countdown: Int, lastSeq: Int) {
         when {
-            a.lastSeq != lastSeq -> if (a.lastClub.isNotEmpty()) GameAudio.auctionSold(a.lastClub == s.userClubId) else GameAudio.auctionUnsold()
-            a.bidSeq != bidSeq && a.curBidder != s.userClubId -> GameAudio.auctionRivalBid()
+            a.lastSeq != lastSeq -> if (a.lastClub.isNotEmpty()) GameAudio.auctionSold(a.lastClub == Auction.team(s, a).id) else GameAudio.auctionUnsold()
+            a.bidSeq != bidSeq && a.curBidder != Auction.team(s, a).id -> GameAudio.auctionRivalBid()
             a.countdown != countdown && a.countdown > 0 -> GameAudio.auctionGoing(a.countdown)
         }
     }

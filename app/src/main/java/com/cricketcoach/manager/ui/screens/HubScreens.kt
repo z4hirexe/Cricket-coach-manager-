@@ -166,6 +166,8 @@ fun NewGameScreen(vm: GameVM) {
                     }
                 }
                 val cards: List<@Composable (Modifier) -> Unit> = listOf(
+                    { m -> HubCard(m, "Multi-team career", "International • State • IPL", "Manage all three teams in one career. Merged season order: IPL → International → Domestic.",
+                        Icons.Filled.Star, "Start") { startNewCareerFlow(vm, Screen.MultiTeamSetup) } },
                     { m -> HubCard(m, "New career", "International • Domestic • IPL", "Pick a real national side, a state team or an IPL franchise. Careers start in the ${Brand.CAREER_START} season.",
                         Icons.Filled.Add, "Start") { startNewCareerFlow(vm, Screen.CareerType) } },
                     { m -> HubCard(m, "Create your team", "Name • badge • colours • stadium", "Build your own club from scratch and grow it through the divisions.",

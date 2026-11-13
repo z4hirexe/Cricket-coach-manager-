@@ -99,16 +99,19 @@ private fun Sidebar(vm: GameVM) {
     val s = vm.save ?: return
     @Suppress("UNUSED_VARIABLE") val t = vm.tick
     val u = s.userClub()
-    val club = s.mode == Modes.CLUB
+    val club = s.mode == Modes.CLUB && !s.isMultiTeam
+    val multi = s.isMultiTeam
     val sel = selectedKey(vm.screen)
+    var teamPicker by remember { mutableStateOf(false) }
     val I = Icons.Filled
     val main = listOfNotNull(
         NavItem("home", "Home", null, I.Home) { vm.navRoot(Screen.Dashboard) },
         NavItem("inbox", "Inbox", "inbox", null, badge = vm.unreadNews()) { vm.navRoot(Screen.Inbox) },
         NavItem("squad", "Squad & XI", "squad", null) { vm.navRoot(Screen.Squad()) },
-        if (Modes.hasTransfers(s)) NavItem("transfers", "Transfers", null, I.ShoppingCart) { vm.navRoot(Screen.Transfers) }
+        if (multi && u.kind != "FRANCHISE") NavItem("selection", "Selection", "xi", null) { vm.navRoot(Screen.Selection) }
+        else if (Modes.hasTransfers(s)) NavItem("transfers", "Transfers", null, I.ShoppingCart) { vm.navRoot(Screen.Transfers) }
         else NavItem("selection", "Selection", "xi", null) { vm.navRoot(Screen.Selection) },
-        if (Modes.hasAuction(s)) NavItem("auction", "Auction", "gavel", null, star = s.auction != null && !s.auction!!.done) {
+        if (Modes.hasAuction(s) && (!multi || u.kind == "FRANCHISE")) NavItem("auction", "Auction", "gavel", null, star = s.auction != null && !s.auction!!.done) {
             if (s.auction == null) vm.startMiniAuction() else { vm.navRoot(Screen.Dashboard); vm.nav(Screen.AuctionScr) }
         } else null,
         NavItem("club", if (club) "My Club" else "Facilities", "stadium", null) { vm.navRoot(Screen.MyClub) },
@@ -133,12 +136,13 @@ private fun Sidebar(vm: GameVM) {
         .drawBehind { drawLine(UI.Line, Offset(size.width - 1f, 0f), Offset(size.width - 1f, size.height), 2f) }
         .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start))) {
         // team header
-        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 10.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 10.dp, bottom = 8.dp)
+            .then(if (multi) Modifier.clip(RoundedCornerShape(10.dp)).clickable { GameAudio.click(); teamPicker = true } else Modifier), verticalAlignment = Alignment.CenterVertically) {
             TeamFlag(u, 52.dp)
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
                 Text(u.short, color = C.Text, fontWeight = FontWeight.Black, fontSize = 16.sp, maxLines = 1)
-                Text(Modes.label(s.mode).uppercase(), color = C.Sub, fontSize = 9.sp, letterSpacing = 0.8.sp, maxLines = 1, softWrap = false)
+                Text(if (multi) "MULTI-TEAM ▾" else Modes.label(s.mode).uppercase(), color = if (multi) C.Gold else C.Sub, fontSize = 9.sp, letterSpacing = 0.8.sp, maxLines = 1, softWrap = false)
             }
             Box(Modifier.size(34.dp).clip(RoundedCornerShape(8.dp)).background(DS.Navy3).border(1.dp, UI.Line, RoundedCornerShape(8.dp))
                 .clickable { GameAudio.click(); vm.navRoot(Screen.SettingsScr) }, contentAlignment = Alignment.Center) {
@@ -156,6 +160,29 @@ private fun Sidebar(vm: GameVM) {
             items(office.size) { i -> NavRow(office[i], office[i].key == sel) }
             item { Spacer(Modifier.height(10.dp)) }
         }
+    }
+    if (teamPicker) {
+        AlertDialog(onDismissRequest = { teamPicker = false }, containerColor = C.Surface,
+            title = { Text("Switch active team", color = C.Gold, fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("One career, three teams. The calendar stays merged; this changes the dashboard, squad and office screens.", color = C.Sub, fontSize = 11.sp)
+                    Spacer(Modifier.height(8.dp))
+                    for (t in s.managedTeams()) {
+                        val on = t.id == s.userClubId
+                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(if (on) DS.Navy4 else Color.Transparent)
+                            .clickable { vm.switchTeam(t.id); teamPicker = false }.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            TeamFlag(t, 34.dp); Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(t.name, color = if (on) C.Gold else C.Text, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
+                                Text(when (t.kind) { "NATION" -> "International"; "DOMESTIC" -> "State"; else -> "IPL franchise" }, color = C.Sub, fontSize = 10.sp)
+                            }
+                            if (on) Icon(I.Check, null, tint = C.Gold, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton({ teamPicker = false }) { Text("CLOSE", color = C.Gold) } })
     }
 }
 

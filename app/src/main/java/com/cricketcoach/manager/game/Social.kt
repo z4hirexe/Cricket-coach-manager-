@@ -69,7 +69,7 @@ object Social {
 
     /** Auto-posts for the user's matches and standout individual performances. Also grants coins/xp/followers. */
     fun onMatch(save: CareerSave, comp: Competition, fx: Fixture, sim: MatchSim, rnd: Random = Random.Default) {
-        val u = save.userClubId
+        val u = comp.userTeam ?: save.userClubId
         val mine = fx.home == u || fx.away == u
         val uc = save.clubs[u] ?: return
         val key = "${comp.id}:${fx.id}"
@@ -148,19 +148,19 @@ object Social {
     fun onTitle(save: CareerSave, comp: Competition, rnd: Random = Random.Default) {
         val champ = comp.champion?.let { save.clubs[it] } ?: return
         Yorker.onTitle(save, comp, champ, rnd)
-        if (champ.id == save.userClubId) {
+        if (save.isManaged(champ.id)) {
             save.pendingCoins += 250; save.pendingXp += 200
             save.followers += max(5000, (save.followers * 0.08).toInt())
             Stumps.onTitle(save, comp, champ, rnd)
             post(save, OFFICIAL, "🏆 CHAMPIONS! ${champ.name} win the ${comp.name}! Coach ${save.manager} lifts the trophy. #${champ.short} #Champions #${tag(comp)}", "TITLE", (save.followers * 0.05).toInt() + 5000, rnd, 6,
                 Poster(champ.captain, champ.id, comp.runnerUp ?: "", "CHAMPIONS", comp.name.substringBefore(" (").uppercase().take(26), recentResults(save, champ.id, 4)))
-        } else if (comp.userTeam == save.userClubId || comp.kind != "CLUB" || comp.division == 1) {
+        } else if ((comp.userTeam != null && save.isManaged(comp.userTeam!!)) || comp.kind != "CLUB" || comp.division == 1) {
             post(save, OFFICIAL, "${champ.name} are the ${comp.name} champions! #${tag(comp)}", "NEWS", 1500 + rnd.nextInt(3000), rnd, 2)
         }
     }
 
     fun onSigning(save: CareerSave, p: GPlayer, how: String, fee: Double, rnd: Random = Random.Default) {
-        val u = save.userClub()
+        val u = save.marketClub()
         save.followers += 100 + max(0, p.overall() - 60) * 40
         val kind = if (how == "AUCTION") "AUCTION" else "TRANSFER"
         post(save, INSIDER, (if (kind == "AUCTION") "SOLD! ${u.name} win the bidding for ${p.name} at ${Money.fmt(fee)}." else "DONE DEAL: ${p.name} signs for ${u.name}${if (fee > 0) " (${Money.fmt(fee)})" else ""}.") +

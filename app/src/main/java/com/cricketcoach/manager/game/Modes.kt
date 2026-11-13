@@ -69,9 +69,9 @@ object Modes {
     /** Competitions played as 4-day first-class games (Irani Cup and knockout finals are 5 days). */
     fun fourDay(comp: Competition, fx: Fixture) = (comp.key == "RANJI" || comp.key == "DULEEP") && fx.stage != "Final"
 
-    fun marketKind(save: CareerSave) = if (save.mode == IPL) "FRANCHISE" else "CLUB"
-    fun hasAuction(save: CareerSave) = save.mode == CLUB || save.mode == IPL
-    fun hasTransfers(save: CareerSave) = save.mode == CLUB || save.mode == IPL
+    fun marketKind(save: CareerSave) = if (save.mode == IPL || save.isMultiTeam) "FRANCHISE" else "CLUB"
+    fun hasAuction(save: CareerSave) = save.mode == CLUB || save.mode == IPL || save.isMultiTeam
+    fun hasTransfers(save: CareerSave) = save.mode == CLUB || save.mode == IPL || save.isMultiTeam
     fun label(mode: String) = when (mode) { INTL -> "International"; DOMESTIC -> "Domestic"; IPL -> "IPL"; else -> "Club" }
 
     fun teamsFor(mode: String): List<Triple<String, String, String>> = when (mode) {
@@ -105,6 +105,42 @@ object Modes {
         save.addNews("Welcome, $manager! You are the new head coach of ${u.name}.")
         save.addNews("Dataset: real players from Cricsheet + Wikipedia (as of ${Repo.ds.meta.built}). Fictional players are always marked FICTIONAL.")
         Social.post(save, Social.OFFICIAL, "${u.name} appoint $manager as head coach. A new era begins! #${u.short}", "NEWS", 900 + rnd.nextInt(3000), rnd)
+        return save
+    }
+
+    /**
+     * v2.6 Stage 1: one manager runs an IPL franchise, a national side and an Indian state team in the same career.
+     * The season is merged in the requested order: IPL -> International -> Domestic. Existing single-team careers
+     * are untouched; this only adds a new save shape (managedTeamIds) and a combined fixture list.
+     */
+    fun newMultiCareer(slot: Int, manager: String, nationId: String, stateId: String, franchiseId: String,
+                       economy: Double, difficulty: Int, rnd: Random = Random.Default): CareerSave {
+        val save = CareerSave(slot = slot, manager = manager, userClubId = franchiseId, economy = economy, difficulty = difficulty,
+            created = System.currentTimeMillis(), year = Career.START_YEAR, mode = IPL,
+            multiCareer = true, managedTeamIds = mutableListOf(franchiseId, nationId, stateId), activeTeamId = franchiseId)
+        Career.buildPlayers(save, rnd)
+        // Order matters: nations do not own players; IPL claims the latest real rosters; state sides then add their
+        // real domestic players as representatives without stealing anyone already contracted to a franchise.
+        buildNations(save)
+        buildIpl(save, rnd)
+        buildDomestic(save, rnd)
+        val nation = save.clubs[nationId] ?: error("unknown nation $nationId")
+        val state = save.clubs[stateId] ?: error("unknown state $stateId")
+        val franchise = save.clubs[franchiseId] ?: error("unknown franchise $franchiseId")
+        for (c in listOf(nation, state, franchise)) c.isUser = true
+        nation.balance = 30.0 * economy; nation.reputation = 70
+        state.balance = 8.0 * economy; state.reputation = 45
+        franchise.balance = 40.0 * economy; franchise.reputation = 65
+        nation.squad = nationPool(save, nation).take(25).map { it.id }.toMutableList()
+        fillDomestic(save, state, 18, rnd)
+        for (c in listOf(nation, state, franchise)) TeamSelector.autoPick(c, save.players)
+        createSeason(save, rnd)
+        save.sponsorOffers = Career.genSponsors(save, rnd)
+        save.followers = 400_000 + franchise.reputation * 1000
+        save.addNews("Welcome, $manager! You now manage ${nation.name}, ${state.name} and ${franchise.name} in one career.")
+        save.addNews("Season order: IPL first, then International, then Domestic. Use the team switcher to change the active team.")
+        save.addNews("Dataset: real players from Cricsheet + Wikipedia (as of ${Repo.ds.meta.built}). Fictional players are always marked FICTIONAL.")
+        Social.post(save, Social.OFFICIAL, "${franchise.name} appoint $manager to a triple role: ${nation.name}, ${state.name} and the franchise. #${franchise.short}", "NEWS", 1200 + rnd.nextInt(3000), rnd)
         return save
     }
 
@@ -153,7 +189,10 @@ object Modes {
             if (p.retired || p.country != "India") continue
             val st = STATES.firstOrNull { it.name.equals(state, true) } ?: continue
             val c = save.clubs[st.id]!!
-            p.clubId = c.id; c.squad.add(pid)
+            // In a multi-team career a player may already be contracted to an IPL franchise. The state side still
+            // selects him, but his primary contract (clubId) stays with the franchise.
+            if (p.clubId.isEmpty()) p.clubId = c.id
+            if (pid !in c.squad) c.squad.add(pid)
         }
         // top up each side with clearly-labelled fictional domestic players
         for (st in STATES) fillDomestic(save, save.clubs[st.id]!!, 16, rnd)
@@ -192,7 +231,7 @@ object Modes {
             c.trainingLvl = 3; c.academyLvl = 2; c.medicalLvl = 3; c.coachBat = 3; c.coachBowl = 3; c.coachFit = 3; c.reputation = 75
             c.sponsor = Consts.SPONSORS.random(rnd); c.sponsorValue = Money.tvFor(1, save.economy) * 0.25; c.balance = 40.0 * save.economy
         }
-        for (c in save.clubs.values) {
+        for (c in save.clubs.values.filter { it.kind == "FRANCHISE" }) {
             var g = 0
             while (c.squad.size < 18 && g++ < 30) {
                 val p = save.players.values.filter { it.clubId.isEmpty() && !it.retired && !it.academy && (it.country == "India" || Career.overseasCount(save, c) < 8) }
@@ -203,80 +242,108 @@ object Modes {
     }
 
     /* ======================= season structure ======================= */
+    /** Which of the user's teams plays in [c]. Multi-team careers set this per competition, not per save. */
+    fun userTeamFor(save: CareerSave, c: Competition): String? {
+        fun contains(id: String) = id in c.teams || c.groups.any { id in it }
+        if (save.isMultiTeam) {
+            val kind = when (c.kind) { "FRANCHISE" -> "FRANCHISE"; "NATION" -> "NATION"; "DOMESTIC" -> "DOMESTIC"; else -> return null }
+            return save.managedTeamIds.firstOrNull { save.clubs[it]?.kind == kind && contains(it) }
+        }
+        val u = save.userClubId
+        return if (contains(u)) u else null
+    }
+
+    private fun addComp(save: CareerSave, c: Competition, startDay: Int, double: Boolean = false) {
+        if (c.fixtures.isEmpty()) CompEngine.addLeagueFixtures(c, double, startDay)
+        userTeamFor(save, c)?.let { c.userTeam = it }
+        save.league.add(c)
+    }
+
     fun createSeason(save: CareerSave, rnd: Random = Random.Default) {
         save.league.clear()
-        val u = save.userClubId
-        fun add(c: Competition, startDay: Int, double: Boolean = false) {
-            if (c.fixtures.isEmpty()) CompEngine.addLeagueFixtures(c, double, startDay)
-            if (u in c.teams || c.groups.any { u in it }) c.userTeam = u
-            save.league.add(c)
+        if (save.isMultiTeam) {
+            // Merged calendar: IPL -> International -> Domestic, with a clear break between the three windows.
+            addIpl(save, rnd)
+            val iplEnd = save.league.filter { it.kind == "FRANCHISE" }.flatMap { it.fixtures }.maxOfOrNull { it.day } ?: 70
+            val intlStart = iplEnd + 14
+            addIntl(save, rnd, intlStart, compact = true)
+            val intlEnd = save.league.filter { it.kind == "NATION" }.flatMap { it.fixtures }.maxOfOrNull { it.day } ?: (intlStart + 120)
+            addDomestic(save, rnd, intlEnd + 14)
+            return
         }
-        val s = save.season
         when (save.mode) {
-            INTL -> {
-                refreshNations(save)
-                val others = Consts.NATIONS.map { it.id }.filter { it != u }.shuffled(rnd)
-                val tests = series(save, "INTL_TEST", "Test series", "TEST", u, others[0], 3, home = true, startDay = 1)
-                val odis = series(save, "INTL_ODI", "ODI series", "ODI", others[1], u, 3, home = false, startDay = 61)
-                val t20s = series(save, "INTL_T20", "T20I series", "T20", u, others[2], 3, home = true, startDay = 121)
-                for (c in listOf(tests, odis, t20s)) { c.userTeam = u; save.league.add(c) }
-                val ev = iccEventFor(save.year)
-                val ec = Competition(id = "S${s}ICC", key = ev, kind = "NATION", season = s)
-                when (ev) {
-                    "ODI_WC" -> { ec.name = "ICC Cricket World Cup ${save.year}"; ec.format = "ODI"; ec.teams = withUser(listOf("IND", "AUS", "ENG", "PAK", "SA", "NZ", "BAN", "SL", "AFG", "WI").map { "N_$it" }, u, save); ec.knockout = "SEMIS" }
-                    "CT" -> {
-                        ec.name = "ICC Champions Trophy ${save.year}"; ec.format = "ODI"
-                        val t = withUser(listOf("IND", "AUS", "ENG", "PAK", "SA", "NZ", "BAN", "AFG").map { "N_$it" }, u, save)
-                        ec.teams = t.toMutableList(); ec.groups = mutableListOf(t.filterIndexed { i, _ -> i % 2 == 0 }.toMutableList(), t.filterIndexed { i, _ -> i % 2 == 1 }.toMutableList()); ec.knockout = "SEMIS"
-                    }
-                    else -> {
-                        ec.name = "ICC T20 World Cup ${save.year}"; ec.format = "T20"
-                        ec.teams = Consts.NATIONS.map { it.id }.toMutableList()
-                        val seeded = ec.teams.sortedByDescending { Career.strength(save, save.clubs[it]!!) }
-                        val a = mutableListOf<String>(); val b = mutableListOf<String>()
-                        seeded.forEachIndexed { i, id -> if (i % 4 == 0 || i % 4 == 3) a.add(id) else b.add(id) }
-                        ec.groups = mutableListOf(a, b); ec.knockout = "SEMIS"
-                    }
-                }
-                add(ec, 181)
+            INTL -> addIntl(save, rnd, 0, compact = false)
+            DOMESTIC -> addDomestic(save, rnd, 0)
+            IPL -> addIpl(save, rnd)
+        }
+    }
+
+    private fun addIntl(save: CareerSave, rnd: Random, offset: Int, compact: Boolean) {
+        refreshNations(save)
+        val u = save.managedTeam("NATION")?.id ?: save.userClubId
+        val others = Consts.NATIONS.map { it.id }.filter { it != u }.shuffled(rnd)
+        val gap = if (compact) 30 else 60
+        val tests = series(save, "INTL_TEST", "Test series", "TEST", u, others[0], 3, home = true, startDay = offset + 1)
+        val odis = series(save, "INTL_ODI", "ODI series", "ODI", others[1], u, 3, home = false, startDay = offset + 1 + gap)
+        val t20s = series(save, "INTL_T20", "T20I series", "T20", u, others[2], 3, home = true, startDay = offset + 1 + gap * 2)
+        for (c in listOf(tests, odis, t20s)) { c.userTeam = u; save.league.add(c) }
+        val ev = iccEventFor(save.year)
+        val ec = Competition(id = "S${save.season}ICC", key = ev, kind = "NATION", season = save.season)
+        when (ev) {
+            "ODI_WC" -> { ec.name = "ICC Cricket World Cup ${save.year}"; ec.format = "ODI"; ec.teams = withUser(listOf("IND", "AUS", "ENG", "PAK", "SA", "NZ", "BAN", "SL", "AFG", "WI").map { "N_$it" }, u, save); ec.knockout = "SEMIS" }
+            "CT" -> {
+                ec.name = "ICC Champions Trophy ${save.year}"; ec.format = "ODI"
+                val t = withUser(listOf("IND", "AUS", "ENG", "PAK", "SA", "NZ", "BAN", "AFG").map { "N_$it" }, u, save)
+                ec.teams = t.toMutableList(); ec.groups = mutableListOf(t.filterIndexed { i, _ -> i % 2 == 0 }.toMutableList(), t.filterIndexed { i, _ -> i % 2 == 1 }.toMutableList()); ec.knockout = "SEMIS"
             }
-            DOMESTIC -> {
-                refreshDomestic(save, rnd)
-                // 1. Duleep Trophy (zonal, first-class, 2025 knockout format)
-                val dul = Competition(id = "S${s}DUL", name = "Duleep Trophy ${save.year}", key = "DULEEP", format = "TEST", kind = "DOMESTIC", season = s, knockout = "DULEEP")
-                dul.teams = ZONE_IDS.values.toMutableList()
-                dul.fixtures.add(Fixture("${dul.id}-${dul.nextFixtureId++}", "Z_N", "Z_E", "Quarter-final 1", 0, 1))
-                dul.fixtures.add(Fixture("${dul.id}-${dul.nextFixtureId++}", "Z_C", "Z_NE", "Quarter-final 2", 0, 1))
-                pickZones(save); save.league.add(dul)
-                // 2-4. Ranji (4-day), SMAT (T20), Vijay Hazare (50 overs): 32 teams, 4 groups of 8, QF/SF/Final
-                fun groups(c: Competition) {
-                    val seeded = STATES.map { it.id }.sortedByDescending { Career.strength(save, save.clubs[it]!!) }
-                    val g = List(4) { mutableListOf<String>() }
-                    seeded.forEachIndexed { i, id -> val r = i / 4; g[if (r % 2 == 0) i % 4 else 3 - i % 4].add(id) }
-                    c.teams = seeded.toMutableList(); c.groups = g.toMutableList()
-                }
-                val ranji = Competition(id = "S${s}RAN", name = "Ranji Trophy ${save.year}-${(save.year + 1) % 100}", key = "RANJI", format = "TEST", kind = "DOMESTIC", season = s,
-                    knockout = "QF", pointsWin = 6, pointsDraw = 1, pointsNR = 1)
-                groups(ranji); add(ranji, 21)
-                val smat = Competition(id = "S${s}SMA", name = "Syed Mushtaq Ali Trophy ${save.year}", key = "SMAT", format = "T20", kind = "DOMESTIC", season = s, knockout = "QF", pointsWin = 4, pointsDraw = 2, pointsNR = 2)
-                groups(smat); add(smat, 61)
-                val vh = Competition(id = "S${s}VHT", name = "Vijay Hazare Trophy ${save.year}", key = "VHT", format = "ODI", kind = "DOMESTIC", season = s, knockout = "QF", pointsWin = 4, pointsDraw = 2, pointsNR = 2)
-                groups(vh); add(vh, 101)
-                // 5. Irani Cup: Ranji champions v Rest of India (fixture added when the Ranji final is decided)
-                val ir = Competition(id = "S${s}IRA", name = "Irani Cup ${save.year + 1}", key = "IRANI", format = "TEST", kind = "DOMESTIC", season = s, knockout = "NONE", series = true, pointsWin = 1, pointsDraw = 0)
-                ir.teams = mutableListOf(ROI)
-                save.league.add(ir)
-            }
-            IPL -> {
-                for (c in save.clubs.values.filter { it.kind == "FRANCHISE" && !it.isUser }) { Career.fillAiSquad(save, c); TeamSelector.autoPick(c, save.players) }
-                val ipl = Competition(id = "S${s}IPL", name = "Indian Premier League ${save.year}", key = "IPL", format = "T20", kind = "FRANCHISE", season = s, knockout = "IPL", allowImpact = true)
-                ipl.teams = Consts.IPL.map { it.id }.toMutableList()
-                iplSchedule(ipl, rnd)
-                // 2026: the official, verified IPL fixture list (dates / venues); other years stay generated
-                OfficialSchedule.applyIpl(ipl, save.year)
-                add(ipl, 1)
+            else -> {
+                ec.name = "ICC T20 World Cup ${save.year}"; ec.format = "T20"
+                ec.teams = Consts.NATIONS.map { it.id }.toMutableList()
+                val seeded = ec.teams.sortedByDescending { Career.strength(save, save.clubs[it]!!) }
+                val a = mutableListOf<String>(); val b = mutableListOf<String>()
+                seeded.forEachIndexed { i, id -> if (i % 4 == 0 || i % 4 == 3) a.add(id) else b.add(id) }
+                ec.groups = mutableListOf(a, b); ec.knockout = "SEMIS"
             }
         }
+        addComp(save, ec, offset + 1 + gap * 3)
+    }
+
+    private fun addDomestic(save: CareerSave, rnd: Random, offset: Int) {
+        refreshDomestic(save, rnd)
+        // 1. Duleep Trophy (zonal, first-class, 2025 knockout format)
+        val dul = Competition(id = "S${save.season}DUL", name = "Duleep Trophy ${save.year}", key = "DULEEP", format = "TEST", kind = "DOMESTIC", season = save.season, knockout = "DULEEP")
+        dul.teams = ZONE_IDS.values.toMutableList()
+        dul.fixtures.add(Fixture("${dul.id}-${dul.nextFixtureId++}", "Z_N", "Z_E", "Quarter-final 1", 0, offset))
+        dul.fixtures.add(Fixture("${dul.id}-${dul.nextFixtureId++}", "Z_C", "Z_NE", "Quarter-final 2", 0, offset))
+        pickZones(save); save.league.add(dul)
+        // 2-4. Ranji (4-day), SMAT (T20), Vijay Hazare (50 overs): 32 teams, 4 groups of 8, QF/SF/Final
+        fun groups(c: Competition) {
+            val seeded = STATES.map { it.id }.sortedByDescending { Career.strength(save, save.clubs[it]!!) }
+            val g = List(4) { mutableListOf<String>() }
+            seeded.forEachIndexed { i, id -> val r = i / 4; g[if (r % 2 == 0) i % 4 else 3 - i % 4].add(id) }
+            c.teams = seeded.toMutableList(); c.groups = g.toMutableList()
+        }
+        val ranji = Competition(id = "S${save.season}RAN", name = "Ranji Trophy ${save.year}-${(save.year + 1) % 100}", key = "RANJI", format = "TEST", kind = "DOMESTIC", season = save.season,
+            knockout = "QF", pointsWin = 6, pointsDraw = 1, pointsNR = 1)
+        groups(ranji); addComp(save, ranji, offset + 21)
+        val smat = Competition(id = "S${save.season}SMA", name = "Syed Mushtaq Ali Trophy ${save.year}", key = "SMAT", format = "T20", kind = "DOMESTIC", season = save.season, knockout = "QF", pointsWin = 4, pointsDraw = 2, pointsNR = 2)
+        groups(smat); addComp(save, smat, offset + 61)
+        val vh = Competition(id = "S${save.season}VHT", name = "Vijay Hazare Trophy ${save.year}", key = "VHT", format = "ODI", kind = "DOMESTIC", season = save.season, knockout = "QF", pointsWin = 4, pointsDraw = 2, pointsNR = 2)
+        groups(vh); addComp(save, vh, offset + 101)
+        // 5. Irani Cup: Ranji champions v Rest of India (fixture added when the Ranji final is decided)
+        val ir = Competition(id = "S${save.season}IRA", name = "Irani Cup ${save.year + 1}", key = "IRANI", format = "TEST", kind = "DOMESTIC", season = save.season, knockout = "NONE", series = true, pointsWin = 1, pointsDraw = 0)
+        ir.teams = mutableListOf(ROI)
+        save.league.add(ir)
+    }
+
+    private fun addIpl(save: CareerSave, rnd: Random) {
+        for (c in save.clubs.values.filter { it.kind == "FRANCHISE" && !it.isUser }) { Career.fillAiSquad(save, c); TeamSelector.autoPick(c, save.players) }
+        val ipl = Competition(id = "S${save.season}IPL", name = "Indian Premier League ${save.year}", key = "IPL", format = "T20", kind = "FRANCHISE", season = save.season, knockout = "IPL", allowImpact = true)
+        ipl.teams = Consts.IPL.map { it.id }.toMutableList()
+        iplSchedule(ipl, rnd)
+        // 2026: the official, verified IPL fixture list (dates / venues); other years stay generated
+        OfficialSchedule.applyIpl(ipl, save.year)
+        addComp(save, ipl, 1)
     }
 
     private fun withUser(list: List<String>, u: String, save: CareerSave): MutableList<String> {
@@ -358,7 +425,7 @@ object Modes {
             for (p in pool) { if (pick.size >= 16) break; pick.add(p.id) }
             roi.squad = pick.toMutableList(); roi.xi.clear(); roi.bowlers.clear(); TeamSelector.autoPick(roi, save.players)
             ir.teams = mutableListOf(champ, ROI)
-            if (champ == save.userClubId) ir.userTeam = champ
+            if (save.isManaged(champ)) ir.userTeam = champ
             val day = (save.league.flatMap { it.fixtures }.maxOfOrNull { it.day } ?: 150).coerceAtLeast(150) + 10
             ir.fixtures.add(Fixture("${ir.id}-${ir.nextFixtureId++}", champ, ROI, "Match 1", 0, day))
             save.addNews("Irani Cup set: Ranji champions ${save.clubs[champ]?.name} v Rest of India.")
@@ -367,27 +434,31 @@ object Modes {
 
     /** Mode-specific part of the end-of-season review (club careers use promotion/relegation instead). */
     fun endSeason(save: CareerSave, sum: MutableList<String>) {
-        val u = save.userClub(); val e = save.economy
+        val users = if (save.isMultiTeam) save.managedTeams() else listOf(save.userClub())
+        val e = save.economy
         for (comp in save.league) {
             if (comp.fixtures.isEmpty()) continue
             val a = save.awards.firstOrNull { it.season == save.season && it.comp == comp.name } ?: Stats.award(save, comp)
             val champ = comp.champion?.let { save.clubs[it]?.name } ?: a.champion.ifBlank { "-" }
             sum.add("${comp.name}: ${if (comp.series) "Series result - " else "Champions "}$champ. Top run-scorer ${save.players[a.orange]?.name ?: "-"} (${a.orangeRuns}), top wicket-taker ${save.players[a.purple]?.name ?: "-"} (${a.purpleWk}).")
-            if (comp.userTeam == u.id) {
-                if (comp.champion == u.id) {
-                    u.trophies.add("${comp.name}"); u.reputation = min(100, u.reputation + 8); u.balance += (if (save.mode == IPL) 20.0 else 5.0) * e
-                    sum.add(0, "🏆 ${u.name} won the ${comp.name}!")
-                } else if (!comp.series) {
-                    val t = if (comp.groups.size > 1) comp.groups.indices.flatMap { CompEngine.table(comp, it) } else CompEngine.table(comp)
-                    val pos = t.indexOfFirst { it.team == u.id }
-                    if (pos >= 0) sum.add("${u.name}: ${if (comp.groups.size > 1) "group stage" else "league"} position ${pos % (comp.groups.firstOrNull()?.size ?: 99) + 1}${if (comp.runnerUp == u.id) " - runners-up" else ""} in the ${comp.name}.")
-                }
+            val u = users.firstOrNull { it.id == comp.userTeam } ?: continue
+            if (comp.champion == u.id) {
+                u.trophies.add("${comp.name}"); u.reputation = min(100, u.reputation + 8); u.balance += (if (u.kind == "FRANCHISE") 20.0 else 5.0) * e
+                sum.add(0, "🏆 ${u.name} won the ${comp.name}!")
+            } else if (!comp.series) {
+                val t = if (comp.groups.size > 1) comp.groups.indices.flatMap { CompEngine.table(comp, it) } else CompEngine.table(comp)
+                val pos = t.indexOfFirst { it.team == u.id }
+                if (pos >= 0) sum.add("${u.name}: ${if (comp.groups.size > 1) "group stage" else "league"} position ${pos % (comp.groups.firstOrNull()?.size ?: 99) + 1}${if (comp.runnerUp == u.id) " - runners-up" else ""} in the ${comp.name}.")
             }
         }
-        val wins = save.league.flatMap { it.fixtures }.count { it.played && it.res?.winner == u.id }
-        val played = save.league.flatMap { it.fixtures }.count { it.played && (it.home == u.id || it.away == u.id) }
-        sum.add(0, "${u.name}: $wins wins from $played matches this season.")
-        save.boardRating = (save.boardRating + (if (played == 0) 0 else (wins * 100 / played - 45) / 3)).coerceIn(0, 100)
+        var allWins = 0; var allPlayed = 0
+        for (u in users) {
+            val wins = save.league.flatMap { it.fixtures }.count { it.played && it.res?.winner == u.id }
+            val played = save.league.flatMap { it.fixtures }.count { it.played && (it.home == u.id || it.away == u.id) }
+            allWins += wins; allPlayed += played
+            sum.add(0, "${u.name}: $wins wins from $played matches this season.")
+        }
+        save.boardRating = (save.boardRating + (if (allPlayed == 0) 0 else (allWins * 100 / allPlayed - 45) / 3)).coerceIn(0, 100)
         if (save.boardRating < 15) sum.add(0, "⚠ The board is unhappy with results (confidence ${save.boardRating}%).")
     }
 
@@ -407,8 +478,10 @@ object Modes {
     /** Keeps every national / state squad playable after retirements (min 16): real unattached players first, then labelled fictional ones. */
     fun maintainSquads(save: CareerSave, rnd: Random = Random.Default) {
         val target = 16
-        when (save.mode) {
-            INTL -> for (c in save.clubs.values.filter { it.kind == "NATION" }) {
+        val doIntl = save.mode == INTL || save.isMultiTeam
+        val doDomestic = save.mode == DOMESTIC || save.isMultiTeam
+        if (doIntl) {
+            for (c in save.clubs.values.filter { it.kind == "NATION" }) {
                 val added = mutableListOf<String>()
                 if (c.squad.size >= target) continue
                 val taken = save.clubs.values.filter { it.kind == "NATION" }.flatMap { it.squad }.toSet()
@@ -418,7 +491,9 @@ object Modes {
                 }
                 if (c.isUser && added.isNotEmpty()) save.addNews("Selectors called up ${added.joinToString()} to replace retired players.")
             }
-            DOMESTIC -> for (st in STATES) {
+        }
+        if (doDomestic) {
+            for (st in STATES) {
                 val c = save.clubs[st.id] ?: continue
                 if (c.squad.size >= target) continue
                 val before = c.squad.size
@@ -427,17 +502,17 @@ object Modes {
                 fillDomestic(save, c, target, rnd)
                 if (c.isUser) save.addNews("${c.name} squad topped up with ${c.squad.size - before} new player(s) for the new season.")
             }
-            else -> {}
         }
     }
 
     /** Players the user may add to their squad (international call-ups / domestic signings). */
-    fun selectionPool(save: CareerSave): List<GPlayer> {
-        val u = save.userClub()
-        return when (save.mode) {
-            INTL -> nationPool(save, u).filter { it.id !in u.squad }
-            DOMESTIC -> save.players.values.filter { it.country == "India" && !it.retired && !it.academy && it.id !in u.squad &&
-                (it.clubId.isEmpty() || save.clubs[it.clubId]?.kind == "DOMESTIC" && !it.clubId.startsWith("Z_") && it.clubId != ROI) }.sortedByDescending { it.overall() }
+    fun selectionPool(save: CareerSave, teamId: String = save.userClubId): List<GPlayer> {
+        val u = save.clubs[teamId] ?: save.userClub()
+        return when (u.kind) {
+            "NATION" -> nationPool(save, u).filter { it.id !in u.squad }
+            "DOMESTIC" -> save.players.values.filter { it.country == "India" && !it.retired && !it.academy && it.id !in u.squad &&
+                (it.clubId.isEmpty() || save.clubs[it.clubId]?.let { c -> c.kind == "DOMESTIC" && !it.clubId.startsWith("Z_") && it.clubId != ROI } == true ||
+                    (save.isMultiTeam && save.clubs[it.clubId]?.kind == "FRANCHISE")) }.sortedByDescending { it.overall() }
             else -> emptyList()
         }
     }
@@ -445,18 +520,20 @@ object Modes {
     fun maxSquad(save: CareerSave) = 25   // v2.5 Phase E: tournament squads are 18-25 (national / state pools may hold 25)
 
     /** Adds a player to the user's national/state squad. Domestic: unattached players join freely, players of other states count as 'guest professionals' (max 3). */
-    fun callUp(save: CareerSave, pid: String): String {
-        val u = save.userClub(); val p = save.players[pid] ?: return "Unknown player"
+    fun callUp(save: CareerSave, pid: String, teamId: String = save.userClubId): String {
+        val u = save.clubs[teamId] ?: save.userClub(); val p = save.players[pid] ?: return "Unknown player"
         if (u.squad.size >= maxSquad(save)) return "Squad is full (${maxSquad(save)} max). Release someone first."
         if (pid in u.squad) return "${p.name} is already in the squad."
-        if (save.mode == DOMESTIC) {
-            if (p.clubId.isNotEmpty() && p.clubId != u.id) {
+        if (u.kind == "DOMESTIC") {
+            val other = save.clubs[p.clubId]
+            if (p.clubId.isNotEmpty() && p.clubId != u.id && other?.kind == "DOMESTIC") {
                 if (save.guestPros >= 3) return "You already used all 3 guest-professional signings."
-                save.clubs[p.clubId]?.let { o -> o.squad.remove(pid); o.xi.remove(pid); o.bowlers.remove(pid); if (o.squad.size < 15) fillDomestic(save, o, 15, Random.Default) }
+                other.squad.remove(pid); other.xi.remove(pid); other.bowlers.remove(pid); if (other.squad.size < 15) fillDomestic(save, other, 15, Random.Default)
                 save.guestPros++
                 Social.post(save, Social.OFFICIAL, "TRANSFER: ${p.name} joins ${u.name} as a guest professional. #${u.short}", "TRANSFER", 300 + p.overall() * 20, Random.Default)
-            }
-            p.clubId = u.id
+                p.clubId = u.id
+            } else if (p.clubId.isEmpty()) p.clubId = u.id
+            // Franchise-contracted players keep their IPL contract; the state side only adds them to its squad.
             p.history.add("Season ${save.season}: Joined ${u.name}")
         } else Social.post(save, Social.OFFICIAL, "SQUAD: ${p.name} receives a call-up to the ${u.name} squad! #${u.short}", "TRANSFER", 500 + p.overall() * 30, Random.Default)
         u.squad.add(pid)
@@ -464,12 +541,12 @@ object Modes {
         return "${p.name} added to the squad."
     }
 
-    fun drop(save: CareerSave, pid: String): String {
-        val u = save.userClub(); val p = save.players[pid] ?: return "Unknown player"
+    fun drop(save: CareerSave, pid: String, teamId: String = save.userClubId): String {
+        val u = save.clubs[teamId] ?: save.userClub(); val p = save.players[pid] ?: return "Unknown player"
         if (u.squad.size <= 13) return "A squad needs at least 13 players."
         u.squad.remove(pid); u.xi.remove(pid); u.bowlers.remove(pid)
         if (u.captain == pid) u.captain = ""; if (u.vice == pid) u.vice = ""; if (u.keeper == pid) u.keeper = ""
-        if (save.mode == DOMESTIC && p.clubId == u.id) p.clubId = ""
+        if (u.kind == "DOMESTIC" && p.clubId == u.id) p.clubId = ""
         save.addNews("${p.name} left out of the ${u.name} squad.")
         return "${p.name} released from the squad."
     }

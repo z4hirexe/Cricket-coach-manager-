@@ -7,7 +7,7 @@ package com.cricketcoach.manager.game
  *  - fields added in v2.6 get safe defaults (Yorker state, comment ids for threaded replies, photo keys).
  */
 object SaveMigration {
-    const val CURRENT = 2
+    const val CURRENT = 3
 
     /** Id for the i-th pre-generated fan comment stored on post [postId]; far above save.nextId (user comments) so threads never collide. */
     fun storedCommentId(postId: Int, i: Int): Int = 600_000_000 + (postId % 50_000_000) * 24 + i.coerceAtMost(23)
@@ -18,7 +18,17 @@ object SaveMigration {
         if ((s.yorker as YorkerState?) == null) s.yorker = YorkerState()
         if ((s.stumps as StumpsState?) == null) s.stumps = StumpsState()
         if ((s.posts as MutableList<SocialPost>?) == null) s.posts = mutableListOf()
+        if ((s.managedTeamIds as MutableList<String>?) == null) s.managedTeamIds = mutableListOf()
+        if ((s.activeTeamId as String?) == null) s.activeTeamId = ""
         for (c in s.league) { if ((c.source as String?) == null) c.source = ""; for (f in c.fixtures) { if ((f.date as String?) == null) f.date = ""; if ((f.venue as String?) == null) f.venue = ""; if ((f.time as String?) == null) f.time = "" } }
+        // v2 -> v3: multi-team fields are additive. Single-team saves keep exactly the same active club and calendar.
+        if (s.activeTeamId.isBlank()) s.activeTeamId = s.userClubId
+        if (s.managedTeamIds.size > 1) {
+            s.multiCareer = true
+            for (id in s.managedTeamIds) s.clubs[id]?.isUser = true
+            if (s.activeTeamId !in s.managedTeamIds) s.setActiveTeam(s.managedTeamIds.first())
+        }
+        s.auction?.let { if ((it.teamId as String?) == null) it.teamId = ""; if (it.teamId.isBlank()) it.teamId = s.marketClub().id }
         if (s.dataVersion >= CURRENT) return s
         // v0/1 -> v2: give stored comments stable ids (threads / replies) and keep the total comment count consistent
         for (p in s.posts) {
