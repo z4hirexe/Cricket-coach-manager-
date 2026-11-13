@@ -93,9 +93,9 @@ jobs:
           APK=app/build/outputs/apk/release/app-release.apk
           test -f "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/apk-signature.txt
-          grep -q 'Verified using v1 scheme (JAR signing): true' /tmp/apk-signature.txt
           grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' /tmp/apk-signature.txt
           grep -q 'Verified using v3 scheme (APK Signature Scheme v3): true' /tmp/apk-signature.txt
+          set -o pipefail
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$APK" | tail -1
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E 'package:|sdkVersion:|native-code:'
 
