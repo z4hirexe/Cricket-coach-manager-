@@ -307,6 +307,8 @@ class ScreenPreviews {
 
     // ---- Mega phase H (v2.6 / Cricket Manager Pro 2027)
     @Test fun loading2027() { shot("200_loading.png", 2200) { Splash() } }
+    @Config(sdk = [34], qualifiers = "w411dp-h891dp-port-xxhdpi")
+    @Test fun loadingPortrait() { shot("225_loading_portrait.png", 2200) { Splash() } }
     @Test fun mainMenu2027() { val vm = vm(); shot("201_main_menu.png", 1500) { MainMenu(vm) } }
     @Config(sdk = [34], qualifiers = "w411dp-h891dp-port-xxhdpi")
     @Test fun mainMenuPortrait() { val vm = vm(); shot("202_main_menu_portrait.png", 1500) { MainMenu(vm) } }

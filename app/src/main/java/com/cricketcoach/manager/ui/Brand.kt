@@ -106,15 +106,15 @@ fun BrandStack(modifier: Modifier = Modifier, size: TextUnit = 22.sp, center: Bo
     }
 }
 
-/** Round portrait mark (original artwork, gold ring). */
+/** Compact game logo. Uses the supplied logo artwork unchanged (only scaled by the layout). */
 @Composable
 fun BrandMark(size: Dp = 36.dp, modifier: Modifier = Modifier) =
-    Image(painterResource(R.drawable.brand_mark), Brand.FULL, modifier.size(size))
+    Image(painterResource(R.drawable.logo_cmp), Brand.FULL, modifier.size(size), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
 
-/** Full logo artwork (portrait + lockup). */
+/** Full supplied game logo artwork (portrait + lockup). */
 @Composable
 fun BrandLogo(size: Dp, modifier: Modifier = Modifier) =
-    Image(painterResource(R.drawable.logo_cmp), Brand.FULL, modifier.size(size))
+    Image(painterResource(R.drawable.logo_cmp), Brand.FULL, modifier.size(size), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
 
 enum class DsKind { PRIMARY, SECONDARY, GHOST, DANGER }
 

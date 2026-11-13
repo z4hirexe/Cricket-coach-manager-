@@ -4,7 +4,7 @@ An offline-first **Android cricket management game** (Kotlin + Jetpack Compose) 
 You run a club in a 4-division league, build squads through auctions and transfers, pick XIs and tactics,
 watch matches ball-by-ball, and run international and IPL tournaments.
 
-Original game: the branding, UI, badges, mechanics and code are all original. Real franchise names are used, but no official logos.
+Original game: the UI, badges, mechanics and code are original. The game logo and loading-screen artwork are owner-supplied (see `design/user_provided/`) and must not be replaced with generated art. Real franchise names are used, but no official logos.
 
 ---
 

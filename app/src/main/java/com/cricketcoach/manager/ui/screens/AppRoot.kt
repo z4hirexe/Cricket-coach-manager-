@@ -1,24 +1,31 @@
 package com.cricketcoach.manager.ui.screens
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cricketcoach.manager.R
 import com.cricketcoach.manager.ui.*
 import kotlinx.coroutines.delay
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
 fun AppRoot(vm: GameVM) {
@@ -114,45 +121,42 @@ private val TIPS = listOf(
 private val STEPS = listOf("Loading player database", "Preparing squads", "Building the cricket calendar", "Warming up the commentators", "Rolling the pitch", "Switching on the floodlights")
 
 /**
- * Loading screen (v2.6): black studio with the original batter artwork (bat on shoulders, stadium rim light), the 2027
- * lockup, an animated progress bar with percentage, rotating cricket tips and a fade into the menu. The art is anchored
- * to the right so the subject stays in frame on tall phones and wide tablets alike.
+ * Loading screen: the user-supplied batter artwork is shown as-is (Fit, never redrawn or replaced). A small supplied
+ * game logo sits in the safe top corner; progress, status and tips stay in a bottom scrim so the photo remains visible
+ * on portrait phones, landscape phones and tablets. System-bar / cutout insets keep controls reachable.
  */
 @Composable
 fun Splash(loading: Boolean = true, onDone: () -> Unit = {}) {
-    val prog = remember { androidx.compose.animation.core.Animatable(0f) }
-    val fade = remember { androidx.compose.animation.core.Animatable(0f) }
-    val out = remember { androidx.compose.animation.core.Animatable(1f) }
+    val prog = remember { Animatable(0f) }
+    val fade = remember { Animatable(0f) }
+    val out = remember { Animatable(1f) }
     var tip by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { while (true) { delay(2600); tip = (tip + 1) % TIPS.size } }
-    LaunchedEffect(Unit) { fade.animateTo(1f, androidx.compose.animation.core.tween(900)) }
-    LaunchedEffect(Unit) { prog.animateTo(0.86f, androidx.compose.animation.core.tween(1900, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+    LaunchedEffect(Unit) { fade.animateTo(1f, tween(700)) }
+    LaunchedEffect(Unit) { prog.animateTo(0.86f, tween(1900, easing = FastOutSlowInEasing)) }
     LaunchedEffect(loading) {
         if (!loading) {
             while (prog.isRunning && prog.value < 0.86f) delay(30)
-            prog.animateTo(1f, androidx.compose.animation.core.tween(380)); delay(160)
-            out.animateTo(0f, androidx.compose.animation.core.tween(320)); onDone()
+            prog.animateTo(1f, tween(380)); delay(160)
+            out.animateTo(0f, tween(320)); onDone()
         }
     }
-    val drift = androidx.compose.animation.core.rememberInfiniteTransition(label = "drift")
-    val z by drift.animateFloat(1.0f, 1.05f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(16000), androidx.compose.animation.core.RepeatMode.Reverse), label = "z")
     BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black).graphicsLayer { alpha = out.value }) {
         val landscape = maxWidth > maxHeight
-        androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.cricketcoach.manager.R.drawable.loading_hero), null,
-            Modifier.fillMaxSize().graphicsLayer { alpha = fade.value; scaleX = z; scaleY = z; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.75f, 0.4f) },
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop, alignment = if (landscape) Alignment.CenterEnd else androidx.compose.ui.BiasAlignment(0.55f, 0f))
-        // keep the left side (logo + bar) readable: black falloff, no colour gradients
-        Box(Modifier.fillMaxSize().background(if (landscape) androidx.compose.ui.graphics.Brush.horizontalGradient(0f to Color(0xF2000000), 0.42f to Color(0xB3000000), 0.7f to Color(0x00000000))
-            else androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color(0x00000000), 0.55f to Color(0x66000000), 1f to Color(0xF2000000))))
         val p = prog.value
-        Column(Modifier.align(if (landscape) Alignment.CenterStart else Alignment.BottomCenter).padding(start = if (landscape) 40.dp else 24.dp, end = 24.dp, bottom = if (landscape) 0.dp else 40.dp)
-            .widthIn(max = 420.dp).graphicsLayer { alpha = fade.value }, horizontalAlignment = Alignment.Start) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BrandMark(46.dp)
-                Spacer(Modifier.width(12.dp))
-                BrandStack(size = if (landscape) 26.sp else 22.sp, center = false)
-            }
-            Spacer(Modifier.height(if (landscape) 28.dp else 20.dp))
+        // The supplied loading image is preserved in full: Fit avoids cropping the bat / gloves on narrow phones.
+        Image(painterResource(R.drawable.loading_hero), null,
+            Modifier.fillMaxSize().graphicsLayer { alpha = fade.value },
+            contentScale = ContentScale.Fit, alignment = Alignment.Center)
+        // Only a bottom scrim, so the supplied photo is not covered by a heavy side gradient.
+        Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(if (landscape) 132.dp else 176.dp)
+            .background(Brush.verticalGradient(0f to Color(0x00000000), 0.45f to Color(0xB3000000), 1f to Color(0xF2000000))))
+        BrandLogo(if (landscape) 64.dp else 76.dp,
+            Modifier.align(Alignment.TopStart).windowInsetsPadding(WindowInsets.displayCutout.union(WindowInsets.systemBars)).padding(14.dp).graphicsLayer { alpha = fade.value })
+        Column(Modifier.align(Alignment.BottomCenter).widthIn(max = 620.dp).fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.displayCutout.union(WindowInsets.systemBars))
+            .padding(horizontal = if (landscape) 28.dp else 20.dp, vertical = 12.dp).graphicsLayer { alpha = fade.value },
+            horizontalAlignment = Alignment.CenterHorizontally) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f).height(4.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp)).background(Color(0x26FFFFFF))) {
                     Box(Modifier.fillMaxWidth(p).fillMaxHeight().clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp)).background(DS.Gold))
@@ -162,7 +166,7 @@ fun Splash(loading: Boolean = true, onDone: () -> Unit = {}) {
             }
             Spacer(Modifier.height(6.dp))
             Text(STEPS[(p * (STEPS.size - 1)).toInt().coerceIn(0, STEPS.size - 1)].uppercase() + "…", color = DS.Sub, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.6.sp, maxLines = 1)
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.Top) {
                 Text("TIP", color = DS.GoldInk, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp)).background(DS.Gold).padding(horizontal = 5.dp, vertical = 1.dp))
                 Spacer(Modifier.width(8.dp))
@@ -170,9 +174,9 @@ fun Splash(loading: Boolean = true, onDone: () -> Unit = {}) {
                     Text(TIPS[i], color = DS.White.copy(alpha = 0.85f), fontSize = 12.sp, lineHeight = 16.sp, maxLines = 2)
                 }
             }
+            Spacer(Modifier.height(6.dp))
+            Text(Brand.EDITION.uppercase() + " • v" + Brand.VERSION, color = Color(0x66FFFFFF), fontSize = 9.sp, letterSpacing = 1.sp, maxLines = 1)
         }
-        Text(Brand.EDITION.uppercase() + " • v" + Brand.VERSION, color = Color(0x66FFFFFF), fontSize = 9.sp, letterSpacing = 1.sp,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 10.dp))
     }
 }
 
