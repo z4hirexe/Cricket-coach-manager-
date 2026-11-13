@@ -385,7 +385,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         // Stage 2: stop on the selection date (5 days before the opener) so the popup can open.
         if (stopForSelection) selectionStop(s, nextDay)?.let {
             val current = Schedule.today(s).toString()
-            s.selectionToday = maxOf(current, it.selectionDate)
+            s.selectionToday = if (s.day <= 0) it.selectionDate else maxOf(current, it.selectionDate)
             return DayOut.Selection(it.id)
         }
         s.selectionToday = ""
