@@ -669,7 +669,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
             /* The main score screen is separate from highlight playback. */
             if (!m.finished && outcomeRevealed && !animBusy && replayEv == null && panel == 0)
                 OverScoreDashboard(m, Modifier.align(Alignment.Center).padding(bottom = bottomH + 20.dp, top = 50.dp, start = 12.dp, end = 12.dp))
-            if (m.finished && outcomeRevealed && panel == 0)
+            if (m.finished && outcomeRevealed && panel == 0 && replayEv == null)
                 FinalScoreboard(m, s, onScorecard = { panel = 3 }, onContinue = { vm.leaveMatch() },
                     modifier = Modifier.align(Alignment.Center).padding(bottom = bottomH + 4.dp, top = 48.dp, start = 12.dp, end = 12.dp))
 
