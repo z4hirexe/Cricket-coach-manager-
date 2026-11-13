@@ -23,6 +23,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Slider
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
@@ -378,6 +381,11 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
     var chart by remember { mutableIntStateOf(0) }
     var wagonInn by remember { mutableIntStateOf(-1) }
     var speedX by remember { mutableIntStateOf(vm.settings.playSpeed.let { if (it in SPEEDS) it else 1 }) }
+    var soundOpen by remember { mutableStateOf(false) }
+    var soundMuted by remember { mutableStateOf(vm.settings.mute) }
+    var soundVolume by remember { mutableFloatStateOf(vm.settings.volume) }
+    var speechRate by remember { mutableFloatStateOf(vm.settings.voiceSpeed) }
+    var speechOn by remember { mutableStateOf(vm.settings.voice) }
     val dur = (vm.settings.simSpeedMs * 6 / speedX).coerceIn(500, 4200)
     /** v2.6 pause menu (Resume / Settings / Exit Match). There is no Back button during a match: system Back opens this menu. */
     var paused by remember { mutableStateOf(initialPaused) }
@@ -505,6 +513,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
                         }
                     }
                 }
+                ViewPill("SOUND", C.Gold, soundMuted) { soundOpen = true }
                 ViewPill("${speedX}x", C.Gold, speedX > 1) { speedX = SPEEDS[(SPEEDS.indexOf(speedX) + 1) % SPEEDS.size]; vm.settings.playSpeed = speedX }
                 (if (outcomeRevealed) m.winProbability() else null)?.let { wp ->
                     val chasing = inn?.let { m.club(it.batTeam).short } ?: ""
@@ -665,6 +674,32 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
                     modifier = Modifier.align(Alignment.Center).padding(bottom = bottomH + 4.dp, top = 48.dp, start = 12.dp, end = 12.dp))
 
         }
+        /* Sound controls are available without leaving the match. */
+        if (soundOpen) AlertDialog(onDismissRequest = { soundOpen = false }, containerColor = C.Surface,
+            title = { Text("MATCH AUDIO", color = C.Gold, fontWeight = FontWeight.Black) },
+            text = {
+                Column {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Master sound", Modifier.weight(1f), color = C.Text, fontWeight = FontWeight.Bold)
+                        OutlineBtn(if (soundMuted) "Unmute" else "Mute") {
+                            soundMuted = !soundMuted; vm.settings.mute = soundMuted; GameAudio.refresh(); vm.saveSettings()
+                        }
+                    }
+                    Text("Volume ${(soundVolume * 100).toInt()}%", color = C.Sub, fontSize = 12.sp)
+                    Slider(soundVolume, { soundVolume = it; vm.settings.volume = it; GameAudio.refresh() }, enabled = !soundMuted,
+                        onValueChangeFinished = { vm.saveSettings() })
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Spoken commentary", Modifier.weight(1f), color = C.Text, fontSize = 13.sp)
+                        OutlineBtn(if (speechOn) "On" else "Off") {
+                            speechOn = !speechOn; vm.settings.voice = speechOn; GameAudio.refresh(); vm.saveSettings()
+                        }
+                    }
+                    Text("Commentary speed ${"%.1f".format(speechRate)}×", color = C.Sub, fontSize = 12.sp)
+                    Slider(speechRate, { speechRate = it; vm.settings.voiceSpeed = it; GameAudio.refresh() }, valueRange = 0.65f..1.6f,
+                        enabled = speechOn && !soundMuted, onValueChangeFinished = { vm.saveSettings() })
+                }
+            },
+            confirmButton = { TextButton(onClick = { soundOpen = false }) { Text("DONE", color = C.Gold) } })
         /* ---- pause menu ---- */
         if (paused && !m.finished) PauseMenu(m, onResume = { paused = false }, onSettings = { paused = false; vm.nav(Screen.SettingsScr) }, onExit = { confirmExit = true })
         if (confirmExit) DsConfirm("Exit match?", "The match is kept exactly at this ball and your career is saved. Resume it any time from the Match Centre or the Calendar.",
