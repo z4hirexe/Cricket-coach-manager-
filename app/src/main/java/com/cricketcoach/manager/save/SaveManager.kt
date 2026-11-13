@@ -107,6 +107,7 @@ class Settings(ctx: Context) {
     var music: Boolean get() = sp.getBoolean("music", true); set(v) = sp.edit().putBoolean("music", v).apply()
     var crowd: Boolean get() = sp.getBoolean("crowd", true); set(v) = sp.edit().putBoolean("crowd", v).apply()
     var voice: Boolean get() = sp.getBoolean("voice", true); set(v) = sp.edit().putBoolean("voice", v).apply()
+    var voiceSpeed: Float get() = sp.getFloat("voiceSpeed", 1f); set(v) = sp.edit().putFloat("voiceSpeed", v.coerceIn(0.65f, 1.6f)).apply()
     /** Master volume 0..1 */
     var volume: Float get() = sp.getFloat("volume", 0.8f); set(v) = sp.edit().putFloat("volume", v).apply()
     var volCommentary: Float get() = sp.getFloat("volCom", 0.9f); set(v) = sp.edit().putFloat("volCom", v).apply()

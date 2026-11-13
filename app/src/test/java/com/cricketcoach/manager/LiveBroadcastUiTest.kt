@@ -45,7 +45,7 @@ class LiveBroadcastUiTest {
         vm.sim = m
         vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Live)
         compose.mainClock.autoAdvance = false     // the screen has looping animations (LIVE dot, on-air meter)
-        compose.setContent { CcmTheme { LiveMatchScreen(vm) } }
+        compose.setContent { CcmTheme { LiveMatchScreen(vm, showLoading = false) } }
         compose.mainClock.advanceTimeBy(500)
         return vm to m
     }
@@ -53,12 +53,14 @@ class LiveBroadcastUiTest {
 
     @Test fun railControlsDriveTheMatch() {
         val (vm, m) = setup("T20")
-        // Ball
-        tap("Ball"); assertEquals(1, m.events.size)
+        // No ball-by-ball control: one tap plays the whole over and keeps the ball history.
+        compose.onAllNodesWithContentDescription("Ball").assertCountEquals(0)
         compose.onNodeWithContentDescription("Over").assertIsEnabled()
-        // Over: completes the current over
         val b0 = m.cur!!.balls
-        tap("Over"); assertTrue("over played: $b0 -> ${m.cur!!.balls}", m.cur!!.balls >= b0 + 5 || m.innings.size > 1)
+        tap("Over"); compose.mainClock.advanceTimeBy(8000)
+        assertTrue("over played: $b0 -> ${m.cur!!.balls}", m.cur!!.balls >= b0 + 6 || m.innings.size > 1)
+        assertTrue(m.events.size >= 6)
+        tap("History"); compose.onNodeWithText("BALL HISTORY").assertExists(); tap("History")
         // Approach
         tap("Attack"); assertEquals(2, m.club("N_IND").aggression)
         tap("Defend"); assertEquals(0, m.club("N_IND").aggression)
@@ -83,7 +85,7 @@ class LiveBroadcastUiTest {
         compose.onNodeWithText("FULL TIME").assertExists()
         compose.onNodeWithText("Continue", ignoreCase = true).assertExists()
         // Ball is disabled once the match is over
-        compose.onNodeWithContentDescription("Ball").assertIsNotEnabled()
+        compose.onAllNodesWithContentDescription("Ball").assertCountEquals(0)
     }
 
     @Test fun declareAndTestScoreboard() {
@@ -104,7 +106,7 @@ class LiveBroadcastUiTest {
     /** v2.6: no Back mid-match - the pause menu offers Resume / Settings / Exit match; exit asks first and loses nothing. */
     @Test fun pauseMenuResumeAndConfirmedExit() {
         val (vm, m) = setup("T20")
-        tap("Ball"); tap("Ball")
+        tap("Over"); compose.mainClock.advanceTimeBy(8000)
         val balls = m.events.size
         tap("Pause menu")
         compose.onNodeWithText("MATCH PAUSED").assertExists()

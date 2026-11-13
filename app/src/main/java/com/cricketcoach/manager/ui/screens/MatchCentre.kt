@@ -3,6 +3,7 @@ package com.cricketcoach.manager.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -182,28 +183,26 @@ fun PreMatchScreen(vm: GameVM, initialTab: Int = 0) {
 
     ScreenScaffold(vm, "Match Centre") {
         MatchHeader(s, comp, fx, m)
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-            val wide = maxWidth >= 700.dp
-            val tabs = listOf("Team Sheet", "Batting Order", "Bowling Plan", "Match Info", "Opponent") + if (wide) emptyList() else listOf("Start")
-            Row(Modifier.fillMaxSize()) {
-                Column(Modifier.weight(1f).fillMaxHeight()) {
-                    TabStrip(tabs, tab) { tab = it }
-                    Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp)) {
-                        if (!regOk && tab in 0..2) RegistrationGate(vm, comp)
-                        else when (tabs[tab.coerceIn(0, tabs.size - 1)]) {
-                            "Team Sheet" -> TeamSheetTab(vm, s, comp, myClub, started, edit)
-                            "Batting Order" -> BattingOrderTab(vm, s, comp, myClub, started, edit)
-                            "Bowling Plan" -> BowlingPlanTab(vm, s, comp, myClub, started, edit)
-                            "Match Info" -> MatchInfoTab(s, comp, fx, m, myClub, opp)
-                            "Opponent" -> OpponentTab(vm, s, comp, opp, m)
-                            else -> Column(Modifier.verticalScroll(rememberScrollState())) { StartPanel(vm, s, comp, myClub, m, tossState) { tossState = it } }
-                        }
+        val tabs = listOf("Playing XI", "Batting Order", "Bowling Plan", "Match Info", "Opponent", "Toss & Start")
+        Column(Modifier.weight(1f).fillMaxWidth()) {
+            TabStrip(tabs, tab) { tab = it }
+            Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp)) {
+                if (!regOk && tab in 0..2) RegistrationGate(vm, comp)
+                else when (tabs[tab.coerceIn(0, tabs.size - 1)]) {
+                    "Playing XI" -> TeamSheetTab(vm, s, comp, myClub, started, edit)
+                    "Batting Order" -> BattingOrderTab(vm, s, comp, myClub, started, edit)
+                    "Bowling Plan" -> BowlingPlanTab(vm, s, comp, myClub, started, edit)
+                    "Match Info" -> MatchInfoTab(s, comp, fx, m, myClub, opp)
+                    "Opponent" -> OpponentTab(vm, s, comp, opp, m)
+                    else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(8.dp)) {
+                        StartPanel(vm, s, comp, myClub, m, tossState) { tossState = it }
                     }
                 }
-                if (wide) Column(Modifier.width(262.dp).fillMaxHeight().background(Color(0xE60A1228)).drawBehind { drawLine(Color(0x553D5A99), Offset(0f, 0f), Offset(0f, size.height), 2f) }
-                    .verticalScroll(rememberScrollState()).padding(10.dp)) {
-                    StartPanel(vm, s, comp, myClub, m, tossState) { tossState = it }
-                }
+            }
+            if (tab < tabs.lastIndex) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp), horizontalArrangement = Arrangement.End) {
+                if (tab > 0) OutlineBtn("Back") { tab-- }
+                Spacer(Modifier.width(8.dp))
+                GoldButton("Next · ${tabs[tab + 1]}") { tab++ }
             }
         }
     }
@@ -211,7 +210,7 @@ fun PreMatchScreen(vm: GameVM, initialTab: Int = 0) {
 
 @Composable
 private fun TabStrip(tabs: List<String>, sel: Int, onSel: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().height(36.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().height(36.dp).horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         tabs.forEachIndexed { i, name ->
             val on = i == sel
             Column(Modifier.fillMaxHeight().clickable { GameAudio.click(); onSel(i) }.padding(horizontal = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -287,7 +286,7 @@ private fun StartPanel(vm: GameVM, s: CareerSave, comp: Competition, c: Club, m:
     Step(1, "Tournament squad", regOk,
         when { rule == null -> "No registration needed"; !regOk -> "Register ${rule.sizeText()} before the first match"
             else -> "${comp.reg.size} registered${if (Registration.locked(s, comp)) " · LOCKED" else " · open until match 1"}" }) {
-        if (rule != null) Pill(if (regOk) "View" else "Register", !regOk) { vm.nav(Screen.SquadRegistration(comp.id)) }
+        if (rule != null) Pill(if (regOk) "View" else "Register", !regOk) { vm.nav(Screen.SeriesSelection(comp.id)) }
     }
     val xiOk = regOk && c.xi.size == 11 && errors.none { it.startsWith("Pick") || it.startsWith("Injured") || it.startsWith("Not reg") || it.startsWith("No longer") || it.startsWith("Max 4") }
     Step(2, "Playing XI", xiOk, if (!regOk) "Waiting for registration" else "${c.xi.size}/11 selected")
@@ -339,7 +338,7 @@ private fun RegistrationGate(vm: GameVM, comp: Competition) {
             "The squad locks once match 1 is played; afterwards only injured or departed players can be replaced (${r.replacements} replacements).",
             color = C.Sub, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 460.dp))
         Spacer(Modifier.height(10.dp))
-        GoldButton("Register squad", Modifier.width(220.dp)) { vm.nav(Screen.SquadRegistration(comp.id)) }
+        GoldButton("Register squad", Modifier.width(220.dp)) { vm.nav(Screen.SeriesSelection(comp.id)) }
     }
 }
 

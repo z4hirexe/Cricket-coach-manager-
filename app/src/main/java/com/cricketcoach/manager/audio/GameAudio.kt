@@ -37,6 +37,7 @@ object GameAudio {
     private var ttsReady = false
     private var scene = Scene.NONE
     private var paused = false
+    private var poolPaused = false
     private var lastClick = 0L
 
     /** Bind the device-local settings to the mixer. */
@@ -127,7 +128,7 @@ object GameAudio {
      */
     fun speakAs(text: String, lang: String, caster: com.cricketcoach.manager.game.Caster?, flush: Boolean) {
         val v = channel("voice")
-        if (settings == null || !ttsReady || paused || v <= 0.01f) return
+        if (settings == null || settings?.voice != true || !ttsReady || paused || v <= 0.01f) return
         val t = tts ?: return
         try {
             val l = if (lang == "HI") "HI" else "EN"
@@ -149,8 +150,8 @@ object GameAudio {
                     val chosen = (if (caster.female) femaleHint.firstOrNull() ?: voices.getOrNull(0) else maleHint.firstOrNull() ?: voices.getOrNull(1) ?: voices.getOrNull(0))
                     if (chosen != null) t.voice = chosen
                 }
-                t.setPitch(caster.pitch); t.setSpeechRate(caster.rate)
-            } else { t.setPitch(1f); t.setSpeechRate(1f) }
+                t.setPitch(caster.pitch); t.setSpeechRate(caster.rate * (settings?.voiceSpeed ?: 1f))
+            } else { t.setPitch(1f); t.setSpeechRate(settings?.voiceSpeed ?: 1f) }
             val b = android.os.Bundle().apply { putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, v.coerceIn(0f, 1f)) }
             t.speak(text, if (flush) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD, b, "ccm${System.nanoTime()}")
         } catch (_: Exception) { }
@@ -243,7 +244,12 @@ object GameAudio {
     private fun loop(c: Context, res: Int): MediaPlayer? = try { MediaPlayer.create(c, res)?.apply { isLooping = true } } catch (_: Exception) { null }
 
     fun refresh() {
-        settings ?: return
+        val st = settings ?: return
+        // Cancel queued speech whenever settings change so mute/volume take effect immediately.
+        tts?.stop()
+        val shouldPause = paused || st.mute
+        if (shouldPause && !poolPaused) { pool?.autoPause(); poolPaused = true }
+        else if (!shouldPause && poolPaused) { pool?.autoResume(); poolPaused = false }
         val c = ctx ?: return
         val wantRes = when (scene) { Scene.MENU -> R.raw.music_theme; Scene.AUCTION -> R.raw.music_auction; else -> 0 }
         val wantMusic = !paused && channel("music") > 0.01f && wantRes != 0

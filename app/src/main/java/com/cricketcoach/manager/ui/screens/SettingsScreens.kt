@@ -254,7 +254,7 @@ private fun AudioPanel(vm: GameVM) {
     @Composable fun ch(label: String, get: () -> Float, set: (Float) -> Unit, muted: () -> Boolean, setMute: (Boolean) -> Unit, test: () -> Unit) {
         var v by remember { mutableFloatStateOf(get()) }
         var m by remember { mutableStateOf(muted()) }
-        DsVolumeRow(label, v, m, enabled = !master, onValue = { v = it; set(it); GameAudio.refresh() }, onDone = { test(); vm.saveSettings() },
+        DsVolumeRow(label, v, m, enabled = label == "Master" || !master, onValue = { v = it; set(it); GameAudio.refresh() }, onDone = { test(); vm.saveSettings() },
             onMute = { m = it; setMute(it); GameAudio.refresh(); vm.saveSettings() })
     }
     Group("Mixer", "Music is controlled only here.") {
@@ -266,6 +266,12 @@ private fun AudioPanel(vm: GameVM) {
         ch("Bat & Ball", { st.volBat }, { st.volBat = it }, { st.muteBat }, { st.muteBat = it }) { GameAudio.play("batbig") }
         ch("Music", { st.volMusic }, { st.volMusic = it }, { st.muteMusic }, { st.muteMusic = it; if (!it) st.music = true }) { }
         ch("Menu SFX", { st.volUi }, { st.volUi = it }, { st.muteUi }, { st.muteUi = it }) { GameAudio.play("gavel") }
+    }
+    var speechSpeed by remember { mutableFloatStateOf(st.voiceSpeed) }
+    Group("Commentary speed", "Adjust spoken commentary separately from match playback.") {
+        RowLabel("Voice speed ${"%.1f".format(speechSpeed)}×", "Slower ←  → Faster")
+        Slider(speechSpeed, { speechSpeed = it; st.voiceSpeed = it; GameAudio.refresh() }, valueRange = 0.65f..1.6f,
+            onValueChangeFinished = { vm.saveSettings() }, colors = SliderDefaults.colors(thumbColor = DS.Gold, activeTrackColor = DS.Gold, inactiveTrackColor = DS.Line))
     }
     var react by remember { mutableStateOf(st.crowdReact) }
     Group("Atmosphere") {
