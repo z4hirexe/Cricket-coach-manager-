@@ -146,7 +146,6 @@ class GameVM(app: Application) : AndroidViewModel(app) {
             sm.write(meta, json)
             val list = sm.list()
             withContext(Dispatchers.Main) { saves = list }
-            syncInBackground()
         }
     }
 
@@ -157,7 +156,6 @@ class GameVM(app: Application) : AndroidViewModel(app) {
             sm.write(meta, json)
             val list = sm.list()
             withContext(Dispatchers.Main) { saves = list; toast = "Game saved to slot ${s.slot}" }
-            syncInBackground()
         }
     }
 

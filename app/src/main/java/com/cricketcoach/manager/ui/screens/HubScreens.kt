@@ -132,7 +132,7 @@ fun MenuButton(title: String, sub: String, icon: ImageVector, primary: Boolean =
 private fun LocalSaveChip(modifier: Modifier) {
     Row(modifier.clip(RoundedCornerShape(24.dp)).background(Color(0xCC0A1224)).border(1.dp, DS.Line, RoundedCornerShape(24.dp))
         .padding(start = 10.dp, end = 14.dp, top = 7.dp, bottom = 7.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Filled.Save, null, tint = DS.Gold, modifier = Modifier.size(16.dp))
+        Icon(Icons.Filled.CheckCircle, null, tint = DS.Gold, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(8.dp))
         Column {
             Text("Local career", color = DS.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)

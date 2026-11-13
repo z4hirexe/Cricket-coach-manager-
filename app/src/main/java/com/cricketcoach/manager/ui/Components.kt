@@ -244,12 +244,12 @@ fun Badge(short: String, primary: Long, secondary: Long, logo: Int = 0, size: Dp
     val light = p.copy(alpha = 1f).brighten(0.18f)
     val dark = p.brighten(-0.22f)
     val body = Brush.verticalGradient(listOf(light, p, dark))
-    val rim = Stroke(width = 0f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    fun rim(width: Float) = Stroke(width, cap = StrokeCap.Round, join = StrokeJoin.Round)
     Box(Modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val w = this.size.width; val h = this.size.height
             val stroke = w * 0.055f
-            fun outline(path: Path) { drawPath(path, body); drawPath(path, s, style = rim.copy(width = stroke)); drawPath(path, Color.White.copy(alpha = 0.10f), style = rim.copy(width = stroke * 0.4f)) }
+            fun outline(path: Path) { drawPath(path, body); drawPath(path, s, style = rim(stroke)); drawPath(path, Color.White.copy(alpha = 0.10f), style = rim(stroke * 0.4f)) }
             when (logo % 8) {
                 0 -> { // heraldic shield with a chief band
                     val path = Path().apply { moveTo(w * 0.12f, h * 0.10f); lineTo(w * 0.88f, h * 0.10f); lineTo(w * 0.88f, h * 0.50f); quadraticBezierTo(w * 0.88f, h * 0.82f, w * 0.50f, h * 0.95f); quadraticBezierTo(w * 0.12f, h * 0.82f, w * 0.12f, h * 0.50f); close() }
@@ -257,7 +257,7 @@ fun Badge(short: String, primary: Long, secondary: Long, logo: Int = 0, size: Dp
                     drawRect(s.copy(alpha = 0.30f), Offset(w * 0.12f, h * 0.10f), Size(w * 0.76f, h * 0.14f))
                 }
                 1 -> { // roundel crest: concentric rings
-                    drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f); drawCircle(s.copy(alpha = 0.55f), w * 0.34f, style = rim.copy(width = stroke * 0.6f))
+                    drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f); drawCircle(s.copy(alpha = 0.55f), w * 0.34f, style = rim(stroke * 0.6f))
                 }
                 2 -> { // star within a roundel
                     drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f)
@@ -275,7 +275,7 @@ fun Badge(short: String, primary: Long, secondary: Long, logo: Int = 0, size: Dp
                 }
                 4 -> { // cricket ball with seam
                     drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f)
-                    drawArc(s.copy(alpha = 0.8f), 110f, 140f, false, Offset(w * 0.20f, h * 0.10f), Size(w * 0.60f, h * 0.80f), style = rim.copy(width = stroke * 0.7f))
+                    drawArc(s.copy(alpha = 0.8f), 110f, 140f, false, Offset(w * 0.20f, h * 0.10f), Size(w * 0.60f, h * 0.80f), style = rim(stroke * 0.7f))
                     for (i in 0..4) { val t = 0.30f + i * 0.10f; drawLine(s.copy(alpha = 0.6f), Offset(w * (t - 0.02f), h * (0.5f - 0.18f)), Offset(w * (t + 0.02f), h * (0.5f - 0.14f)), stroke * 0.4f) }
                 }
                 5 -> { // crown on a shield
@@ -288,7 +288,7 @@ fun Badge(short: String, primary: Long, secondary: Long, logo: Int = 0, size: Dp
                     val path = Path(); for (i in 0 until 6) { val a = Math.toRadians((i * 60 - 90).toDouble()); val x = w / 2 + w * 0.48f * cos(a).toFloat(); val y = h / 2 + h * 0.48f * sin(a).toFloat(); if (i == 0) path.moveTo(x, y) else path.lineTo(x, y) }
                     path.close(); outline(path)
                     val inner = Path(); for (i in 0 until 6) { val a = Math.toRadians((i * 60 - 90).toDouble()); val x = w / 2 + w * 0.36f * cos(a).toFloat(); val y = h / 2 + h * 0.36f * sin(a).toFloat(); if (i == 0) inner.moveTo(x, y) else inner.lineTo(x, y) }
-                    inner.close(); drawPath(inner, s.copy(alpha = 0.4f), style = rim.copy(width = stroke * 0.5f))
+                    inner.close(); drawPath(inner, s.copy(alpha = 0.4f), style = rim(stroke * 0.5f))
                 }
                 else -> { // three stumps + bails on a roundel
                     drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f)
