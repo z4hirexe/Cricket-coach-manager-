@@ -8,12 +8,12 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
         applicationId = "com.cricketcoach.manager"
         minSdk = 26
         targetSdk = 34
-        versionCode = 22
-        versionName = "2.6.0-beta6"
+        versionCode = 23
+        versionName = "2.6.0-beta7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -23,6 +23,9 @@ android {
     // previous version without a signature conflict. Local builds without the key fall back to unsigned.
     signingConfigs {
         create("release") {
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
             val ksPath = System.getenv("SIGNING_KEYSTORE_PATH")
             if (!ksPath.isNullOrBlank() && file(ksPath).exists()) {
                 storeFile = file(ksPath)

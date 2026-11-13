@@ -47,7 +47,7 @@ object Brand {
     const val FULL = "$NAME $YEAR$TM"
     const val EDITION = "Beta"
     /** Shown in the menu / About; keep in sync with app/build.gradle.kts versionName. */
-    const val VERSION = "2.6.0-beta6"
+    const val VERSION = "2.6.0-beta7"
     const val TAGLINE = "Manage \u2022 Compete \u2022 Make History"
     /** Careers start in the 2026 season; the product brand stays 2027. */
     const val CAREER_START = 2026
@@ -119,10 +119,12 @@ fun BrandLogo(size: Dp, modifier: Modifier = Modifier, framed: Boolean = true) {
     if (framed) {
         Box(base.shadow(size * 0.06f, shape, clip = false).clip(shape).background(DS.Navy3)
             .border(1.dp, DS.Gold.copy(alpha = 0.55f), shape)) {
-            Image(painterResource(R.drawable.logo_cmp), Brand.FULL, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+            Image(painterResource(R.drawable.logo_cmp), Brand.FULL, Modifier.fillMaxSize().padding(size * 0.075f), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
         }
     } else {
-        Image(painterResource(R.drawable.logo_cmp), Brand.FULL, base.clip(shape), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+        Box(base.clip(shape).background(DS.Navy3)) {
+            Image(painterResource(R.drawable.logo_cmp), Brand.FULL, Modifier.fillMaxSize().padding(size * 0.075f), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
+        }
     }
 }
 
