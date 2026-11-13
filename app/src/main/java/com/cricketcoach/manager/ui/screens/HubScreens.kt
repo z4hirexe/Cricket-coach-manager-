@@ -67,7 +67,7 @@ fun MainMenu(vm: GameVM) {
         Box(Modifier.fillMaxSize().background(Color(0x99060B1A)))
         Box(Modifier.fillMaxSize().background(if (landscape) Brush.horizontalGradient(0f to Color(0x33060B1A), 0.55f to Color(0xB3060B1A), 1f to Color(0xF2060B1A))
             else Brush.verticalGradient(0f to Color(0x33060B1A), 0.45f to Color(0xA6060B1A), 1f to Color(0xF5060B1A))))
-        AccountChip(vm, Modifier.align(Alignment.TopStart).windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start)).padding(start = 14.dp, top = 10.dp))
+        LocalSaveChip(Modifier.align(Alignment.TopStart).windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start)).padding(start = 14.dp, top = 10.dp))
         Text("v${Brand.VERSION}", color = DS.Muted, fontSize = 10.sp, modifier = Modifier.align(Alignment.TopEnd).windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.End)).padding(top = 12.dp, end = 16.dp))
         val a = enter.value
         if (landscape) {
@@ -100,7 +100,7 @@ fun MainMenu(vm: GameVM) {
 @Composable
 private fun MenuButtons(vm: GameVM, lastSub: String?) {
     MenuButton("NEW GAME", if (vm.save != null || lastSub != null) "Continue or start a career" else "Start your first career", Icons.Filled.PlayArrow, primary = true) { vm.nav(Screen.NewGame) }
-    MenuButton("LOAD GAME", lastSub ?: "Career slots & cloud saves", Icons.Filled.List) { vm.nav(Screen.Career) }
+    MenuButton("LOAD GAME", lastSub ?: "Career slots on this device", Icons.Filled.List) { vm.nav(Screen.Career) }
     MenuButton("SETTINGS", "Audio • graphics • display • data", Icons.Filled.Settings) { vm.nav(Screen.SettingsScr) }
     MenuButton("ABOUT", "Version, credits & data sources", Icons.Filled.Info) { vm.nav(Screen.About) }
 }
@@ -129,15 +129,14 @@ fun MenuButton(title: String, sub: String, icon: ImageVector, primary: Boolean =
 }
 
 @Composable
-private fun AccountChip(vm: GameVM, modifier: Modifier) {
+private fun LocalSaveChip(modifier: Modifier) {
     Row(modifier.clip(RoundedCornerShape(24.dp)).background(Color(0xCC0A1224)).border(1.dp, DS.Line, RoundedCornerShape(24.dp))
-        .clickable { GameAudio.click(); vm.nav(if (vm.signedIn) Screen.Account else Screen.Login) }.padding(start = 4.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically) {
-        Avatar(vm.avatar, vm.profile?.username ?: "G", 28.dp)
+        .padding(start = 10.dp, end = 14.dp, top = 7.dp, bottom = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Filled.Save, null, tint = DS.Gold, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(8.dp))
         Column {
-            Text(if (vm.signedIn) (vm.profile?.displayName?.ifBlank { null } ?: vm.profile?.username ?: vm.email) else "Guest • Log in", color = DS.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
-            Text("Lv ${vm.level} • ${vm.coins} coins", color = DS.Sub, fontSize = 10.sp, maxLines = 1)
+            Text("Local career", color = DS.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
+            Text("3 slots • saved on this device", color = DS.Sub, fontSize = 10.sp, maxLines = 1)
         }
     }
 }
@@ -176,7 +175,7 @@ fun NewGameScreen(vm: GameVM) {
                 )
                 if (wide) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { cards.forEach { it(Modifier.weight(1f)) } }
                 else cards.forEach { it(Modifier.fillMaxWidth()) }
-                Text(if (vm.signedIn) "Signed in: 3 career slots, saved to your account." else "Guest: 1 temporary slot on this phone. Log in for 3 permanent slots.",
+                Text("Three career slots are saved locally on this device. No account or internet is required.",
                     color = DS.Muted, fontSize = 11.sp)
             }
         }

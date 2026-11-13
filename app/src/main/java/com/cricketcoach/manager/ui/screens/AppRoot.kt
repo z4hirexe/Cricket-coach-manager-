@@ -37,7 +37,6 @@ fun AppRoot(vm: GameVM) {
             else -> {
                 val s = vm.screen
                 val needsSave = s !is Screen.Main && s !is Screen.Career && s !is Screen.NewCareer && s !is Screen.SettingsScr && s !is Screen.Database && s !is Screen.Profile &&
-                    s !is Screen.Login && s !is Screen.SignUp && s !is Screen.Forgot && s !is Screen.ResetPassword && s !is Screen.Account &&
                     s !is Screen.CareerType && s !is Screen.ChooseTeam && s !is Screen.NewTeam && s !is Screen.Social && s !is Screen.About && s !is Screen.NewGame
                 val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
                 if (needsSave && vm.save == null) { LaunchedEffect(Unit) { vm.goHome() } }
@@ -46,7 +45,6 @@ fun AppRoot(vm: GameVM) {
             }
         }
         if (vm.busy) BusyOverlay()
-        if (vm.guestImportOffer.isNotEmpty()) GuestImportDialog(vm)
         val t = vm.toast
         if (t != null) {
             LaunchedEffect(t) { delay(3200); if (vm.toast == t) vm.toast = null }
@@ -80,11 +78,6 @@ private fun Screens(vm: GameVM, s: Screen) {
             is Screen.Finances -> FinancesScreen(vm)
             is Screen.SettingsScr -> SettingsScreen(vm)
             is Screen.SeasonSummary -> SeasonSummaryScreen(vm)
-            is Screen.Login -> LoginScreen(vm)
-            is Screen.SignUp -> SignUpScreen(vm)
-            is Screen.Forgot -> ForgotScreen(vm)
-            is Screen.ResetPassword -> ResetPasswordScreen(vm)
-            is Screen.Account -> AccountScreen(vm)
             is Screen.CareerType -> CareerTypeScreen(vm)
             is Screen.ChooseTeam -> ChooseTeamScreen(vm, scr.mode)
             is Screen.NewTeam -> NewTeamScreen(vm)

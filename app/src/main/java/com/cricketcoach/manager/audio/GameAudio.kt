@@ -39,7 +39,7 @@ object GameAudio {
     private var paused = false
     private var lastClick = 0L
 
-    /** Switch to another account's settings (each user has their own mixer). */
+    /** Bind the device-local settings to the mixer. */
     fun bind(s: Settings) { settings = s; refresh() }
 
     fun init(c: Context, s: Settings) {

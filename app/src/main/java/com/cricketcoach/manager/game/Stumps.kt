@@ -40,7 +40,7 @@ class PlayerAccount(
  *    hundreds / five-fors, fan-base size of the country, current IPL contract) and are labelled ESTIMATED.
  *  - Players post automatically after wins, losses, 50s, 100s, five-fors, hat-tricks, auction signings, transfers,
  *    trophies and career milestones; engagement scales with the performance and with the player's popularity.
- *  - Fully offline; the online (Supabase) manager feed is separate and unchanged.
+ *  - Fully offline and device-local; there is no online feed or user account system.
  */
 object Stumps {
     const val ESTIMATE_NOTE = "Follower counts are in-game estimates from each player's profile and popularity - not real, verified data."

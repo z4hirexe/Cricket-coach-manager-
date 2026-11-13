@@ -33,7 +33,7 @@ import com.cricketcoach.manager.ui.*
 /** Settings categories (v2.6). Every control below changes real behaviour; nothing is decorative. */
 val SETTINGS_CATS = listOf(
     "general" to "General", "language" to "Language", "commentary" to "Commentary Language", "audio" to "Audio", "graphics" to "Graphics",
-    "display" to "Display", "match" to "Match Settings", "notifications" to "Notifications", "account" to "Account", "data" to "Data & Save",
+    "display" to "Display", "match" to "Match Settings", "notifications" to "Notifications", "data" to "Data & Save",
 )
 
 /** What the device can actually run: Filament 3D needs OpenGL ES 3.0; the High tier needs ES 3.1 and >= 4 GB RAM. */
@@ -122,10 +122,10 @@ private fun SettingsPanel(vm: GameVM, cat: String) {
             var diff by remember { mutableIntStateOf(st.difficulty) }
             Group("New careers", "Used when you start a new career.") {
                 RowLabel("Difficulty", "Board expectations, AI transfer & auction aggression")
-                DsSegmented(listOf("0" to "Easy", "1" to "Normal", "2" to "Hard"), diff.toString(), Modifier.fillMaxWidth()) { diff = it.toInt(); st.difficulty = diff; vm.saveSettingsToCloud() }
+                DsSegmented(listOf("0" to "Easy", "1" to "Normal", "2" to "Hard"), diff.toString(), Modifier.fillMaxWidth()) { diff = it.toInt(); st.difficulty = diff; vm.saveSettings() }
                 Spacer(Modifier.height(12.dp))
                 RowLabel("Economy ${"%.1f".format(economy)}×", "Salary caps, prices and revenues")
-                Slider(economy, { economy = it; st.economy = it }, valueRange = 0.5f..2f, steps = 14, onValueChangeFinished = { vm.saveSettingsToCloud() },
+                Slider(economy, { economy = it; st.economy = it }, valueRange = 0.5f..2f, steps = 14, onValueChangeFinished = { vm.saveSettings() },
                     colors = SliderDefaults.colors(thumbColor = DS.Gold, activeTrackColor = DS.Gold, inactiveTrackColor = DS.Line))
             }
             vm.save?.let { s ->
@@ -142,7 +142,7 @@ private fun SettingsPanel(vm: GameVM, cat: String) {
                 Row(verticalAlignment = Alignment.CenterVertically) { Text("English", color = DS.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)); DsTag("Active") }
             }
             Group("Date format", "Used by the calendar, fixtures and match reports.") {
-                DsSegmented(listOf("IN" to "28 Mar 2026", "US" to "Mar 28, 2026", "ISO" to "2026-03-28"), ds, Modifier.fillMaxWidth()) { ds = it; st.dateStyle = it; vm.saveSettingsToCloud(); vm.bump() }
+                DsSegmented(listOf("IN" to "28 Mar 2026", "US" to "Mar 28, 2026", "ISO" to "2026-03-28"), ds, Modifier.fillMaxWidth()) { ds = it; st.dateStyle = it; vm.saveSettings(); vm.bump() }
             }
         }
         "commentary" -> {
@@ -152,17 +152,17 @@ private fun SettingsPanel(vm: GameVM, cat: String) {
             var expertOn by remember { mutableStateOf(st.comExpert) }
             var overCards by remember { mutableStateOf(st.comOverCards) }
             Group("Language") {
-                DsSegmented(listOf("EN" to "English", "HI" to "हिंदी", "HG" to "Hinglish", "MIX" to "EN + HI"), lang, Modifier.fillMaxWidth()) { lang = it; st.comLang = it; vm.saveSettingsToCloud() }
+                DsSegmented(listOf("EN" to "English", "HI" to "हिंदी", "HG" to "Hinglish", "MIX" to "EN + HI"), lang, Modifier.fillMaxWidth()) { lang = it; st.comLang = it; vm.saveSettings() }
                 if (lang != "EN" && !GameAudio.hindiVoiceAvailable()) Text("Hindi voice is not installed on this phone: Hindi lines are shown as text. Install 'Hindi (India)' in Android Settings → Text-to-speech.",
                     color = DS.Muted, fontSize = 11.sp, lineHeight = 15.sp, modifier = Modifier.padding(top = 6.dp))
             }
             Group("Style & booth") {
-                DsSegmented(listOf("0" to "Classic", "1" to "Excited", "2" to "Analytical"), style.toString(), Modifier.fillMaxWidth()) { style = it.toInt(); st.comStyle = style; vm.saveSettingsToCloud() }
+                DsSegmented(listOf("0" to "Classic", "1" to "Excited", "2" to "Analytical"), style.toString(), Modifier.fillMaxWidth()) { style = it.toInt(); st.comStyle = style; vm.saveSettings() }
                 val booth = Commentary.boothFor(lang, style)
                 Text("On air: " + booth.joinToString("  &  ") { "${it.name} (${it.role})" } + if (!expertOn) " - analyst off" else "", color = DS.Gold, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
-                DsSwitchRow("Expert analyst", "Second voice after wickets, milestones and every few overs", expertOn) { expertOn = it; st.comExpert = it; vm.saveSettingsToCloud() }
-                DsSwitchRow("End-of-over cards", "Scoreboard summary in the commentary feed", overCards) { overCards = it; st.comOverCards = it; vm.saveSettingsToCloud() }
-                DsSwitchRow("Spoken commentary", "Phone text-to-speech", voice) { voice = it; st.voice = it; GameAudio.refresh(); vm.saveSettingsToCloud() }
+                DsSwitchRow("Expert analyst", "Second voice after wickets, milestones and every few overs", expertOn) { expertOn = it; st.comExpert = it; vm.saveSettings() }
+                DsSwitchRow("End-of-over cards", "Scoreboard summary in the commentary feed", overCards) { overCards = it; st.comOverCards = it; vm.saveSettings() }
+                DsSwitchRow("Spoken commentary", "Phone text-to-speech", voice) { voice = it; st.voice = it; GameAudio.refresh(); vm.saveSettings() }
                 Spacer(Modifier.height(6.dp))
                 DsButton("Preview voices", kind = DsKind.SECONDARY, height = DS.BtnHSmall) {
                     GameAudio.speakAs(when (lang) { "HI" -> "छक्का! गेंद सीधी स्टैंड्स में!"; "HG" -> "Kya shot hai! Seedha stands mein chhakka!"; else -> "That's huge! Into the stands for six!" }, if (lang == "HI") "HI" else "EN", booth[0], true)
@@ -181,16 +181,16 @@ private fun SettingsPanel(vm: GameVM, cat: String) {
             LaunchedEffect(Unit) { if (st.gfx > caps.maxTier) st.gfx = caps.maxTier }
             Group("Renderer quality", "Only the tiers this device supports are shown (${caps.glesLabel}, ${"%.1f".format(caps.ramGb)} GB RAM).") {
                 val tiers = listOf("0" to "Low", "1" to "Medium", "2" to "High").take(caps.maxTier + 1)
-                if (tiers.size > 1) DsSegmented(tiers, gfx.toString(), Modifier.fillMaxWidth()) { gfx = it.toInt(); st.gfx = gfx; vm.saveSettingsToCloud() }
+                if (tiers.size > 1) DsSegmented(tiers, gfx.toString(), Modifier.fillMaxWidth()) { gfx = it.toInt(); st.gfx = gfx; vm.saveSettings() }
                 else Text("Low (this device does not support the 3D renderer)", color = DS.White, fontSize = 14.sp)
                 Text(when (gfx) { 0 -> "Low: lightweight 2.5D renderer - fastest, lowest battery."; 1 -> "Medium: real-time 3D (Filament), soft shadows, dynamic resolution."
                     else -> "High: 3D with 4x MSAA, ambient occlusion, high-res shadows and floodlight bloom." }, color = DS.Sub, fontSize = 11.sp, lineHeight = 15.sp, modifier = Modifier.padding(top = 8.dp))
             }
             Group("Match view") {
-                DsSwitchRow("3D match view", if (gfx == 0) "Needs Medium or High quality" else "Animated 3D stadium in the Match Centre", v3d && gfx > 0, enabled = gfx > 0) { v3d = it; st.view3d = it; vm.saveSettingsToCloud() }
+                DsSwitchRow("3D match view", if (gfx == 0) "Needs Medium or High quality" else "Animated 3D stadium in the Match Centre", v3d && gfx > 0, enabled = gfx > 0) { v3d = it; st.view3d = it; vm.saveSettings() }
             }
             Group("Player photos") {
-                DsSwitchRow("Download real player photos", "Wikimedia Commons, needs internet once, cached offline", photos) { photos = it; st.photos = it; Faces.enabled = it; vm.saveSettingsToCloud() }
+                DsSwitchRow("Download real player photos", "Wikimedia Commons, needs internet once, cached offline", photos) { photos = it; st.photos = it; Faces.enabled = it; vm.saveSettings() }
             }
         }
         "display" -> {
@@ -198,11 +198,11 @@ private fun SettingsPanel(vm: GameVM, cat: String) {
             var keep by remember { mutableStateOf(st.keepScreenOn) }
             var scale by remember { mutableIntStateOf(st.uiScale) }
             Group("Screen") {
-                DsSwitchRow("Fullscreen", "Hide the status and navigation bars (swipe from the edge to reveal)", imm) { imm = it; st.immersive = it; vm.bump(); vm.saveSettingsToCloud() }
-                DsSwitchRow("Keep screen on during matches", "The display stays awake while a live match is open", keep) { keep = it; st.keepScreenOn = it; vm.bump(); vm.saveSettingsToCloud() }
+                DsSwitchRow("Fullscreen", "Hide the status and navigation bars (swipe from the edge to reveal)", imm) { imm = it; st.immersive = it; vm.bump(); vm.saveSettings() }
+                DsSwitchRow("Keep screen on during matches", "The display stays awake while a live match is open", keep) { keep = it; st.keepScreenOn = it; vm.bump(); vm.saveSettings() }
             }
             Group("Text size", "Scales all interface text.") {
-                DsSegmented(listOf("0" to "Compact", "1" to "Standard", "2" to "Large"), scale.toString(), Modifier.fillMaxWidth()) { scale = it.toInt(); st.uiScale = scale; vm.bump(); vm.saveSettingsToCloud() }
+                DsSegmented(listOf("0" to "Compact", "1" to "Standard", "2" to "Large"), scale.toString(), Modifier.fillMaxWidth()) { scale = it.toInt(); st.uiScale = scale; vm.bump(); vm.saveSettings() }
             }
         }
         "match" -> {
@@ -211,43 +211,21 @@ private fun SettingsPanel(vm: GameVM, cat: String) {
             var wk by remember { mutableStateOf(st.autoPauseWicket) }
             Group("Live match") {
                 RowLabel("Ball delay ${speed.toInt()} ms", "Pause between deliveries when playing ball by ball / auto")
-                Slider(speed, { speed = it; st.simSpeedMs = it.toInt() }, valueRange = 60f..1200f, onValueChangeFinished = { vm.saveSettingsToCloud() },
+                Slider(speed, { speed = it; st.simSpeedMs = it.toInt() }, valueRange = 60f..1200f, onValueChangeFinished = { vm.saveSettings() },
                     colors = SliderDefaults.colors(thumbColor = DS.Gold, activeTrackColor = DS.Gold, inactiveTrackColor = DS.Line))
                 Spacer(Modifier.height(6.dp))
                 RowLabel("Default playback speed", "3D animation and simulation both follow it")
-                DsSegmented(listOf(1, 2, 4, 6, 8).map { it.toString() to "${it}×" }, play.toString(), Modifier.fillMaxWidth()) { play = it.toInt(); st.playSpeed = play; vm.saveSettingsToCloud() }
+                DsSegmented(listOf(1, 2, 4, 6, 8).map { it.toString() to "${it}×" }, play.toString(), Modifier.fillMaxWidth()) { play = it.toInt(); st.playSpeed = play; vm.saveSettings() }
                 Spacer(Modifier.height(6.dp))
-                DsSwitchRow("Pause auto-play after a wicket", "Stops Auto when a wicket falls so you can change plans", wk) { wk = it; st.autoPauseWicket = it; vm.saveSettingsToCloud() }
+                DsSwitchRow("Pause auto-play after a wicket", "Stops Auto when a wicket falls so you can change plans", wk) { wk = it; st.autoPauseWicket = it; vm.saveSettings() }
             }
         }
         "notifications" -> {
             var res by remember { mutableStateOf(st.notifyResults) }
             var soc by remember { mutableStateOf(st.notifySocial) }
             Group("In-game notifications", "Shown inside the game only; no system notifications are sent.") {
-                DsSwitchRow("Result pop-ups", "Show your result after simulated days", res) { res = it; st.notifyResults = it; vm.saveSettingsToCloud() }
-                DsSwitchRow("Social badges", "Unread counters for Yorker in the sidebar", soc) { soc = it; st.notifySocial = it; vm.bump(); vm.saveSettingsToCloud() }
-            }
-        }
-        "account" -> Group("Account & cloud") {
-            if (vm.signedIn) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(vm.avatar, vm.profile?.username ?: vm.email, 44.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(vm.profile?.displayName?.ifBlank { null } ?: vm.profile?.username ?: "Account", color = DS.White, fontWeight = FontWeight.Bold)
-                        Text("@${vm.profile?.username ?: "…"} • ${vm.email}", color = DS.Sub, fontSize = 12.sp)
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                DsButton("My account", kind = DsKind.SECONDARY, height = DS.BtnHSmall) { vm.nav(Screen.Account) }
-            } else {
-                Text("Playing as guest", color = DS.White, fontWeight = FontWeight.Bold)
-                Text("Guest progress stays on this phone (1 slot). A free account gives 3 permanent career slots, cloud save and a profile photo.", color = DS.Sub, fontSize = 12.sp, lineHeight = 16.sp)
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DsButton("Log in", height = DS.BtnHSmall) { vm.nav(Screen.Login) }
-                    DsButton("Create account", kind = DsKind.SECONDARY, height = DS.BtnHSmall) { vm.nav(Screen.SignUp) }
-                }
+                DsSwitchRow("Result pop-ups", "Show your result after simulated days", res) { res = it; st.notifyResults = it; vm.saveSettings() }
+                DsSwitchRow("Social badges", "Unread counters for Yorker in the sidebar", soc) { soc = it; st.notifySocial = it; vm.bump(); vm.saveSettings() }
             }
         }
         "data" -> {
@@ -256,12 +234,7 @@ private fun SettingsPanel(vm: GameVM, cat: String) {
                 DsSwitchRow("Autosave", "After every match and action", autosave) { autosave = it; st.autosave = it }
                 vm.save?.let { s -> Spacer(Modifier.height(6.dp)); DsButton("Save now (slot ${s.slot})", height = DS.BtnHSmall) { vm.manualSave() } }
             }
-            if (vm.signedIn) Group("Cloud") {
-                Text("Status: ${vm.syncStatus.ifEmpty { "up to date" }} • last sync ${st.lastSync}", color = DS.Sub, fontSize = 12.sp)
-                Spacer(Modifier.height(8.dp))
-                DsButton("Sync now", kind = DsKind.SECONDARY, height = DS.BtnHSmall) { vm.syncInBackground() }
-            }
-            Group("Career slots", "Load, delete or restore careers. Old saves from earlier versions are upgraded automatically and keep their season year.") {
+            Group("Career slots", "Three local career slots on this device. Old saves from earlier versions are upgraded automatically and keep their season year.") {
                 DsButton("Manage career slots", kind = DsKind.SECONDARY, height = DS.BtnHSmall) { vm.nav(Screen.Career) }
             }
             Group("Data sources") {
@@ -281,8 +254,8 @@ private fun AudioPanel(vm: GameVM) {
     @Composable fun ch(label: String, get: () -> Float, set: (Float) -> Unit, muted: () -> Boolean, setMute: (Boolean) -> Unit, test: () -> Unit) {
         var v by remember { mutableFloatStateOf(get()) }
         var m by remember { mutableStateOf(muted()) }
-        DsVolumeRow(label, v, m, enabled = !master, onValue = { v = it; set(it); GameAudio.refresh() }, onDone = { test(); vm.saveSettingsToCloud() },
-            onMute = { m = it; setMute(it); GameAudio.refresh(); vm.saveSettingsToCloud() })
+        DsVolumeRow(label, v, m, enabled = !master, onValue = { v = it; set(it); GameAudio.refresh() }, onDone = { test(); vm.saveSettings() },
+            onMute = { m = it; setMute(it); GameAudio.refresh(); vm.saveSettings() })
     }
     Group("Mixer", "Music is controlled only here.") {
         ch("Master", { st.volume }, { st.volume = it }, { master }, { master = it; st.mute = it }) { GameAudio.play("bat") }
@@ -297,7 +270,7 @@ private fun AudioPanel(vm: GameVM) {
     var react by remember { mutableStateOf(st.crowdReact) }
     Group("Atmosphere") {
         DsSwitchRow("Dynamic crowd", "Chants after boundaries, dhol & bugle, a nervous hush in tight finishes", react, enabled = !master) {
-            react = it; st.crowdReact = it; vm.saveSettingsToCloud(); if (it) { GameAudio.play("roar"); GameAudio.playLater(650, "dhol", 0.75f) } }
+            react = it; st.crowdReact = it; vm.saveSettings(); if (it) { GameAudio.play("roar"); GameAudio.playLater(650, "dhol", 0.75f) } }
         Text("Stadium ambience follows the Crowd channel.", color = DS.Muted, fontSize = 11.sp)
     }
     Group("Sound test") {

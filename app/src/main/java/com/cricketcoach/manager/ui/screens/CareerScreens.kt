@@ -34,12 +34,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cricketcoach.manager.audio.GameAudio
 import com.cricketcoach.manager.data.Repo
 import com.cricketcoach.manager.game.*
 import com.cricketcoach.manager.ui.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 private fun freeSlot(vm: GameVM): Int? = (1..3).firstOrNull { sl -> vm.saves.none { it.slot == sl } && vm.slotAllowed(sl) }
@@ -47,18 +51,15 @@ private fun freeSlot(vm: GameVM): Int? = (1..3).firstOrNull { sl -> vm.saves.non
 /** Starts the new-career flow in the first free slot (or explains why it can't). */
 fun startNewCareerFlow(vm: GameVM, target: Screen) {
     val free = freeSlot(vm)
-    when {
-        free != null -> { pendingSlot = free; vm.nav(target) }
-        vm.isGuest -> { vm.msg("Guest mode has one temporary career slot. Create a free account for 3 permanent slots."); vm.nav(Screen.Career) }
-        else -> { vm.msg("All 3 career slots are used - delete one first."); vm.nav(Screen.Career) }
-    }
+    if (free != null) { pendingSlot = free; vm.nav(target) }
+    else { vm.msg("All 3 career slots are used - delete one first."); vm.nav(Screen.Career) }
 }
 
 @Composable
 fun CareerTypeScreen(vm: GameVM) {
     ScreenScaffold(vm, "New Career • Choose Career Type") {
         Column(Modifier.fillMaxSize().padding(12.dp)) {
-            Sub("Slot $pendingSlot${if (vm.isGuest) " • Guest career: stored on this device only (log in to make it permanent)" else " • saved to your account & cloud"}")
+            Sub("Slot $pendingSlot • saved on this device")
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxSize()) {
                 val icons = mapOf(Modes.INTL to Icons.Filled.Star, Modes.DOMESTIC to Icons.Filled.Place, Modes.IPL to Icons.Filled.ShoppingCart, Modes.CLUB to Icons.Filled.Create)
@@ -110,7 +111,7 @@ private fun teamInfos(mode: String): List<TeamInfo> = when (mode) {
 fun ChooseTeamScreen(vm: GameVM, mode: String) {
     val teams = remember(mode) { teamInfos(mode) }
     var sel by remember { mutableStateOf(teams.firstOrNull { it.short == "BEN" || it.short == "IND" || it.short == "KKR" } ?: teams.first()) }
-    var manager by remember { mutableStateOf(vm.profile?.displayName?.ifBlank { vm.profile?.username } ?: "") }
+    var manager by remember { mutableStateOf("") }
     val title = when (mode) { Modes.INTL -> "International • Choose Country"; Modes.DOMESTIC -> "Domestic • Choose State Team"; else -> "IPL • Choose Franchise" }
     ScreenScaffold(vm, title) {
         Row(Modifier.fillMaxSize().padding(10.dp)) {
@@ -158,7 +159,7 @@ fun ChooseTeamScreen(vm: GameVM, mode: String) {
 @Composable
 fun NewTeamScreen(vm: GameVM) {
     val ctx = LocalContext.current
-    var manager by remember { mutableStateOf(vm.profile?.displayName?.ifBlank { vm.profile?.username } ?: "") }
+    var manager by remember { mutableStateOf("") }
     var club by remember { mutableStateOf("") }
     var short by remember { mutableStateOf("") }
     var stadium by remember { mutableStateOf("") }
@@ -257,35 +258,90 @@ fun SelectionScreen(vm: GameVM) {
     val u = s.userClub()
     var role by remember { mutableStateOf("ALL") }
     var q by remember { mutableStateOf("") }
+    val max = Modes.maxSquad(s)
+    val squad = remember(vm.tick) { u.squad.mapNotNull { s.players[it] }.sortedByDescending { it.overall() } }
     val pool = remember(vm.tick, role, q) {
         Modes.selectionPool(s).filter { (role == "ALL" || it.role == role) && (q.isBlank() || it.name.contains(q, true)) }.take(150)
     }
     ScreenScaffold(vm, if (s.mode == Modes.INTL) "National Selection" else "State Squad Selection") {
-        Row(Modifier.fillMaxSize().padding(8.dp)) {
-            Column(Modifier.weight(1f).fillMaxHeight()) {
-                Text("${u.name.uppercase()} SQUAD  ${u.squad.size}/${Modes.maxSquad(s)}", color = C.Gold, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Sub(if (s.mode == Modes.DOMESTIC) "Guest professionals from other states: ${s.guestPros}/3 used" else "Build a pool of up to 25. Register 18-25 for each series (15 for ICC events) in the Match Centre.")
-                LazyColumn {
-                    items(u.squad.mapNotNull { s.players[it] }.sortedByDescending { it.overall() }, key = { it.id }) { p ->
-                        PlayerRow(p, s.year, onClick = { vm.nav(Screen.Profile(p.id)) }, extra = "${p.role}${if (p.fictional) " • FICTIONAL" else ""}${if (p.id in u.xi) " • XI" else ""}",
-                            trailing = { TextButton(onClick = { vm.act { Modes.drop(it, p.id) } }) { Text("Drop", color = C.Red, fontSize = 12.sp) } })
+        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
+            // squad summary
+            DsCard(pad = 12.dp) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        DsTitle("${u.name} squad", size = 17.sp)
+                        Spacer(Modifier.height(2.dp))
+                        Text(if (s.mode == Modes.DOMESTIC) "Guest professionals from other states: ${s.guestPros}/3 used. Register 18–25 for each series."
+                            else "Build a pool of up to $max. Register 18–25 for each series (15 for ICC events) in the Match Centre.",
+                            color = DS.Sub, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("${squad.size}/$max", color = if (squad.size >= max) DS.Gold else DS.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 25.sp)
+                        Text("SELECTED", color = DS.Muted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                ProgressTrack(squad.size / max.toFloat(), color = if (squad.size >= 18) DS.Good else DS.Gold)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    for (r in listOf("BAT", "WK", "AR", "BOWL")) {
+                        Row(verticalAlignment = Alignment.CenterVertically) { RoleTag(r, small = true); Spacer(Modifier.width(4.dp)); Text("${squad.count { it.role == r }}", color = DS.White, fontSize = 12.sp, fontWeight = FontWeight.Bold) }
                     }
                 }
             }
-            Column(Modifier.weight(1f).fillMaxHeight().padding(start = 8.dp)) {
-                Text("AVAILABLE PLAYERS", color = C.Gold, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    for (r in listOf("ALL", "BAT", "WK", "AR", "BOWL")) FilterChip(selected = role == r, onClick = { role = r }, label = { Text(r, fontSize = 10.sp) }, modifier = Modifier.padding(end = 3.dp),
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = C.Gold, selectedLabelColor = Color.Black))
-                }
-                OutlinedTextField(q, { q = it }, label = { Text("Search") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                LazyColumn {
-                    items(pool, key = { it.id }) { p ->
-                        val from = s.clubs[p.clubId]?.name ?: "Unattached"
-                        PlayerRow(p, s.year, onClick = { vm.nav(Screen.Profile(p.id)) }, extra = "${p.role} • ${if (s.mode == Modes.DOMESTIC) from else "age ${p.age(s.year)}"}${if (p.fictional) " • FICTIONAL" else ""}",
-                            trailing = { TextButton(onClick = { vm.act { Modes.callUp(it, p.id) } }) { Text(if (s.mode == Modes.INTL) "Call up" else "Sign", color = C.Gold, fontSize = 12.sp) } })
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                // selected squad
+                Column(Modifier.weight(1f).fillMaxHeight()) {
+                    SectionLabel("Selected squad", trailing = { Text("${squad.size}", color = DS.Gold, fontSize = 11.sp, fontWeight = FontWeight.Bold) })
+                    if (squad.isEmpty()) EmptyState("squad", "No players selected", "Call up players from the list on the right.")
+                    else LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        items(squad, key = { it.id }) { p -> SelectionRow(vm, s, p, selected = true) }
                     }
                 }
+                Spacer(Modifier.width(10.dp))
+                // available players
+                Column(Modifier.weight(1f).fillMaxHeight()) {
+                    SectionLabel("Available players", trailing = { Text("${pool.size}", color = DS.Sub, fontSize = 11.sp, fontWeight = FontWeight.Bold) })
+                    DsSegmented(listOf("ALL" to "All", "BAT" to "Bat", "WK" to "WK", "AR" to "AR", "BOWL" to "Bowl"), role, Modifier.fillMaxWidth()) { role = it }
+                    Spacer(Modifier.height(6.dp))
+                    SearchBox(q, { q = it }, "Search players…")
+                    Spacer(Modifier.height(6.dp))
+                    if (pool.isEmpty()) EmptyState("search", "No players match", "Try a different role or search term.")
+                    else LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        items(pool, key = { it.id }) { p -> SelectionRow(vm, s, p, selected = false) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionRow(vm: GameVM, s: CareerSave, p: GPlayer, selected: Boolean) {
+    val u = s.userClub()
+    DsCard(modifier = Modifier.fillMaxWidth(), pad = 8.dp, onClick = { vm.nav(Screen.Profile(p.id)) }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PlayerFace(p.id, p.name, 38.dp)
+            Spacer(Modifier.width(9.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(p.name, color = DS.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (selected && p.id in u.xi) { Spacer(Modifier.width(5.dp)); DsTag("XI", DS.Gold) }
+                }
+                Spacer(Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RoleTag(p.role, small = true); Spacer(Modifier.width(5.dp))
+                    Text("${p.country} · ${p.age(s.year)}y${if (p.fictional) " · Fictional" else ""}", color = DS.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            Column(horizontalAlignment = Alignment.End) {
+                RatingPill(p.overall())
+                Spacer(Modifier.height(5.dp))
+                if (selected) DsButton("Drop", kind = DsKind.DANGER, height = 30.dp) { vm.act { Modes.drop(it, p.id) } }
+                else DsButton(if (s.mode == Modes.INTL) "Call up" else "Sign", height = 30.dp) { vm.act { Modes.callUp(it, p.id) } }
             }
         }
     }
@@ -301,3 +357,13 @@ private fun LogoImage(path: String, modifier: Modifier) {
     val bmp = remember(path) { runCatching { android.graphics.BitmapFactory.decodeFile(path)?.asImageBitmap() }.getOrNull() }
     if (bmp != null) Image(bmp, null, modifier, contentScale = ContentScale.Crop)
 }
+
+/** Centre-crop + downscale an uploaded image to a square JPEG (team logos). */
+private fun squareJpeg(bytes: ByteArray, size: Int, quality: Int = 85): ByteArray? = try {
+    val src = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: throw IllegalArgumentException()
+    val side = minOf(src.width, src.height)
+    val crop = Bitmap.createBitmap(src, (src.width - side) / 2, (src.height - side) / 2, side, side)
+    val out = Bitmap.createScaledBitmap(crop, size, size, true)
+    val bos = ByteArrayOutputStream(); out.compress(Bitmap.CompressFormat.JPEG, quality, bos)
+    bos.toByteArray()
+} catch (_: Exception) { null }

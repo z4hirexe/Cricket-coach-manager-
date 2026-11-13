@@ -80,8 +80,6 @@ class ScreenPreviews {
     @Test fun chooseState() { val vm = vm(); File("src/main/assets/domestic_states.json").bufferedReader().use { Repo.loadDomestic(it) }; shot("11_choose_state.png") { ChooseTeamScreen(vm, Modes.DOMESTIC) } }
     @Test fun chooseIpl() { val vm = vm(); shot("12_choose_ipl.png") { ChooseTeamScreen(vm, Modes.IPL) } }
     @Test fun newTeam() { val vm = vm(); shot("13_new_team.png") { NewTeamScreen(vm) } }
-    @Test fun login() { val vm = vm(); shot("20_login.png") { LoginScreen(vm) } }
-    @Test fun signUp() { val vm = vm(); shot("21_signup.png") { SignUpScreen(vm) } }
     /** Career screens are shown the way the app shows them: inside the sidebar + top-bar shell. */
     private fun inShell(vm: GameVM, scr: Screen, name: String, ms: Long = 1500, content: @Composable () -> Unit) {
         vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); if (scr != Screen.Dashboard) vm.stack.add(scr)
@@ -157,6 +155,8 @@ class ScreenPreviews {
     @Test fun tableDomestic() { val vm = careerVm(days = 8); shot("31_points_table.png") { TableScreen(vm) } }
     @Test fun social() { val vm = careerVm(days = 10); inShell(vm, Screen.Social, "40_stumpstagram_bengal.png", 2000) { SocialScreen(vm) } }
     @Test fun selection() { val vm = careerVm(Modes.INTL, "N_IND", 0); shot("32_selection_india.png") { SelectionScreen(vm) } }
+    @Test fun myClubOverview() { val vm = careerVm(Modes.IPL, "F_CSK", 4); inShell(vm, Screen.MyClub, "216_myclub_overview.png") { MyClubScreen(vm) } }
+    @Test fun myClubFacilities() { val vm = careerVm(Modes.IPL, "F_CSK", 4); inShell(vm, Screen.MyClub, "217_myclub_facilities.png") { MyClubScreen(vm, initialTab = 1) } }
     // Phase A: cricket calendar / match schedule centre
     @Test fun calendarIpl() { val vm = careerVm(Modes.IPL, "F_CSK", 5); inShell(vm, Screen.Calendar, "75_calendar_ipl.png", 1600) { CalendarScreen(vm) } }
     @Test fun calendarIntl() { val vm = careerVm(Modes.INTL, "N_IND", 2); inShell(vm, Screen.Calendar, "76_calendar_intl.png", 1600) { CalendarScreen(vm) } }

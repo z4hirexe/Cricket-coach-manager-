@@ -20,7 +20,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,6 +39,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -211,50 +215,102 @@ fun StatBar(label: String, value: Int, max: Int = 99) {
     }
 }
 
+/** Underline tab strip: condensed labels, a gold indicator under the active tab and a hairline baseline. */
 @Composable
 fun Tabs(tabs: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    ScrollableTabRow(selectedTabIndex = selected, containerColor = C.Surface, contentColor = C.Gold, edgePadding = 8.dp) {
-        tabs.forEachIndexed { i, t -> Tab(selected = i == selected, onClick = { onSelect(i) }, text = { Text(t, color = if (i == selected) C.Gold else C.Sub) }) }
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+        .drawBehind { drawLine(DS.Line, Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f) }) {
+        tabs.forEachIndexed { i, t ->
+            val on = i == selected
+            Box(Modifier.clickable { GameAudio.click(); onSelect(i) }
+                .drawBehind { if (on) drawLine(DS.Gold, Offset(14.dp.toPx(), size.height - 1.5f), Offset(size.width - 14.dp.toPx(), size.height - 1.5f), 3f, StrokeCap.Round) }
+                .padding(horizontal = 16.dp, vertical = 11.dp)) {
+                Text(t, color = if (on) DS.Gold else DS.Sub, fontFamily = Display, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold,
+                    fontSize = 14.sp, letterSpacing = 0.4.sp, maxLines = 1)
+            }
+        }
     }
 }
 
-/** Original in-game badge artwork drawn in code (no official logos). */
+/**
+ * Original in-game club crests drawn in code (no official logos). Eight heraldic forms with enamel-style
+ * depth: a vertical gradient body, a clean secondary rim, an inner keyline and a soft top highlight, so the
+ * badges read as designed club crests rather than flat clip-art. The club code sits centred with a shadow
+ * for legibility on any kit colour.
+ */
 @Composable
 fun Badge(short: String, primary: Long, secondary: Long, logo: Int = 0, size: Dp = 44.dp) {
     val p = Color(primary); val s = Color(secondary)
+    val light = p.copy(alpha = 1f).brighten(0.18f)
+    val dark = p.brighten(-0.22f)
+    val body = Brush.verticalGradient(listOf(light, p, dark))
+    val rim = Stroke(width = 0f, cap = StrokeCap.Round, join = StrokeJoin.Round)
     Box(Modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val w = this.size.width; val h = this.size.height
+            val stroke = w * 0.055f
+            fun outline(path: Path) { drawPath(path, body); drawPath(path, s, style = rim.copy(width = stroke)); drawPath(path, Color.White.copy(alpha = 0.10f), style = rim.copy(width = stroke * 0.4f)) }
             when (logo % 8) {
-                0 -> { // shield
-                    val path = Path().apply { moveTo(w * 0.1f, h * 0.08f); lineTo(w * 0.9f, h * 0.08f); lineTo(w * 0.9f, h * 0.5f); quadraticBezierTo(w * 0.9f, h * 0.85f, w * 0.5f, h * 0.98f); quadraticBezierTo(w * 0.1f, h * 0.85f, w * 0.1f, h * 0.5f); close() }
-                    drawPath(path, p); drawPath(path, s, style = Stroke(w * 0.07f))
+                0 -> { // heraldic shield with a chief band
+                    val path = Path().apply { moveTo(w * 0.12f, h * 0.10f); lineTo(w * 0.88f, h * 0.10f); lineTo(w * 0.88f, h * 0.50f); quadraticBezierTo(w * 0.88f, h * 0.82f, w * 0.50f, h * 0.95f); quadraticBezierTo(w * 0.12f, h * 0.82f, w * 0.12f, h * 0.50f); close() }
+                    outline(path)
+                    drawRect(s.copy(alpha = 0.30f), Offset(w * 0.12f, h * 0.10f), Size(w * 0.76f, h * 0.14f))
                 }
-                1 -> { drawCircle(s, w / 2); drawCircle(p, w * 0.42f) }
-                2 -> { // star
-                    val path = Path(); val cx = w / 2; val cy = h / 2
-                    for (i in 0 until 10) { val r = if (i % 2 == 0) w * 0.5f else w * 0.24f; val a = Math.toRadians((i * 36 - 90).toDouble()); val x = cx + r * cos(a).toFloat(); val y = cy + r * sin(a).toFloat(); if (i == 0) path.moveTo(x, y) else path.lineTo(x, y) }
-                    path.close(); drawPath(path, p); drawPath(path, s, style = Stroke(w * 0.05f))
+                1 -> { // roundel crest: concentric rings
+                    drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f); drawCircle(s.copy(alpha = 0.55f), w * 0.34f, style = rim.copy(width = stroke * 0.6f))
                 }
-                3 -> { drawCircle(p, w / 2); drawLine(s, Offset(w * 0.2f, h * 0.2f), Offset(w * 0.8f, h * 0.8f), w * 0.12f); drawLine(s, Offset(w * 0.8f, h * 0.2f), Offset(w * 0.2f, h * 0.8f), w * 0.12f) }
-                4 -> { drawCircle(p, w / 2); drawArc(s, -60f, 120f, false, topLeft = Offset(w * 0.15f, h * 0.05f), size = Size(w * 0.7f, h * 0.9f), style = Stroke(w * 0.05f)) }
-                5 -> { // crown
-                    drawRoundRect(p, size = this.size, cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.2f))
-                    val path = Path().apply { moveTo(w * 0.15f, h * 0.75f); lineTo(w * 0.15f, h * 0.3f); lineTo(w * 0.35f, h * 0.5f); lineTo(w * 0.5f, h * 0.22f); lineTo(w * 0.65f, h * 0.5f); lineTo(w * 0.85f, h * 0.3f); lineTo(w * 0.85f, h * 0.75f); close() }
-                    drawPath(path, s.copy(alpha = 0.55f))
+                2 -> { // star within a roundel
+                    drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f)
+                    val star = Path(); val cx = w / 2; val cy = h / 2
+                    for (i in 0 until 10) { val r = if (i % 2 == 0) w * 0.30f else w * 0.13f; val a = Math.toRadians((i * 36 - 90).toDouble()); val x = cx + r * cos(a).toFloat(); val y = cy + r * sin(a).toFloat(); if (i == 0) star.moveTo(x, y) else star.lineTo(x, y) }
+                    star.close(); drawPath(star, s.copy(alpha = 0.85f))
                 }
-                6 -> { // hexagon
-                    val path = Path(); for (i in 0 until 6) { val a = Math.toRadians((i * 60 - 90).toDouble()); val x = w / 2 + w / 2 * cos(a).toFloat(); val y = h / 2 + h / 2 * sin(a).toFloat(); if (i == 0) path.moveTo(x, y) else path.lineTo(x, y) }
-                    path.close(); drawPath(path, p); drawPath(path, s, style = Stroke(w * 0.06f))
+                3 -> { // crossed bats on a roundel
+                    drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f)
+                    for (dir in listOf(1f, -1f)) {
+                        val bat = Path().apply { moveTo(w * 0.5f + dir * w * 0.06f, h * 0.24f); lineTo(w * 0.5f + dir * w * 0.20f, h * 0.30f); lineTo(w * 0.5f - dir * w * 0.10f, h * 0.74f); lineTo(w * 0.5f - dir * w * 0.20f, h * 0.70f); close() }
+                        drawPath(bat, s.copy(alpha = 0.85f))
+                    }
+                    drawCircle(s, w * 0.06f, Offset(w * 0.5f, h * 0.78f))
                 }
-                else -> { // wicket
-                    drawCircle(p, w / 2)
-                    for (i in 0..2) drawLine(s.copy(alpha = 0.5f), Offset(w * (0.35f + i * 0.15f), h * 0.18f), Offset(w * (0.35f + i * 0.15f), h * 0.82f), w * 0.06f)
+                4 -> { // cricket ball with seam
+                    drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f)
+                    drawArc(s.copy(alpha = 0.8f), 110f, 140f, false, Offset(w * 0.20f, h * 0.10f), Size(w * 0.60f, h * 0.80f), style = rim.copy(width = stroke * 0.7f))
+                    for (i in 0..4) { val t = 0.30f + i * 0.10f; drawLine(s.copy(alpha = 0.6f), Offset(w * (t - 0.02f), h * (0.5f - 0.18f)), Offset(w * (t + 0.02f), h * (0.5f - 0.14f)), stroke * 0.4f) }
+                }
+                5 -> { // crown on a shield
+                    val path = Path().apply { moveTo(w * 0.14f, h * 0.12f); lineTo(w * 0.86f, h * 0.12f); lineTo(w * 0.86f, h * 0.52f); quadraticBezierTo(w * 0.86f, h * 0.82f, w * 0.50f, h * 0.94f); quadraticBezierTo(w * 0.14f, h * 0.82f, w * 0.14f, h * 0.52f); close() }
+                    outline(path)
+                    val crown = Path().apply { moveTo(w * 0.28f, h * 0.40f); lineTo(w * 0.28f, h * 0.24f); lineTo(w * 0.40f, h * 0.34f); lineTo(w * 0.50f, h * 0.20f); lineTo(w * 0.60f, h * 0.34f); lineTo(w * 0.72f, h * 0.24f); lineTo(w * 0.72f, h * 0.40f); close() }
+                    drawPath(crown, s.copy(alpha = 0.85f)); drawRect(s.copy(alpha = 0.85f), Offset(w * 0.28f, h * 0.42f), Size(w * 0.44f, h * 0.05f))
+                }
+                6 -> { // hexagon with inner keyline
+                    val path = Path(); for (i in 0 until 6) { val a = Math.toRadians((i * 60 - 90).toDouble()); val x = w / 2 + w * 0.48f * cos(a).toFloat(); val y = h / 2 + h * 0.48f * sin(a).toFloat(); if (i == 0) path.moveTo(x, y) else path.lineTo(x, y) }
+                    path.close(); outline(path)
+                    val inner = Path(); for (i in 0 until 6) { val a = Math.toRadians((i * 60 - 90).toDouble()); val x = w / 2 + w * 0.36f * cos(a).toFloat(); val y = h / 2 + h * 0.36f * sin(a).toFloat(); if (i == 0) inner.moveTo(x, y) else inner.lineTo(x, y) }
+                    inner.close(); drawPath(inner, s.copy(alpha = 0.4f), style = rim.copy(width = stroke * 0.5f))
+                }
+                else -> { // three stumps + bails on a roundel
+                    drawCircle(s, w * 0.50f); drawCircle(body, w * 0.44f)
+                    for (i in 0..2) drawLine(s.copy(alpha = 0.85f), Offset(w * (0.36f + i * 0.14f), h * 0.26f), Offset(w * (0.36f + i * 0.14f), h * 0.72f), stroke * 0.9f, StrokeCap.Round)
+                    drawLine(s.copy(alpha = 0.85f), Offset(w * 0.32f, h * 0.24f), Offset(w * 0.50f, h * 0.22f), stroke * 0.6f, StrokeCap.Round)
+                    drawLine(s.copy(alpha = 0.85f), Offset(w * 0.50f, h * 0.22f), Offset(w * 0.68f, h * 0.24f), stroke * 0.6f, StrokeCap.Round)
                 }
             }
+            // soft top highlight for enamel depth
+            drawCircle(Color.White.copy(alpha = 0.06f), w * 0.30f, Offset(w * 0.38f, h * 0.30f))
         }
-        Text(short.take(4), color = if (Color(primary).luminanceApprox() > 0.6f) Color.Black else Color.White, fontWeight = FontWeight.ExtraBold, fontSize = (size.value / 3.6).sp)
+        if (short.isNotEmpty()) Text(short.take(4), color = if (p.luminanceApprox() > 0.6f) Color(0xFF101418) else Color.White,
+            fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = (size.value / 3.4f).sp, letterSpacing = 0.5.sp,
+            style = androidx.compose.ui.text.TextStyle(shadow = androidx.compose.ui.graphics.Shadow(Color.Black.copy(alpha = 0.45f), Offset(0f, 1f), 2f)))
     }
+}
+
+/** Lighten (amount > 0) or darken (amount < 0) a colour towards white / black. */
+private fun Color.brighten(amount: Float): Color {
+    val t = if (amount > 0) 1f else 0f
+    val a = kotlin.math.abs(amount)
+    return Color(red + (t - red) * a, green + (t - green) * a, blue + (t - blue) * a, alpha)
 }
 
 fun Color.luminanceApprox(): Float = 0.299f * red + 0.587f * green + 0.114f * blue

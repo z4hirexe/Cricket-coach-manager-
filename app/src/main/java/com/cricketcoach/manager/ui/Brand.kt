@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -46,7 +47,7 @@ object Brand {
     const val FULL = "$NAME $YEAR$TM"
     const val EDITION = "Beta"
     /** Shown in the menu / About; keep in sync with app/build.gradle.kts versionName. */
-    const val VERSION = "2.6.0-beta2"
+    const val VERSION = "2.6.0-beta3"
     const val TAGLINE = "Manage \u2022 Compete \u2022 Make History"
     /** Careers start in the 2026 season; the product brand stays 2027. */
     const val CAREER_START = 2026
@@ -106,15 +107,28 @@ fun BrandStack(modifier: Modifier = Modifier, size: TextUnit = 22.sp, center: Bo
     }
 }
 
-/** Compact game logo. Uses the supplied logo artwork unchanged (only scaled by the layout). */
+/**
+ * The supplied logo artwork, presented as a clean app-icon tile: rounded corners, a hairline gold rim and a
+ * soft drop shadow so the square JPEG reads as an intentional badge on any background instead of a raw photo.
+ * The artwork itself is never altered — only framed and scaled by the layout.
+ */
 @Composable
-fun BrandMark(size: Dp = 36.dp, modifier: Modifier = Modifier) =
-    Image(painterResource(R.drawable.logo_cmp), Brand.FULL, modifier.size(size), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
+fun BrandLogo(size: Dp, modifier: Modifier = Modifier, framed: Boolean = true) {
+    val shape = RoundedCornerShape(size * 0.22f)
+    val base = modifier.size(size)
+    if (framed) {
+        Box(base.shadow(size * 0.06f, shape, clip = false).clip(shape).background(DS.Navy3)
+            .border(1.dp, DS.Gold.copy(alpha = 0.55f), shape)) {
+            Image(painterResource(R.drawable.logo_cmp), Brand.FULL, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+        }
+    } else {
+        Image(painterResource(R.drawable.logo_cmp), Brand.FULL, base.clip(shape), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+    }
+}
 
-/** Full supplied game logo artwork (portrait + lockup). */
+/** Compact game logo tile for bars and headers. */
 @Composable
-fun BrandLogo(size: Dp, modifier: Modifier = Modifier) =
-    Image(painterResource(R.drawable.logo_cmp), Brand.FULL, modifier.size(size), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
+fun BrandMark(size: Dp = 36.dp, modifier: Modifier = Modifier) = BrandLogo(size, modifier)
 
 enum class DsKind { PRIMARY, SECONDARY, GHOST, DANGER }
 

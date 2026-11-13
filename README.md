@@ -24,7 +24,7 @@ Original game: the UI, badges, mechanics and code are original. The game logo an
 | **Development** | Weekly training (focus and intensity), coaches, facilities, potential, age curve (growth → peak → decline), form, fitness, morale, injuries, youth academy intake each off-season, retirements, contract expiry |
 | **Club management** | Finances (TV, sponsorship, tickets, merchandise, salaries, staff, upkeep, transfers), balance and debt warnings, salary cap per division, stadium capacity upgrades, ticket pricing, 3 sponsor offers per season, reputation, trophy cabinet |
 | **Statistics** | Separate record books per competition and format plus an "All competitions" book: most runs/wickets/100s/50s/4s/6s/catches, highest scores, best bowling, highest/lowest team totals. Season and tournament awards (champion, most runs, most wickets, player of the tournament), all-time career-mode leaders, real-world team records (Cricsheet) |
-| **Saves** | 3 career slots, autosave after every action, plus a save on app pause. Stored in an SQLite index plus gzipped JSON in app storage with atomic writes. Fully offline; optional **cloud sync** to your own Supabase project runs automatically when online |
+| **Saves** | 3 career slots, autosave after every action, plus a save on app pause. Stored in an SQLite index plus gzipped JSON in app storage with atomic writes. Fully offline and device-local — no account, login or cloud sync |
 
 ### New in v1.1 — 3D, sound, landscape, real photos
 - **3D match view**: a software-rendered 3D stadium (floodlights, crowd, stands, ad boards, mown outfield, 30-yard circle, pitch, creases and stumps). Every delivery is animated: run-up, release, bounce, shot, ball flight, fielders chasing, batters running, stumps flying and catches. **4 cameras**: TV, Aerial, Side-on and Batter-cam. The TV camera follows the ball on big shots. Tap **2D/3D** to switch.
@@ -82,11 +82,6 @@ Requirements: **JDK 17** and Android SDK 34. The project uses AGP 8.5.2, Kotlin 
 git tag v1.0.0 && git push origin v1.0.0   # creates a release with the APK
 ```
 
-### Optional cloud sync
-1. Create a Supabase project and run `docs/supabase.sql`.
-2. In the game, open Settings → Online sync and enter the project URL and anon key, then enable sync.
-3. Saves upload automatically whenever the device is online. Empty slots offer **Restore from cloud**.
-
 ---
 
 ## Project layout
@@ -100,7 +95,7 @@ app/src/main/java/com/cricketcoach/manager/
   game/Career.kt         career setup, calendar, finances, training, transfers, season end
   game/Auction.kt        mega/mini auction with retentions and AI bidding
   game/Tournaments.kt    IPL / ICC events / Asia Cup / bilaterals / custom
-  save/SaveManager.kt    SQLite + gzipped JSON slots, settings, Supabase sync
+  save/SaveManager.kt    SQLite + gzipped JSON slots + device-local settings
   ui/                    theme, components (badges, jerseys, stadium), GameVM, screens/
 app/src/test/…/EngineTest.kt   end-to-end engine tests on the real dataset
 tools/                   dataset builder + caches

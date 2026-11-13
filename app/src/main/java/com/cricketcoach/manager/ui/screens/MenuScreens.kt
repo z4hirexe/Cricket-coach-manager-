@@ -47,24 +47,15 @@ fun CareerSlots(vm: GameVM) {
     LaunchedEffect(Unit) { vm.refreshSaves() }
     ScreenScaffold(vm, "Career Mode") {
         Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
-            Sub(if (vm.signedIn) "Three permanent career slots, saved privately to your account and backed up to the cloud. Progress autosaves after every match and action."
-                else "Guest mode: one temporary slot stored only on this phone. Log in or create a free account for 3 permanent cloud-saved slots.")
-            if (!vm.signedIn) Row { GoldButton("Log in") { vm.nav(Screen.Login) }; Spacer(Modifier.width(8.dp)); OutlineBtn("Create account") { vm.nav(Screen.SignUp) } }
+            Sub("Three career slots saved on this device. Progress autosaves after every match and action. No account or internet is required.")
             for (slot in 1..3) {
                 val m = vm.saves.firstOrNull { it.slot == slot }
                 CcmCard(highlight = vm.save?.slot == slot) {
                     Text("Slot $slot", color = C.Gold, fontWeight = FontWeight.Bold)
-                    if (m == null && !vm.slotAllowed(slot)) {
-                        Sub("Locked - requires an account")
-                        Spacer(Modifier.height(6.dp))
-                        OutlineBtn("Create account to unlock") { vm.nav(Screen.SignUp) }
-                    } else if (m == null) {
+                    if (m == null) {
                         Sub("Empty")
                         Spacer(Modifier.height(6.dp))
-                        Row {
-                            GreenButton("New Career") { if (vm.slotAllowed(slot)) { pendingSlot = slot; vm.nav(Screen.CareerType) } else vm.nav(Screen.SignUp) }
-                            if (vm.signedIn) { Spacer(Modifier.width(8.dp)); OutlineBtn("Restore from cloud") { vm.cloudRestore(slot) } }
-                        }
+                        GreenButton("New Career") { pendingSlot = slot; vm.nav(Screen.CareerType) }
                     } else {
                         Text("${m.club} — ${Modes.label(m.mode)} • Season ${m.season}${if (m.mode == Modes.CLUB) ", Division ${m.division}" else ""}", color = C.Text)
                         Sub("Manager ${m.manager} • saved ${SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(Date(m.updated))}")
@@ -81,7 +72,7 @@ fun CareerSlots(vm: GameVM) {
     }
     confirmDel?.let { slot ->
         AlertDialog(onDismissRequest = { confirmDel = null }, containerColor = C.Surface,
-            title = { Text("Delete slot $slot?") }, text = { Text(if (vm.signedIn) "This permanently removes the career from this device and from your cloud account." else "This permanently removes the career on this device.") },
+            title = { Text("Delete slot $slot?") }, text = { Text("This permanently removes the career saved on this device.") },
             confirmButton = { TextButton(onClick = { vm.deleteSlot(slot); confirmDel = null }) { Text("Delete", color = C.Red) } },
             dismissButton = { TextButton(onClick = { confirmDel = null }) { Text("Cancel") } })
     }

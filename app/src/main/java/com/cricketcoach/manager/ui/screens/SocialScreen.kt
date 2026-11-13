@@ -37,8 +37,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cricketcoach.manager.R
 import com.cricketcoach.manager.audio.GameAudio
-import com.cricketcoach.manager.auth.OnlineComment
-import com.cricketcoach.manager.auth.OnlinePost
 import com.cricketcoach.manager.game.*
 import com.cricketcoach.manager.ui.*
 import kotlin.math.abs
@@ -65,7 +63,7 @@ private val avatarCols = listOf(Color(0xFFFACC15), Color(0xFFD946EF), Color(0xFF
 private fun handleColor(h: String) = avatarCols[abs(h.hashCode()) % avatarCols.size]
 private fun minutesAgo(seed: String) = "${abs(seed.hashCode()) % 58 + 1}m"
 
-private val TABS = listOf("For You", "Following", "My Team", "Players", "Online")
+private val TABS = listOf("For You", "Following", "My Team", "Players")
 
 /** Brand mark: a set of stumps + bails in a gradient tile. */
 @Composable
@@ -80,17 +78,14 @@ fun StumpsLogo(size: androidx.compose.ui.unit.Dp = 26.dp) {
     }
 }
 
-/** Stumpstagram: player accounts + auto posts from real match events (offline) and the online manager feed (Supabase). */
+/** Stumpstagram: offline in-game player profiles and auto posts from real match events. */
 @Composable
 fun SocialScreen(vm: GameVM, initialTab: Int = -1) {
     @Suppress("UNUSED_VARIABLE") val t = vm.tick
     val s = vm.save
-    var tab by remember { mutableIntStateOf(if (initialTab >= 0) initialTab else if (s != null) 0 else 4) }
+    var tab by remember { mutableIntStateOf(if (initialTab >= 0) initialTab.coerceAtMost(3) else 0) }
     var composer by remember { mutableStateOf("") }
     var selLocal by remember { mutableStateOf<Int?>(null) }
-    var selOnline by remember { mutableStateOf<OnlinePost?>(null) }
-    var onlyFollowed by remember { mutableStateOf(false) }
-    LaunchedEffect(tab) { if (tab == 4 && vm.signedIn) vm.loadOnlineFeed() }
     LaunchedEffect(s) { if (s != null && !s.stumps.seeded) { Stumps.ensureSeeded(s); vm.persist(); vm.tick++ } }
 
     val inShell = LocalInShell.current
@@ -119,67 +114,42 @@ fun SocialScreen(vm: GameVM, initialTab: Int = -1) {
                 }
             }
             if (tab == 3) {
-                if (s == null) EmptyNote("Load a career to browse player accounts.") else PlayerDirectory(vm, s)
+                if (s == null) EmptyNote("Load a career to browse players.") else PlayerDirectory(vm, s)
             } else Row(Modifier.weight(1f).fillMaxWidth()) {
                 // ---- feed
                 Column(Modifier.weight(0.56f).fillMaxHeight().padding(start = 10.dp, end = 6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
-                        OutlinedTextField(composer, { composer = it.take(200) }, placeholder = { Text(if (tab < 4) "Post to your followers…" else "Share with all managers online…", fontSize = 12.sp) },
+                        OutlinedTextField(composer, { composer = it.take(200) }, placeholder = { Text("Post to your followers…", fontSize = 12.sp) },
                             singleLine = true, modifier = Modifier.weight(1f).heightIn(min = 54.dp), textStyle = LocalTextStyle.current.copy(fontSize = 13.sp))
                         Spacer(Modifier.width(6.dp))
                         Button(onClick = {
                             GameAudio.click()
-                            if (tab < 4 && s != null) { Social.userPost(s, composer.trim()); vm.persist() }
-                            else if (tab == 4) vm.shareOnline(SocialPost(kind = "NEWS", text = composer.trim(), mine = true))
+                            if (s != null) { Social.userPost(s, composer.trim()); vm.persist() }
                             composer = ""
-                        }, enabled = composer.isNotBlank() && (tab == 4 && vm.signedIn || tab < 4 && s != null), colors = ButtonDefaults.buttonColors(containerColor = C.Gold, contentColor = Color(0xFF1A1205)), shape = RoundedCornerShape(10.dp)) {
+                        }, enabled = composer.isNotBlank() && s != null, colors = ButtonDefaults.buttonColors(containerColor = C.Gold, contentColor = Color(0xFF1A1205)), shape = RoundedCornerShape(10.dp)) {
                             Text("POST", fontWeight = FontWeight.Black)
                         }
                     }
-                    if (tab < 4) {
-                        val list = remember(vm.tick, tab, s?.posts?.size, s?.stumps?.following?.size) {
-                            if (s == null) emptyList() else when (tab) {
-                                0 -> Stumps.forYou(s)
-                                1 -> Stumps.followingFeed(s)
-                                else -> s.posts.filter { it.mine || it.club == s.userClubId || s.userClub().short in it.tags || it.pid in s.userClub().squad || it.authorPid in s.userClub().squad }
-                            }
+                    val list = remember(vm.tick, tab, s?.posts?.size, s?.stumps?.following?.size) {
+                        if (s == null) emptyList() else when (tab) {
+                            0 -> Stumps.forYou(s)
+                            1 -> Stumps.followingFeed(s)
+                            else -> s.posts.filter { it.mine || it.club == s.userClubId || s.userClub().short in it.tags || it.pid in s.userClub().squad || it.authorPid in s.userClub().squad }
                         }
-                        LaunchedEffect(tab, list.firstOrNull()?.id) { if (selLocal == null || list.none { it.id == selLocal }) selLocal = list.firstOrNull()?.id }
-                        if (s == null) EmptyNote("Load a career to see your club's feed.")
-                        else if (list.isEmpty()) EmptyNote(when (tab) { 0 -> "No posts yet - play your first match!"; 1 -> "Follow players in the Players tab (or on their profile) to fill this feed."; else -> "Nothing about your team yet." })
-                        else LazyColumn(Modifier.fillMaxSize()) {
-                            items(list, key = { it.id }) { p -> LocalPostCard(vm, s, p, p.id == selLocal) { selLocal = p.id } }
-                            item { Spacer(Modifier.height(12.dp)) }
-                        }
-                    } else {
-                        if (!vm.signedIn) SignInNote(vm)
-                        else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                FilterPill("All managers", !onlyFollowed) { onlyFollowed = false }
-                                Spacer(Modifier.width(6.dp))
-                                FilterPill("Managers I follow", onlyFollowed) { onlyFollowed = true }
-                            }
-                            val list = if (onlyFollowed) vm.onlinePosts.filter { it.userId in vm.following } else vm.onlinePosts
-                            if (vm.onlineStatus.isNotEmpty()) Sub(vm.onlineStatus)
-                            if (list.isEmpty()) EmptyNote(if (onlyFollowed) "Follow other managers to fill this feed." else "No online posts yet. Be the first!")
-                            else LazyColumn(Modifier.fillMaxSize()) {
-                                items(list, key = { it.id }) { p -> OnlinePostCard(vm, p, p.id == selOnline?.id) { selOnline = p } }
-                            }
-                        }
+                    }
+                    LaunchedEffect(tab, list.firstOrNull()?.id) { if (selLocal == null || list.none { it.id == selLocal }) selLocal = list.firstOrNull()?.id }
+                    if (s == null) EmptyNote("Load a career to see your club's feed.")
+                    else if (list.isEmpty()) EmptyNote(when (tab) { 0 -> "No posts yet - play your first match!"; 1 -> "Follow players in the Players tab (or on their profile) to fill this feed."; else -> "Nothing about your team yet." })
+                    else LazyColumn(Modifier.fillMaxSize()) {
+                        items(list, key = { it.id }) { p -> LocalPostCard(vm, s, p, p.id == selLocal) { selLocal = p.id } }
+                        item { Spacer(Modifier.height(12.dp)) }
                     }
                 }
                 // ---- comments panel
                 Column(Modifier.weight(0.44f).fillMaxHeight().background(Color(0xCC0B111C)).drawBehind { drawLine(UI.Line, Offset(0f, 0f), Offset(0f, size.height), 2f) }) {
-                    if (tab < 4) {
-                        val p = s?.posts?.firstOrNull { it.id == selLocal }
-                        if (p == null || s == null) { CommentsHeader(p?.handle); EmptyNote("Select a post to read the comments.") }
-                        else LocalComments(vm, s, p)
-                    } else {
-                        val p = selOnline
-                        CommentsHeader(p?.author)
-                        if (p == null) EmptyNote(if (vm.signedIn) "Select a post to read the comments." else "Sign in to join the conversation.")
-                        else OnlineComments(vm, p)
-                    }
+                    val p = s?.posts?.firstOrNull { it.id == selLocal }
+                    if (p == null || s == null) { CommentsHeader(p?.handle); EmptyNote("Select a post to read the comments.") }
+                    else LocalComments(vm, s, p)
                 }
             }
         }
@@ -217,7 +187,7 @@ private fun PlayerDirectory(vm: GameVM, s: CareerSave) {
             Spacer(Modifier.width(10.dp))
             listOf("All", "My team", "Following", "Verified").forEachIndexed { i, l -> FilterPill(l, filter == i) { filter = i }; Spacer(Modifier.width(6.dp)) }
             Spacer(Modifier.weight(1f))
-            Text("${list.size} accounts", color = C.Sub, fontSize = 11.sp)
+            Text("${list.size} players", color = C.Sub, fontSize = 11.sp)
         }
         Text(Stumps.ESTIMATE_NOTE, color = C.Sub, fontSize = 9.5.sp)
         Spacer(Modifier.height(4.dp))
@@ -279,7 +249,7 @@ fun SocialProfileScreen(vm: GameVM, pid: String) {
     val s = vm.save
     if (s == null) { ScreenScaffold(vm, "Stumpstagram") { EmptyNote("Load a career first.") }; return }
     val a = remember(pid, vm.tick) { Stumps.account(s, pid) }
-    if (a == null) { ScreenScaffold(vm, "Stumpstagram") { EmptyNote("No account for this player.") }; return }
+    if (a == null) { ScreenScaffold(vm, "Stumpstagram") { EmptyNote("No profile for this player.") }; return }
     val posts = remember(pid, s.posts.size, vm.tick) { Stumps.postsBy(s, pid) }
     var sel by remember(pid) { mutableStateOf<Int?>(null) }
     val gp = s.players[pid]
@@ -352,16 +322,6 @@ private fun ProfileCount(n: Long, label: String, est: Boolean = false) {
 private fun EmptyNote(t: String) = Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) { Text(t, color = C.Sub, fontSize = 12.sp, textAlign = TextAlign.Center) }
 
 @Composable
-private fun SignInNote(vm: GameVM) {
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text("The online feed needs an account", color = C.Gold, fontWeight = FontWeight.Bold)
-        Sub("See and like posts from other managers, comment and follow them.")
-        Spacer(Modifier.height(8.dp))
-        Row { GoldButton("Log in") { vm.nav(Screen.Login) }; Spacer(Modifier.width(8.dp)); OutlineBtn("Create account") { vm.nav(Screen.SignUp) } }
-    }
-}
-
-@Composable
 private fun CommentsHeader(handle: String?) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Filled.Email, null, tint = UI.Pink, modifier = Modifier.size(16.dp))
@@ -397,27 +357,6 @@ private fun LocalComments(vm: GameVM, s: CareerSave, p: SocialPost) {
         page = { from, n -> Stumps.commentPage(s, p, from, n) }, meName = "Coach ${s.manager}", version = vm.tick, modifier = Modifier.fillMaxSize(), accent = UI.Pink,
         subtitle = "on ${p.handle}'s post") { text, replyTo ->
         Stumps.userComment(s, p, text, replyTo); vm.persist()
-    }
-}
-
-@Composable
-private fun OnlineComments(vm: GameVM, p: OnlinePost) {
-    var list by remember(p.id) { mutableStateOf<List<OnlineComment>?>(null) }
-    var text by remember(p.id) { mutableStateOf("") }
-    LaunchedEffect(p.id) { vm.loadComments(p.id) { list = it } }
-    Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f)) {
-            when {
-                list == null -> CircularProgressIndicator(color = UI.Pink, modifier = Modifier.align(Alignment.Center).size(22.dp))
-                list!!.isEmpty() -> EmptyNote("No comments yet")
-                else -> LazyColumn { items(list!!, key = { it.id }) { c -> CommentBubble(c.author, "@" + c.author.filter { it.isLetterOrDigit() || it == '_' }.lowercase(), c.body, c.createdAt.take(10)) } }
-            }
-        }
-        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(text, { text = it.take(200) }, placeholder = { Text("Write a comment…", fontSize = 11.sp) }, singleLine = true,
-                modifier = Modifier.weight(1f).heightIn(min = 54.dp), textStyle = LocalTextStyle.current.copy(fontSize = 12.sp))
-            IconButton(onClick = { val b = text.trim(); if (b.isNotEmpty()) vm.addComment(p.id, b) { text = ""; vm.loadComments(p.id) { list = it } } }) { Icon(Icons.Filled.Send, "Send", tint = UI.Pink) }
-        }
     }
 }
 
@@ -464,7 +403,6 @@ private fun LocalPostCard(vm: GameVM, s: CareerSave, p: SocialPost, selected: Bo
             Counter(if (p.liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, compact(p.likes), if (p.liked) C.Red else Color(0xFFCBD5E1)) { Social.toggleLike(p); vm.persist() }
             Counter(Icons.Filled.Email, compact(max(p.comments.size, p.commentCount))) { onSelect() }
             Counter(Icons.Filled.Refresh, compact(p.reposts))
-            if (vm.signedIn && !p.shared && (p.mine || p.kind != "NEWS")) Counter(Icons.Filled.Share, "", UI.Pink) { vm.shareOnline(p) }
         }
         Spacer(Modifier.height(4.dp))
         Row {
@@ -472,7 +410,6 @@ private fun LocalPostCard(vm: GameVM, s: CareerSave, p: SocialPost, selected: Bo
             Spacer(Modifier.width(8.dp))
             Text("S${p.season} D${p.day}", color = C.Sub, fontSize = 9.sp)
         }
-        if (p.shared) Text("Shared online", color = C.Sub, fontSize = 9.sp)
     }
 }
 
@@ -623,29 +560,5 @@ private fun PosterFigure(pid: String, name: String, prim: Color, sec: Color) {
         for (i in 0..3) drawLine(Color(0xFF94A3B8), Offset(cx - w * 0.12f, h * (0.2f + i * 0.03f)), Offset(cx + w * 0.12f, h * (0.2f + i * 0.03f)), 2.5f)
         drawLine(Color(0xFF94A3B8), Offset(cx, h * 0.19f), Offset(cx, h * 0.3f), 2.5f)
         drawCircle(sec, w * 0.035f, Offset(cx, h * 0.12f))
-    }
-}
-
-@Composable
-private fun OnlinePostCard(vm: GameVM, p: OnlinePost, selected: Boolean, onSelect: () -> Unit) {
-    val mine = p.userId == com.cricketcoach.manager.auth.Auth.uid
-    val shape = RoundedCornerShape(14.dp)
-    Column(Modifier.fillMaxWidth().padding(vertical = 5.dp).clip(shape).background(Color(0xFF0E1522))
-        .border(if (selected) 2.dp else 1.dp, if (selected) UI.Pink.copy(alpha = 0.85f) else UI.Line, shape).clickable { onSelect() }.padding(10.dp)) {
-        AuthorLine(p.author, if (p.club.isNotBlank()) "${p.author} · ${p.club}" else p.author, false, p.kind)
-        Spacer(Modifier.height(6.dp))
-        Text(p.body, color = Color(0xFFE2E8F0), fontSize = 13.sp)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            val liked = p.id in vm.onlineLiked
-            Counter(if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, "${p.likes}", if (liked) C.Red else Color(0xFFCBD5E1)) { vm.toggleOnlineLike(p) }
-            Counter(Icons.Filled.Email, "${p.comments}") { onSelect() }
-            Spacer(Modifier.weight(1f))
-            Text(p.createdAt.take(10), color = C.Sub, fontSize = 9.sp)
-            if (mine) TextButton(onClick = { vm.deleteOnlinePost(p.id) }) { Text("Delete", color = C.Red, fontSize = 11.sp) }
-            else {
-                val f = p.userId in vm.following
-                TextButton(onClick = { vm.toggleFollow(p.userId) }) { Text(if (f) "Following" else "+ Follow", color = if (f) C.Sub else UI.Pink, fontSize = 11.sp) }
-            }
-        }
     }
 }

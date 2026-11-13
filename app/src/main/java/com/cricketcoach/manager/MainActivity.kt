@@ -28,7 +28,6 @@ class MainActivity : ComponentActivity() {
         GameAudio.init(this, vm.settings)
         Faces.init(this); Faces.enabled = vm.settings.photos
         GameAudio.setScene(GameAudio.Scene.MENU)
-        intent?.data?.let { if (savedInstanceState == null) vm.handleDeepLink(it.toString()) }
         setContent {
             CcmTheme {
                 // v2.6 Display settings: interface text size + keep-awake during matches (the live match registers its own
@@ -47,7 +46,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
-        intent.data?.let { vm.handleDeepLink(it.toString()) }
     }
 
     /** Settings > Display > Fullscreen: hide the system bars (swipe to reveal) or keep them visible. */

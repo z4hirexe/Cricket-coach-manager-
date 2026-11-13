@@ -2,6 +2,7 @@ package com.cricketcoach.manager.ui.screens
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -9,8 +10,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.cricketcoach.manager.game.*
 import com.cricketcoach.manager.game.Auction
 import com.cricketcoach.manager.ui.*
+import com.cricketcoach.manager.audio.GameAudio
 import kotlinx.coroutines.delay
 
 @Composable
@@ -123,85 +128,205 @@ fun TransfersScreen(vm: GameVM) {
 /* ======================= My club & finances ======================= */
 
 @Composable
-fun MyClubScreen(vm: GameVM) {
+fun MyClubScreen(vm: GameVM, initialTab: Int = 0) {
     val s = vm.save ?: return
     @Suppress("UNUSED_VARIABLE") val t = vm.tick
     val c = s.userClub()
-    var tab by remember { mutableIntStateOf(0) }
-    ScreenScaffold(vm, c.name) {
+    var tab by remember { mutableIntStateOf(initialTab) }
+    ScreenScaffold(vm, if (s.mode == Modes.CLUB) "My Club" else c.name) {
         Tabs(listOf("Overview", "Facilities", "Staff", "Sponsors & tickets", "Trophies"), tab) { tab = it }
-        Column(Modifier.padding(12.dp).verticalScroll(rememberScrollState())) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 10.dp)) {
             when (tab) {
-                0 -> {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ClubBadge(c, 72.dp); Spacer(Modifier.width(12.dp)); JerseyPreview(c.primary, c.secondary, c.jersey, 72.dp); Spacer(Modifier.width(12.dp))
-                        Column { Text(c.name, color = C.Gold, fontWeight = FontWeight.Bold, fontSize = 18.sp); Sub("${c.country} • Division ${c.division}"); Sub("Reputation ${c.reputation}/100") }
-                    }
-                    SectionTitle(c.stadium.ifEmpty { "${c.name} Ground" })
-                    StadiumGraphic(c.capacity, c.primary)
-                    KV("Capacity", "%,d".format(c.capacity)); KV("Last attendance", "%,d".format(c.lastAttendance)); KV("Ticket price", "₹${c.ticketPrice}")
-                    KV("Balance", Money.fmt(c.balance), if (c.balance >= 0) C.Green else C.Red); KV("Payroll", Money.fmt(Career.payroll(s, c)) + " / cap " + Money.fmt(Money.capFor(c.division, s.economy)))
-                    KV("Sponsor", c.sponsor.ifEmpty { "None — choose one" })
-                    SectionTitle("Customise")
-                    Sub("Logo"); Row { for (i in Consts.LOGO_NAMES.indices) TextButton(onClick = { c.logo = i; vm.persist() }, contentPadding = PaddingValues(2.dp)) { Badge("", c.primary, c.secondary, i, 30.dp) } }
-                    Sub("Jersey"); Row { for (i in Consts.JERSEY_NAMES.indices) TextButton(onClick = { c.jersey = i; vm.persist() }, contentPadding = PaddingValues(2.dp)) { JerseyPreview(c.primary, c.secondary, i, 40.dp) } }
-                    Sub("Colours"); Row { Consts.CLUB_COLORS.forEach { (pc, sc) -> TextButton(onClick = { c.primary = pc; c.secondary = sc; vm.persist() }, contentPadding = PaddingValues(1.dp), modifier = Modifier.size(28.dp)) { Box(Modifier.size(22.dp).clip(RoundedCornerShape(11.dp)).background(Color(pc))) } } }
-                }
-                1 -> {
-                    Sub("Upgrades are paid from your balance. Max level 5; stadium expands by 5,000 seats (max 80,000).")
-                    for ((key, label, lvl, desc) in listOf(
-                        Quad("training", "Training ground", c.trainingLvl, "+10% training gains per level"),
-                        Quad("academy", "Youth academy", c.academyLvl, "Better and more youth prospects each off-season"),
-                        Quad("medical", "Medical centre", c.medicalLvl, "Faster injury recovery, fewer injuries"),
-                        Quad("scouting", "Scouting network", c.scoutLvl, "Better prospects from scouting missions"),
-                        Quad("stadium", "Stadium expansion", c.capacity / 5000, "More ticket & matchday revenue")
-                    )) UpgradeCard(vm, s, key, label, if (key == "stadium") "%,d seats".format(c.capacity) else "Level $lvl/5", desc)
-                }
-                2 -> {
-                    Sub("Coaching staff (level 1–5). Better coaches improve player development in their area. Wages are paid every matchday.")
-                    UpgradeCard(vm, s, "coachBat", "Batting coach", "Level ${c.coachBat}/5", "Boosts batting development")
-                    UpgradeCard(vm, s, "coachBowl", "Bowling coach", "Level ${c.coachBowl}/5", "Boosts bowling development")
-                    UpgradeCard(vm, s, "coachFit", "Fitness coach", "Level ${c.coachFit}/5", "Fitness recovery & fitness training")
-                    KV("Staff wages per season", Money.fmt((c.coachBat + c.coachBowl + c.coachFit + c.scoutLvl) * 0.35 * s.economy))
-                    KV("Facilities upkeep per season", Money.fmt(((c.trainingLvl + c.academyLvl + c.medicalLvl) * 0.25 + c.capacity / 10000.0 * 0.3) * s.economy))
-                }
-                3 -> {
-                    SectionTitle("Sponsorship")
-                    if (c.sponsor.isNotEmpty()) Text("Current: ${c.sponsor} — ${Money.fmt(c.sponsorValue)}/season", color = C.Green)
-                    else if (s.phase != "PRESEASON" && s.phase != "OFFSEASON") Sub("No sponsor this season.")
-                    if (c.sponsor.isEmpty()) s.sponsorOffers.forEach { o ->
-                        CcmCard(onClick = { c.sponsor = o.name; c.sponsorValue = o.value; vm.persist(); vm.msg("Signed with ${o.name}") }) {
-                            Text(o.name, color = C.Text, fontWeight = FontWeight.Bold); Sub("${Money.fmt(o.value)}/season • ${o.bonus}"); Sub("Tap to sign")
-                        }
-                    }
-                    SectionTitle("Ticket pricing")
-                    var price by remember { mutableFloatStateOf(c.ticketPrice.toFloat()) }
-                    Text("₹${price.toInt()} per ticket", color = C.Gold, fontWeight = FontWeight.Bold)
-                    Slider(price, { price = (it / 50).toInt() * 50f }, onValueChangeFinished = { c.ticketPrice = price.toInt(); vm.persist() }, valueRange = 100f..3000f)
-                    Sub("Higher prices earn more per fan but reduce attendance. Demand depends on reputation, division and recent results.")
-                }
-                else -> {
-                    if (c.trophies.isEmpty()) Sub("No trophies yet — go and win one!")
-                    c.trophies.forEach { Text("🏆 $it", color = C.Gold, fontSize = 15.sp, modifier = Modifier.padding(vertical = 3.dp)) }
-                    SectionTitle("Club history")
-                    s.history.forEach { Sub("• $it") }
-                }
+                0 -> ClubOverview(vm, s, c)
+                1 -> ClubFacilities(vm, s, c)
+                2 -> ClubStaff(vm, s, c)
+                3 -> ClubSponsors(vm, s, c)
+                else -> ClubTrophies(s, c)
             }
             Spacer(Modifier.height(24.dp))
         }
     }
 }
 
-data class Quad(val a: String, val b: String, val c: Int, val d: String)
+@Composable
+private fun ClubOverview(vm: GameVM, s: CareerSave, c: Club) {
+    // identity hero
+    DsCard(pad = 14.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ClubBadge(c, 64.dp)
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                DsTitle(c.name, size = 22.sp)
+                Spacer(Modifier.height(5.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    DsTag(c.country, DS.Sub); DsTag("Division ${c.division}", DS.Accent); DsTag("Rep ${c.reputation}/100", DS.Gold)
+                }
+            }
+            JerseyPreview(c.primary, c.secondary, c.jersey, 62.dp)
+        }
+    }
+    Spacer(Modifier.height(10.dp))
+    // key numbers
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        StatTile("Balance", Money.fmt(c.balance), Modifier.weight(1f), accent = if (c.balance >= 0) DS.Good else DS.Bad)
+        StatTile("Payroll", Money.fmt(Career.payroll(s, c)), Modifier.weight(1f), sub = "cap ${Money.fmt(Money.capFor(c.division, s.economy))}", accent = DS.White)
+        StatTile("Squad", "${c.squad.size}/25", Modifier.weight(1f), sub = "${Career.overseasCount(s, c)} overseas", accent = DS.White)
+    }
+    Spacer(Modifier.height(10.dp))
+    // home ground
+    DsCard {
+        SectionLabel("Home ground", trailing = { Text(c.stadium.ifEmpty { "${c.name} Ground" }, color = DS.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) })
+        StadiumGraphic(c.capacity, c.primary)
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatTile("Capacity", "%,d".format(c.capacity), Modifier.weight(1f), accent = DS.White)
+            StatTile("Last gate", "%,d".format(c.lastAttendance), Modifier.weight(1f), accent = DS.White)
+            StatTile("Ticket", "₹${c.ticketPrice}", Modifier.weight(1f), accent = DS.White)
+        }
+    }
+    Spacer(Modifier.height(10.dp))
+    // customise
+    DsCard {
+        SectionLabel("Customise", trailing = { Text(Consts.LOGO_NAMES.getOrElse(c.logo) { "Shield" }, color = DS.Gold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) })
+        Text("Crest", color = DS.Sub, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(5.dp))
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (i in Consts.LOGO_NAMES.indices) PickerTile(c.logo == i, { c.logo = i; vm.persist() }) { Badge("", c.primary, c.secondary, i, 34.dp) }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text("Jersey", color = DS.Sub, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(5.dp))
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (i in Consts.JERSEY_NAMES.indices) PickerTile(c.jersey == i, { c.jersey = i; vm.persist() }) { JerseyPreview(c.primary, c.secondary, i, 38.dp) }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text("Colours", color = DS.Sub, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(5.dp))
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            Consts.CLUB_COLORS.forEach { (pc, sc) ->
+                val on = c.primary == pc
+                Box(Modifier.size(30.dp).clip(CircleShape).background(Color(pc)).border(if (on) 2.dp else 1.dp, if (on) DS.Gold else DS.Line, CircleShape)
+                    .clickable { c.primary = pc; c.secondary = sc; vm.persist() }, contentAlignment = Alignment.Center) {
+                    if (on) Icon(Icons.Filled.Check, null, tint = if (Color(pc).luminanceApprox() > 0.6f) Color.Black else Color.White, modifier = Modifier.size(15.dp))
+                }
+            }
+        }
+    }
+}
 
 @Composable
-private fun UpgradeCard(vm: GameVM, s: CareerSave, key: String, label: String, level: String, desc: String) {
+private fun PickerTile(selected: Boolean, onClick: () -> Unit, content: @Composable () -> Unit) {
+    Box(Modifier.clip(RoundedCornerShape(9.dp)).background(if (selected) DS.Navy4 else DS.Navy2)
+        .border(if (selected) 1.5.dp else 1.dp, if (selected) DS.Gold else DS.Line, RoundedCornerShape(9.dp))
+        .clickable { GameAudio.click(); onClick() }.padding(6.dp), contentAlignment = Alignment.Center) { content() }
+}
+
+@Composable
+private fun ClubFacilities(vm: GameVM, s: CareerSave, c: Club) {
+    Text("Invest in the club to develop players faster and grow matchday revenue. Upgrades are paid from your balance.", color = DS.Sub, fontSize = 12.sp, lineHeight = 16.sp)
+    Spacer(Modifier.height(8.dp))
+    UpgradeCard(vm, s, "training", "Training ground", "chart", c.trainingLvl, "+10% training gains per level")
+    UpgradeCard(vm, s, "academy", "Youth academy", "squad", c.academyLvl, "Better and more youth prospects each off-season")
+    UpgradeCard(vm, s, "medical", "Medical centre", "squad", c.medicalLvl, "Faster injury recovery, fewer injuries")
+    UpgradeCard(vm, s, "scouting", "Scouting network", "search", c.scoutLvl, "Better prospects from scouting missions")
+    UpgradeCard(vm, s, "stadium", "Stadium expansion", "stadium", c.capacity / 5000, "More ticket & matchday revenue", stadium = true)
+}
+
+@Composable
+private fun ClubStaff(vm: GameVM, s: CareerSave, c: Club) {
+    Text("Coaching staff (level 1–5). Better coaches improve player development in their area. Wages are paid every matchday.", color = DS.Sub, fontSize = 12.sp, lineHeight = 16.sp)
+    Spacer(Modifier.height(8.dp))
+    UpgradeCard(vm, s, "coachBat", "Batting coach", "bat", c.coachBat, "Boosts batting development")
+    UpgradeCard(vm, s, "coachBowl", "Bowling coach", "bat", c.coachBowl, "Boosts bowling development")
+    UpgradeCard(vm, s, "coachFit", "Fitness coach", "chart", c.coachFit, "Fitness recovery & fitness training")
+    Spacer(Modifier.height(4.dp))
+    DsCard {
+        SectionLabel("Running costs")
+        KV("Staff wages / season", Money.fmt((c.coachBat + c.coachBowl + c.coachFit + c.scoutLvl) * 0.35 * s.economy))
+        KV("Facilities upkeep / season", Money.fmt(((c.trainingLvl + c.academyLvl + c.medicalLvl) * 0.25 + c.capacity / 10000.0 * 0.3) * s.economy))
+    }
+}
+
+@Composable
+private fun ClubSponsors(vm: GameVM, s: CareerSave, c: Club) {
+    DsCard {
+        SectionLabel("Sponsorship")
+        if (c.sponsor.isNotEmpty()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Glyph("coins", DS.Good, 20.dp); Spacer(Modifier.width(9.dp))
+                Column(Modifier.weight(1f)) { Text(c.sponsor, color = DS.White, fontWeight = FontWeight.Bold, fontSize = 14.sp); Text("${Money.fmt(c.sponsorValue)} / season", color = DS.Good, fontSize = 12.sp) }
+                DsTag("Active", DS.Good)
+            }
+        } else if (s.sponsorOffers.isEmpty()) {
+            Text(if (s.phase != "PRESEASON" && s.phase != "OFFSEASON") "No sponsor this season. Offers arrive in the pre-season." else "No sponsor offers right now.", color = DS.Sub, fontSize = 12.sp)
+        } else {
+            Text("Choose a season sponsor:", color = DS.Sub, fontSize = 12.sp)
+            Spacer(Modifier.height(6.dp))
+            s.sponsorOffers.forEach { o ->
+                DsCard(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), onClick = { c.sponsor = o.name; c.sponsorValue = o.value; vm.persist(); vm.msg("Signed with ${o.name}") }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) { Text(o.name, color = DS.White, fontWeight = FontWeight.Bold, fontSize = 14.sp); Text("${Money.fmt(o.value)} / season · ${o.bonus}", color = DS.Sub, fontSize = 11.sp) }
+                        DsButton("Sign", height = DS.BtnHSmall) { c.sponsor = o.name; c.sponsorValue = o.value; vm.persist(); vm.msg("Signed with ${o.name}") }
+                    }
+                }
+            }
+        }
+    }
+    Spacer(Modifier.height(10.dp))
+    DsCard {
+        SectionLabel("Ticket pricing", trailing = { Text("₹${c.ticketPrice}", color = DS.Gold, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 18.sp) })
+        var price by remember { mutableFloatStateOf(c.ticketPrice.toFloat()) }
+        Slider(price, { price = (it / 50).toInt() * 50f }, onValueChangeFinished = { c.ticketPrice = price.toInt(); vm.persist() }, valueRange = 100f..3000f,
+            colors = SliderDefaults.colors(thumbColor = DS.Gold, activeTrackColor = DS.Gold, inactiveTrackColor = DS.Line))
+        Text("Higher prices earn more per fan but reduce attendance. Demand depends on reputation, division and recent results.", color = DS.Sub, fontSize = 11.sp, lineHeight = 15.sp)
+    }
+}
+
+@Composable
+private fun ClubTrophies(s: CareerSave, c: Club) {
+    DsCard {
+        SectionLabel("Trophy cabinet", trailing = { Text("${c.trophies.size}", color = DS.Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold) })
+        if (c.trophies.isEmpty()) EmptyState("trophy", "No trophies yet", "Win a league or cup and it will be displayed here.")
+        else c.trophies.forEach {
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Glyph("trophy", DS.Gold, 18.dp); Spacer(Modifier.width(10.dp)); Text(it, color = DS.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+    Spacer(Modifier.height(10.dp))
+    DsCard {
+        SectionLabel("Club history")
+        if (s.history.isEmpty()) Text("Your story starts here.", color = DS.Sub, fontSize = 12.sp)
+        else s.history.forEach { Text("·  $it", color = DS.Sub, fontSize = 12.sp, lineHeight = 18.sp) }
+    }
+}
+
+@Composable
+private fun UpgradeCard(vm: GameVM, s: CareerSave, key: String, label: String, glyph: String, lvl: Int, desc: String, stadium: Boolean = false) {
     val c = s.userClub()
     val cost = Career.upgradeCost(c, key, s.economy)
-    CcmCard {
+    val maxed = if (stadium) c.capacity >= 80000 else lvl >= 5
+    DsCard(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { Text(label, color = C.Text, fontWeight = FontWeight.Bold); Sub("$level • $desc") }
-            GoldButton("Upgrade\n${Money.fmt(cost)}", enabled = c.balance >= cost) { vm.act { Career.upgrade(it, key) } }
+            Box(Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(DS.Navy4), contentAlignment = Alignment.Center) { Glyph(glyph, DS.Gold, 20.dp) }
+            Spacer(Modifier.width(11.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(label, color = DS.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (stadium) "%,d seats".format(c.capacity) else "Level $lvl/5", color = DS.Gold, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(4.dp))
+                if (stadium) ProgressTrack(c.capacity / 80000f) else LevelDots(lvl)
+                Spacer(Modifier.height(4.dp))
+                Text(desc, color = DS.Sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.width(11.dp))
+            if (maxed) DsTag("Maxed", DS.Good)
+            else Column(horizontalAlignment = Alignment.End) {
+                Text(Money.fmt(cost), color = DS.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(4.dp))
+                DsButton("Upgrade", height = DS.BtnHSmall, enabled = c.balance >= cost) { vm.act { Career.upgrade(it, key) } }
+            }
         }
     }
 }

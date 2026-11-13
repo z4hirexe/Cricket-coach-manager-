@@ -10,14 +10,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.cricketcoach.manager.data.Repo
 import com.cricketcoach.manager.game.*
-import com.cricketcoach.manager.save.CloudSync
 import com.cricketcoach.manager.save.SaveManager
 import com.cricketcoach.manager.save.SaveMeta
 import com.cricketcoach.manager.save.Settings
-import com.cricketcoach.manager.save.DevicePrefs
-import com.cricketcoach.manager.auth.Auth
-import com.cricketcoach.manager.auth.Profile
-import com.cricketcoach.manager.auth.OnlinePost
 import com.cricketcoach.manager.audio.GameAudio
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,12 +39,7 @@ sealed class Screen(val title: String) {
     object Finances : Screen("Club Finances")
     object SettingsScr : Screen("Settings")
     object SeasonSummary : Screen("Season Review")
-    // v2: accounts, career types, social
-    object Login : Screen("Log In")
-    object SignUp : Screen("Create Account")
-    object Forgot : Screen("Forgot Password")
-    object ResetPassword : Screen("Set New Password")
-    object Account : Screen("My Account")
+    // career types, social
     object CareerType : Screen("Career Type")
     data class ChooseTeam(val mode: String) : Screen("Choose Team")
     object NewTeam : Screen("New Team")
@@ -58,7 +48,7 @@ sealed class Screen(val title: String) {
     object Inbox : Screen("Inbox")
     // v2.5: cricket calendar / match schedule centre
     object Calendar : Screen("Cricket Calendar")
-    // v2.5 Phase D: Stumpstagram player account
+    // v2.5 Phase D: Stumpstagram player profile
     data class SocialProfile(val pid: String) : Screen("Stumpstagram")
     // v2.5 Phase E: tournament squad registration
     data class SquadRegistration(val compId: String) : Screen("Squad Registration")
@@ -74,31 +64,18 @@ sealed class Screen(val title: String) {
 class PendingMatch(val compId: String, val fixtureId: String)
 
 class GameVM(app: Application) : AndroidViewModel(app) {
-    val device = DevicePrefs(app)
-    /** Per-account storage: every user has separate saves, settings, coins and progress. */
+    /** Device-local storage: three career slots, no account or cloud dependency. */
     var sm by mutableStateOf(SaveManager(app))
         private set
     var settings by mutableStateOf(Settings(app))
         private set
-    var profile by mutableStateOf<Profile?>(null)
-    var signedIn by mutableStateOf(false)
-    var email by mutableStateOf("")
-    var avatar by mutableStateOf<ByteArray?>(null)
     var coins by mutableIntStateOf(1000)
     var xp by mutableIntStateOf(0)
-    var authBusy by mutableStateOf(false)
-    var authError by mutableStateOf<String?>(null)
-    var guestImportOffer by mutableStateOf<List<SaveMeta>>(emptyList())
     // live commentary
     val comLines = mutableStateListOf<ComLine>()
     private var commentary: Commentary? = null
     private var comFor: MatchSim? = null
     private var comDone = 0
-    // online social feed
-    var onlinePosts by mutableStateOf<List<OnlinePost>>(emptyList())
-    var onlineLiked by mutableStateOf<Set<Long>>(emptySet())
-    var following by mutableStateOf<Set<String>>(emptySet())
-    var onlineStatus by mutableStateOf("")
     var loading by mutableStateOf(true)
     var loadError by mutableStateOf<String?>(null)
     var save by mutableStateOf<CareerSave?>(null)
@@ -110,7 +87,6 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     var simTick by mutableIntStateOf(0)
     var autoPlay by mutableStateOf(false)
     var matchApplied by mutableStateOf(false)
-    var syncStatus by mutableStateOf("")
     var busy by mutableStateOf(false)
     var saves by mutableStateOf<List<SaveMeta>>(emptyList())
     private val rnd = Random.Default
@@ -118,17 +94,13 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) { Repo.load(app); Auth.init(app) }
-                val uid = Auth.uid
-                if (uid != null) switchUser(uid, Auth.session?.email ?: "") else { coins = settings.coins; xp = settings.xp }
+                withContext(Dispatchers.IO) { Repo.load(app) }
+                coins = settings.coins; xp = settings.xp
                 saves = withContext(Dispatchers.IO) { sm.list() }
-                if (uid == null && !device.guestChosen) stack.add(Screen.Login)
-                if (uid != null) refreshAccount(firstLogin = false)
             } catch (e: Exception) {
                 loadError = "Could not load dataset: ${e.message}"
             }
             loading = false
-            syncInBackground()
         }
     }
 
@@ -195,203 +167,14 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) { sm.write(meta, json) }
     }
 
-    fun syncInBackground() {
-        val ctx = getApplication<Application>()
-        val m = sm; val st = settings
-        viewModelScope.launch(Dispatchers.IO) {
-            val r = CloudSync.syncUp(ctx, m, st)
-            if (st.profileDirty && Auth.signedIn && m === sm) pushProfile()
-            withContext(Dispatchers.Main) { syncStatus = r }
-        }
-    }
-
-    fun cloudRestore(slot: Int) {
-        val ctx = getApplication<Application>()
-        viewModelScope.launch(Dispatchers.IO) {
-            val r = CloudSync.download(ctx, sm, slot)
-            val list = sm.list()
-            withContext(Dispatchers.Main) { toast = r; saves = list }
-        }
-    }
+    /** Settings changed: keep everything on this device. */
+    fun saveSettings() { bump() }
 
     fun refreshSaves() { viewModelScope.launch(Dispatchers.IO) { val l = sm.list(); withContext(Dispatchers.Main) { saves = l } } }
 
-    /* ---------------- accounts ---------------- */
-    val isGuest: Boolean get() = !signedIn
-    /** Guests get one device-only career slot; an account unlocks 3 permanent slots with cloud backup. */
-    fun slotAllowed(slot: Int) = signedIn || slot == 1
+    /** All three career slots are available locally; no account is required. */
+    fun slotAllowed(slot: Int) = slot in 1..3
     val level: Int get() = 1 + xp / 500
-
-    private fun switchUser(key: String, mail: String) {
-        val app = getApplication<Application>()
-        if (save != null) manualSaveSilent()
-        save = null; pending = null; sim = null; comLines.clear()
-        sm = SaveManager(app, key); settings = Settings(app, key)
-        signedIn = key != SaveManager.GUEST; email = mail
-        coins = settings.coins; xp = settings.xp
-        GameAudio.bind(settings); Faces.enabled = settings.photos
-        onlinePosts = emptyList(); onlineLiked = emptySet(); following = emptySet(); avatar = null
-        if (!signedIn) profile = null
-    }
-
-    private fun afterAuth(firstLogin: Boolean) {
-        val uid = Auth.uid ?: return
-        switchUser(uid, Auth.session?.email ?: "")
-        refreshSaves()
-        stack.clear(); stack.add(Screen.Main)
-        refreshAccount(firstLogin)
-    }
-
-    /** Pulls profile, settings, coins, avatar and cloud careers of the signed-in user. */
-    fun refreshAccount(firstLogin: Boolean) {
-        val ctx = getApplication<Application>()
-        val m = sm; val st = settings
-        viewModelScope.launch(Dispatchers.IO) {
-            val p = Auth.profile() ?: return@launch
-            if (st.profileDirty) pushProfile() else {
-                if (p.settings != null && p.settings.size() > 0) st.applyJson(p.settings)
-                st.coins = p.coins; st.xp = p.xp
-            }
-            val av = p.avatarPath?.let { Auth.downloadAvatar(it) }
-            // restore cloud careers that are not on this device yet (e.g. new phone)
-            val local = m.list().map { it.slot }.toSet()
-            var restored = 0
-            if (CloudSync.online(ctx)) Auth.listSaves()?.filter { it.slot !in local }?.forEach { cs -> if (CloudSync.download(ctx, m, cs.slot).startsWith("Cloud career")) restored++ }
-            val list = m.list()
-            val guestSaves = if (device.importedGuestFor != p.id) SaveManager(ctx).list() else emptyList()
-            withContext(Dispatchers.Main) {
-                if (m !== sm) return@withContext
-                profile = if (st.profileDirty) p.copy(coins = st.coins, xp = st.xp) else p
-                coins = st.coins; xp = st.xp; avatar = av; saves = list
-                GameAudio.refresh(); Faces.enabled = st.photos
-                if (restored > 0) toast = "Restored $restored career(s) from your cloud account"
-                if (guestSaves.isNotEmpty()) guestImportOffer = guestSaves
-                else if (firstLogin) toast = "Welcome, ${p.displayName.ifBlank { p.username }}!"
-            }
-        }
-    }
-
-    private fun pushProfile() {
-        val st = settings
-        if (Auth.updateProfile(mapOf("coins" to st.coins, "xp" to st.xp, "settings" to st.toJson())) == null) st.profileDirty = false
-    }
-
-    fun saveSettingsToCloud() { settings.profileDirty = true; if (signedIn) viewModelScope.launch(Dispatchers.IO) { pushProfile() } }
-
-    private fun authCall(firstLogin: Boolean, f: () -> String?) {
-        authBusy = true; authError = null
-        viewModelScope.launch {
-            val err = withContext(Dispatchers.IO) { f() }
-            authBusy = false
-            if (err != null) authError = err else { device.guestChosen = false; afterAuth(firstLogin) }
-        }
-    }
-
-    fun login(email: String, pw: String) = authCall(true) { Auth.signIn(email, pw) }
-    fun signUp(email: String, pw: String, username: String, display: String) = authCall(true) { Auth.signUp(email, pw, username, display) }
-
-    fun forgot(email: String) {
-        authBusy = true; authError = null
-        viewModelScope.launch {
-            val err = withContext(Dispatchers.IO) { Auth.recover(email) }
-            authBusy = false
-            if (err != null) authError = err else { toast = "Password reset link sent to $email. Open it on this phone."; back() }
-        }
-    }
-
-    /** Handles cricketmanagerpro://auth-callback#access_token=...&type=recovery from the reset e-mail. */
-    fun handleDeepLink(uri: String) {
-        val params = Auth.parseCallback(uri)
-        viewModelScope.launch {
-            val err = withContext(Dispatchers.IO) { Auth.acceptCallback(params) }
-            if (err != null) { toast = err; return@launch }
-            afterAuth(false)
-            if (params["type"] == "recovery") nav(Screen.ResetPassword) else toast = "Signed in"
-        }
-    }
-
-    fun setNewPassword(pw: String) {
-        authBusy = true; authError = null
-        viewModelScope.launch {
-            val err = withContext(Dispatchers.IO) { Auth.updatePassword(pw) }
-            authBusy = false
-            if (err != null) authError = err else { toast = "Password updated"; back() }
-        }
-    }
-
-    fun playAsGuest() { device.guestChosen = true; if (signedIn) logout() else { stack.clear(); stack.add(Screen.Main) } }
-
-    fun logout() {
-        manualSaveSilent()
-        val m = sm; val st = settings
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) { CloudSync.syncUp(getApplication(), m, st); if (st.profileDirty) pushProfile(); Auth.signOut() }
-            switchUser(SaveManager.GUEST, ""); refreshSaves()
-            stack.clear(); stack.add(Screen.Main); stack.add(Screen.Login)
-            toast = "Logged out. Your careers are safe in your account."
-        }
-    }
-
-    fun deleteAccount() {
-        authBusy = true
-        val ctx = getApplication<Application>(); val key = sm.userKey
-        viewModelScope.launch {
-            val err = withContext(Dispatchers.IO) { Auth.deleteAccount() }
-            authBusy = false
-            if (err != null) { toast = err; return@launch }
-            save = null
-            withContext(Dispatchers.IO) {
-                ctx.deleteDatabase("ccm_saves_${SaveManager.safe(key)}.db")
-                java.io.File(ctx.filesDir, "accounts/${SaveManager.safe(key)}").deleteRecursively()
-                ctx.deleteSharedPreferences("ccm_settings_${SaveManager.safe(key)}")
-            }
-            switchUser(SaveManager.GUEST, ""); refreshSaves()
-            stack.clear(); stack.add(Screen.Main); stack.add(Screen.Login)
-            toast = "Account and all its data were permanently deleted."
-        }
-    }
-
-    fun updateProfile(username: String, display: String) {
-        authBusy = true; authError = null
-        viewModelScope.launch {
-            val err = withContext(Dispatchers.IO) {
-                if (!Auth.validUsername(username)) "Username: 3-20 letters, numbers or _"
-                else Auth.updateProfile(mapOf("username" to username, "display_name" to display.take(40)))
-            }
-            authBusy = false
-            if (err != null) authError = err else { profile = profile?.copy(username = username, displayName = display); toast = "Profile updated" }
-        }
-    }
-
-    fun uploadAvatar(jpeg: ByteArray) {
-        authBusy = true
-        viewModelScope.launch {
-            val err = withContext(Dispatchers.IO) { Auth.uploadAvatar(jpeg) }
-            authBusy = false
-            if (err != null) toast = err else { avatar = jpeg; profile = profile?.copy(avatarPath = "${Auth.uid}/avatar.jpg"); toast = "Profile photo updated" }
-        }
-    }
-
-    /** Copies device (guest) careers into the signed-in account's free slots. */
-    fun importGuestSaves(accept: Boolean) {
-        val offer = guestImportOffer; guestImportOffer = emptyList()
-        val uid = Auth.uid ?: return
-        device.importedGuestFor = uid
-        if (!accept) return
-        val ctx = getApplication<Application>(); val m = sm
-        viewModelScope.launch(Dispatchers.IO) {
-            val guest = SaveManager(ctx)
-            var n = 0
-            for (g in offer) {
-                val free = (1..3).firstOrNull { sl -> m.list().none { it.slot == sl } } ?: break
-                val json = guest.rawJson(g.slot) ?: continue
-                if (m.importJson(free, json) != null) n++
-            }
-            val list = m.list()
-            withContext(Dispatchers.Main) { saves = list; toast = if (n > 0) "Imported $n device career(s) into your account" else "No free slot to import into" }
-            CloudSync.syncUp(ctx, m, settings)
-        }
-    }
 
     /* ---------------- coins / xp ---------------- */
     private fun drainRewards(s: CareerSave) {
@@ -399,73 +182,16 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         val gained = s.pendingCoins
         coins = (coins + s.pendingCoins).coerceAtLeast(0); xp += s.pendingXp
         s.pendingCoins = 0; s.pendingXp = 0
-        settings.coins = coins; settings.xp = xp; settings.profileDirty = true
-        profile = profile?.copy(coins = coins, xp = xp)
+        settings.coins = coins; settings.xp = xp
         if (gained >= 100) toast = "+$gained coins earned!"
     }
 
     fun spendCoins(n: Int, what: String): Boolean {
         if (coins < n) { toast = "Not enough coins ($coins / $n)"; return false }
-        coins -= n; settings.coins = coins; settings.profileDirty = true
-        profile = profile?.copy(coins = coins)
+        coins -= n; settings.coins = coins
         GameAudio.play("coin"); toast = "Spent $n coins: $what"
-        syncInBackground()
         return true
     }
-
-    /* ---------------- online social feed (Supabase) ---------------- */
-    fun loadOnlineFeed(onlyUser: String? = null) {
-        if (!signedIn) { onlineStatus = "Log in to see the online feed"; return }
-        onlineStatus = "Loading…"
-        viewModelScope.launch(Dispatchers.IO) {
-            val posts = Auth.feed(50, onlyUser)
-            val liked = posts?.let { Auth.myLikes(it.map { p -> p.id }) } ?: emptySet()
-            val fol = Auth.following()
-            withContext(Dispatchers.Main) {
-                if (posts == null) onlineStatus = "Offline - showing your local feed only"
-                else { onlinePosts = posts; onlineLiked = liked; following = fol; onlineStatus = if (posts.isEmpty()) "No posts yet - be the first to share!" else "" }
-            }
-        }
-    }
-
-    fun shareOnline(p: SocialPost) {
-        val s = save
-        if (!signedIn) { toast = "Log in to share online"; return }
-        viewModelScope.launch(Dispatchers.IO) {
-            val err = Auth.publish(s?.userClub()?.name ?: "", p.kind, p.text)
-            withContext(Dispatchers.Main) { if (err == null) { p.shared = true; toast = "Shared to the online feed"; persist(); loadOnlineFeed() } else toast = err }
-        }
-    }
-
-    fun toggleOnlineLike(p: OnlinePost) {
-        val like = p.id !in onlineLiked
-        onlineLiked = if (like) onlineLiked + p.id else onlineLiked - p.id
-        onlinePosts = onlinePosts.map { if (it.id == p.id) it.copy(likes = it.likes + if (like) 1 else -1) else it }
-        viewModelScope.launch(Dispatchers.IO) { Auth.setLike(p.id, like)?.let { e -> withContext(Dispatchers.Main) { toast = e } } }
-    }
-
-    fun toggleFollow(userId: String) {
-        val f = userId !in following
-        following = if (f) following + userId else following - userId
-        viewModelScope.launch(Dispatchers.IO) { Auth.setFollow(userId, f)?.let { e -> withContext(Dispatchers.Main) { toast = e; following = following - userId } } }
-    }
-
-    fun deleteOnlinePost(id: Long) {
-        viewModelScope.launch(Dispatchers.IO) { val e = Auth.deletePost(id); withContext(Dispatchers.Main) { if (e == null) onlinePosts = onlinePosts.filter { it.id != id } else toast = e } }
-    }
-
-    fun loadComments(postId: Long, done: (List<com.cricketcoach.manager.auth.OnlineComment>) -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) { val c = Auth.comments(postId) ?: emptyList(); withContext(Dispatchers.Main) { done(c) } }
-    }
-
-    fun addComment(postId: Long, text: String, done: () -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val e = Auth.comment(postId, text)
-            withContext(Dispatchers.Main) { if (e != null) toast = e else { onlinePosts = onlinePosts.map { if (it.id == postId) it.copy(comments = it.comments + 1) else it }; done() } }
-        }
-    }
-
-    fun followerCount(userId: String, done: (Int?) -> Unit) { viewModelScope.launch(Dispatchers.IO) { val n = Auth.followerCount(userId); withContext(Dispatchers.Main) { done(n) } } }
 
     /* ---------------- commentary ---------------- */
     /** Generates commentary for new deliveries of [m]; returns the newest line (to be spoken). */
@@ -502,10 +228,10 @@ class GameVM(app: Application) : AndroidViewModel(app) {
 
     /* ---------------- career lifecycle ---------------- */
     fun newModeCareer(slot: Int, manager: String, mode: String, teamId: String) {
-        if (!slotAllowed(slot)) { msg("Create a free account to use career slot $slot."); return }
+        if (!slotAllowed(slot)) { msg("Invalid career slot."); return }
         busy = true
         viewModelScope.launch {
-            val s = withContext(Dispatchers.Default) { Modes.newCareer(slot, manager.ifBlank { profile?.displayName?.ifBlank { null } ?: "Coach" }, mode, teamId, settings.economy.toDouble(), settings.difficulty) }
+            val s = withContext(Dispatchers.Default) { Modes.newCareer(slot, manager.ifBlank { "Coach" }, mode, teamId, settings.economy.toDouble(), settings.difficulty) }
             save = s; settings.lastSlot = slot; busy = false
             pending = null; sim = null
             stack.clear(); stack.add(Screen.Main); stack.add(Screen.Dashboard)
@@ -515,7 +241,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
 
     fun newCareer(slot: Int, manager: String, club: String, short: String, country: String, primary: Long, secondary: Long, logo: Int, jersey: Int, setup: String,
                   stadium: String = "", logoFile: String = "", boost: Boolean = false) {
-        if (!slotAllowed(slot)) { msg("Create a free account to use career slot $slot."); return }
+        if (!slotAllowed(slot)) { msg("Invalid career slot."); return }
         if (boost && !spendCoins(500, "transfer budget boost")) return
         busy = true
         viewModelScope.launch {
@@ -551,7 +277,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     fun deleteSlot(slot: Int) {
         val m = sm
         viewModelScope.launch(Dispatchers.IO) {
-            m.delete(slot); if (!m.isGuest) Auth.deleteSave(slot)
+            m.delete(slot)
             val l = m.list(); withContext(Dispatchers.Main) { saves = l; if (save?.slot == slot) save = null }
         }
     }

@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cricketcoach.manager.game.*
@@ -87,10 +88,15 @@ fun FixturesScreen(vm: GameVM) {
     ScreenScaffold(vm, "Fixtures & Results") {
         Tabs(s.league.map { compTab(s, it) }, div.coerceIn(0, (s.league.size - 1).coerceAtLeast(0))) { div = it }
         val comp = s.league.getOrNull(div) ?: return@ScreenScaffold
-        Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Switch(mineOnly, { mineOnly = it }); Spacer(Modifier.width(8.dp)); Text(if (comp.userTeam != null) "Only my matches" else "Only my matches (not in this division)", color = C.Text, fontSize = 13.sp)
+        val mine = comp.userTeam
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(comp.name, color = DS.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(compFormatNote(comp), color = DS.Muted, fontSize = 10.sp, lineHeight = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            if (mine != null) { Spacer(Modifier.width(10.dp)); TogglePill("My matches", mineOnly) { mineOnly = !mineOnly } }
         }
-        FixtureList(s, comp, if (mineOnly && comp.userTeam != null) comp.userTeam else null) { detail = it }
+        FixtureList(s, comp, if (mineOnly && mine != null) mine else null) { detail = it }
     }
     detail?.let { FixtureDetail(s, it, vm) { detail = null } }
 }
@@ -98,23 +104,70 @@ fun FixturesScreen(vm: GameVM) {
 @Composable
 fun FixtureList(s: CareerSave, comp: Competition, team: String?, onOpen: (Fixture) -> Unit) {
     val list = comp.fixtures.filter { team == null || it.home == team || it.away == team }.sortedBy { it.day }
-    LazyColumn(Modifier.padding(horizontal = 12.dp)) {
-        items(list, key = { it.id }) { f ->
-            val h = s.clubs[f.home]; val a = s.clubs[f.away]
-            CcmCard(onClick = { if (f.played) onOpen(f) }, highlight = f.home == comp.userTeam || f.away == comp.userTeam) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.width(64.dp)) { Sub(if (f.day > 0) "Day ${f.day}" else f.stage, size = 11); Sub(f.stage.take(14), size = 10) }
-                    ClubBadge(h, 26.dp); Spacer(Modifier.width(4.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("${h?.short ?: "?"} ${f.res?.hScore ?: ""}", color = if (f.res?.winner == f.home) C.Gold else C.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        Text("${a?.short ?: "?"} ${f.res?.aScore ?: ""}", color = if (f.res?.winner == f.away) C.Gold else C.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                    ClubBadge(a, 26.dp)
-                }
-                f.res?.let { Sub(it.text) } ?: Sub("Upcoming")
+    val played = list.count { it.played }
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
+        item {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${list.size} matches", color = DS.Sub, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(6.dp)); Text("·", color = DS.Muted, fontSize = 11.sp); Spacer(Modifier.width(6.dp))
+                Text("$played played", color = DS.Muted, fontSize = 11.sp)
+                Spacer(Modifier.weight(1f))
+                if (team != null) Text("Your fixtures", color = DS.Gold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
         }
-        item { if (list.isEmpty()) Sub("No fixtures yet."); Spacer(Modifier.height(24.dp)) }
+        items(list, key = { it.id }) { f -> FixtureRow(s, comp, f, onOpen) }
+        if (list.isEmpty()) item { EmptyState("calendar", "No fixtures here yet", "Switch the filter or check another competition.") }
+    }
+}
+
+@Composable
+private fun FixtureRow(s: CareerSave, comp: Competition, f: Fixture, onOpen: (Fixture) -> Unit) {
+    val h = s.clubs[f.home]; val a = s.clubs[f.away]
+    val r = f.res
+    val mine = f.home == comp.userTeam || f.away == comp.userTeam
+    val homeWin = r?.winner == f.home; val awayWin = r?.winner == f.away
+    DsCard(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), accent = if (mine) DS.Gold else null,
+        onClick = if (f.played) ({ onOpen(f) }) else null, pad = 0.dp) {
+        Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 9.dp, bottom = if (r != null && r.text.isNotBlank()) 4.dp else 9.dp), verticalAlignment = Alignment.CenterVertically) {
+            // date / round block
+            Column(Modifier.width(46.dp)) {
+                Text(if (f.day > 0) "DAY" else "ROUND", color = DS.Muted, fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(if (f.day > 0) "${f.day}" else f.stage.take(6), color = DS.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 19.sp, maxLines = 1, lineHeight = 20.sp)
+            }
+            // home
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                Text(h?.short ?: "?", color = if (homeWin) DS.Gold else DS.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
+                Spacer(Modifier.width(7.dp)); ClubBadge(h, 30.dp)
+            }
+            // scores
+            Column(Modifier.width(74.dp).padding(horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (f.played && r != null) {
+                    Text(r.hScore.ifEmpty { "–" }, color = if (homeWin) DS.Gold else DS.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, softWrap = false)
+                    Text(r.aScore.ifEmpty { "–" }, color = if (awayWin) DS.Gold else DS.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, softWrap = false)
+                } else Text("vs", color = DS.Muted, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+            // away
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                ClubBadge(a, 30.dp); Spacer(Modifier.width(7.dp))
+                Text(a?.short ?: "?", color = if (awayWin) DS.Gold else DS.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.width(8.dp))
+            FixtureStatus(f)
+        }
+        if (r != null && r.text.isNotBlank()) Text(r.text, color = DS.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 56.dp, end = 10.dp, bottom = 8.dp))
+    }
+}
+
+@Composable
+private fun FixtureStatus(f: Fixture) {
+    val r = f.res
+    when {
+        !f.played -> DsTag("Upcoming", DS.Muted)
+        r == null -> DsTag("FT", DS.Sub)
+        r.draw -> DsTag("Draw", DS.Gold)
+        r.noResult -> DsTag("NR", DS.Sub)
+        else -> DsTag("FT", DS.Accent)
     }
 }
 
