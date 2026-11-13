@@ -242,6 +242,19 @@ object Modes {
     }
 
     /* ======================= season structure ======================= */
+    /** Stage 2: every user competition gets a selection window 5 days before its first user match. */
+    fun stampSelectionWindows(save: CareerSave) {
+        for (c in save.league) {
+            val u = c.userTeam ?: continue
+            if (c.selectionDate.isNotEmpty()) continue
+            if (!Registration.required(save, c)) continue
+            val fx = c.fixtures.filter { !it.played && (it.home == u || it.away == u) }.minByOrNull { it.day } ?: continue
+            val selectionDate = Schedule.fixtureDate(save, c, fx).minusDays(5)
+            c.selectionDay = Schedule.dayOf(save, selectionDate)
+            c.selectionDate = selectionDate.toString()
+        }
+    }
+
     /** Which of the user's teams plays in [c]. Multi-team careers set this per competition, not per save. */
     fun userTeamFor(save: CareerSave, c: Competition): String? {
         fun contains(id: String) = id in c.teams || c.groups.any { id in it }
@@ -269,6 +282,7 @@ object Modes {
             addIntl(save, rnd, intlStart, compact = true)
             val intlEnd = save.league.filter { it.kind == "NATION" }.flatMap { it.fixtures }.maxOfOrNull { it.day } ?: (intlStart + 120)
             addDomestic(save, rnd, intlEnd + 14)
+            stampSelectionWindows(save)
             return
         }
         when (save.mode) {
@@ -276,6 +290,7 @@ object Modes {
             DOMESTIC -> addDomestic(save, rnd, 0)
             IPL -> addIpl(save, rnd)
         }
+        stampSelectionWindows(save)
     }
 
     private fun addIntl(save: CareerSave, rnd: Random, offset: Int, compact: Boolean) {
@@ -428,6 +443,7 @@ object Modes {
             if (save.isManaged(champ)) ir.userTeam = champ
             val day = (save.league.flatMap { it.fixtures }.maxOfOrNull { it.day } ?: 150).coerceAtLeast(150) + 10
             ir.fixtures.add(Fixture("${ir.id}-${ir.nextFixtureId++}", champ, ROI, "Match 1", 0, day))
+            stampSelectionWindows(save)
             save.addNews("Irani Cup set: Ranji champions ${save.clubs[champ]?.name} v Rest of India.")
         }
     }
@@ -517,7 +533,7 @@ object Modes {
         }
     }
 
-    fun maxSquad(save: CareerSave) = 25   // v2.5 Phase E: tournament squads are 18-25 (national / state pools may hold 25)
+    fun maxSquad(save: CareerSave) = 25   // club / state / franchise squad cap; tournament registration is 15-16 (national selection pool can be 50-70)
 
     /** Adds a player to the user's national/state squad. Domestic: unattached players join freely, players of other states count as 'guest professionals' (max 3). */
     fun callUp(save: CareerSave, pid: String, teamId: String = save.userClubId): String {

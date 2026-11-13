@@ -37,7 +37,7 @@ fun AppRoot(vm: GameVM) {
             else -> {
                 val s = vm.screen
                 val needsSave = s !is Screen.Main && s !is Screen.Career && s !is Screen.NewCareer && s !is Screen.SettingsScr && s !is Screen.Database && s !is Screen.Profile &&
-                    s !is Screen.CareerType && s !is Screen.ChooseTeam && s !is Screen.MultiTeamSetup && s !is Screen.NewTeam && s !is Screen.Social && s !is Screen.About && s !is Screen.NewGame
+                    s !is Screen.CareerType && s !is Screen.ChooseTeam && s !is Screen.MultiTeamSetup && s !is Screen.TournamentHub && s !is Screen.NewTeam && s !is Screen.Social && s !is Screen.About && s !is Screen.NewGame
                 val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
                 if (needsSave && vm.save == null) { LaunchedEffect(Unit) { vm.goHome() } }
                 else if (landscape && vm.save != null && s.inShell()) GameShell(vm) { Screens(vm, s) }
@@ -94,6 +94,9 @@ private fun Screens(vm: GameVM, s: Screen) {
             is Screen.About -> AboutScreen(vm)
             is Screen.NewGame -> NewGameScreen(vm)
             is Screen.MultiTeamSetup -> MultiTeamScreen(vm)
+            is Screen.SquadHub -> SquadHubScreen(vm)
+            is Screen.SeriesSelection -> SeriesSelectionScreen(vm, scr.compId)
+            is Screen.TournamentHub -> TournamentHubScreen(vm)
         }
     }
 }

@@ -26,14 +26,14 @@ class RegistrationTest {
     @Test fun whichCompetitionsNeedRegistration() {
         val ipl = career(Modes.IPL, "F_KKR")
         val r = Registration.rule(ipl, ipl.league.first { it.key == "IPL" })!!
-        assertEquals(18, r.min); assertEquals(25, r.max); assertEquals(8, r.overseasMax)
+        assertEquals(15, r.min); assertEquals(16, r.max); assertEquals(8, r.overseasMax)
         val dom = career(Modes.DOMESTIC, "S_BEN")
         for (k in listOf("RANJI", "VHT", "SMAT")) assertNotNull(k, Registration.rule(dom, dom.league.first { it.key == k }))
         assertNull(Registration.rule(dom, dom.league.first { it.key == "DULEEP" }))   // zonal side, not the user's team
         val intl = career(Modes.INTL, "N_IND")
         val tours = intl.league.filter { it.series }
-        assertTrue(tours.isNotEmpty() && tours.all { Registration.rule(intl, it)?.min == 18 })
-        intl.league.firstOrNull { it.key in setOf("ODI_WC", "T20_WC", "CT") && it.userTeam != null }?.let { assertEquals(15, Registration.rule(intl, it)!!.max) }
+        assertTrue(tours.isNotEmpty() && tours.all { Registration.rule(intl, it)?.min == 15 })
+        intl.league.firstOrNull { it.key in setOf("ODI_WC", "T20_WC", "CT") && it.userTeam != null }?.let { assertEquals(16, Registration.rule(intl, it)!!.max) }
         // news reminder at season start
         assertTrue(ipl.news.any { it.contains("Squad registration required") })
     }
@@ -44,15 +44,15 @@ class RegistrationTest {
         val c = s.userClub()
         assertFalse(Registration.registered(s, comp))
         val auto = Registration.autoSelect(s, comp)
-        assertTrue("auto ${auto.size}", auto.size in 18..25)
+        assertTrue("auto ${auto.size}", auto.size in 15..16)
         assertEquals(emptyList<String>(), Registration.problems(s, comp, auto))
         // too few / too many / no keeper / overseas
-        assertTrue(Registration.problems(s, comp, auto.take(17)).any { it.contains("at least 18") })
+        assertTrue(Registration.problems(s, comp, auto.take(14)).any { it.contains("at least 15") })
         val noWk = auto.filter { s.players[it]!!.role != "WK" }
         assertTrue(Registration.problems(s, comp, noWk).any { it.contains("wicket-keeper") })
         val outsider = s.players.values.first { it.clubId != c.id && !it.retired }
         assertTrue(Registration.problems(s, comp, auto.drop(1) + outsider.id).any { it.contains("Not available") })
-        assertNotNull(Registration.register(s, comp, auto.take(17)))
+        assertNotNull(Registration.register(s, comp, auto.take(14)))
         assertNull(Registration.register(s, comp, auto))
         assertTrue(Registration.registered(s, comp) && !Registration.locked(s, comp))
         // re-registering before the first match is allowed
@@ -109,15 +109,15 @@ class RegistrationTest {
         val fx = ranji.fixtures.filter { it.home == u || it.away == u }.minByOrNull { it.day }!!
         Career.quickSim(s, ranji, fx, Random(5))
         assertTrue(ranji.regDone && ranji.regAuto)
-        assertTrue(ranji.reg.size in 18..25)
+        assertTrue(ranji.reg.size in 15..16)
         assertTrue(Registration.locked(s, ranji))
         // INTL: the national pool is topped up to the minimum with free call-ups
         val n = career(Modes.INTL, "N_IND")
         val tour = n.league.first { it.series }
         val nf = tour.fixtures.first()
         Career.quickSim(n, tour, nf, Random(6))
-        assertTrue(tour.reg.size >= 18)
-        assertTrue(n.userClub().squad.size >= 18)
+        assertTrue(tour.reg.size >= 15)
+        assertTrue(n.userClub().squad.size >= 15)
     }
 
     @Test fun teamSheetErrors() {

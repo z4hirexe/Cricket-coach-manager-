@@ -124,7 +124,7 @@ object Schedule {
     }
 
     /** "Today" in the career: pre-season sits a week before the opener, off-season a week after the last match. */
-    fun today(s: CareerSave): LocalDate = when (s.phase) {
+    fun today(s: CareerSave): LocalDate = runCatching { LocalDate.parse(s.selectionToday) }.getOrNull() ?: when (s.phase) {
         "PRESEASON" -> seasonStart(s).minusDays(7)
         "OFFSEASON" -> lastSeasonDate(s).plusDays(7)
         else -> if (s.day <= 0) seasonStart(s).minusDays(1) else dateOf(s, s.day)
@@ -213,6 +213,14 @@ object Schedule {
             out.add(Entry(start.minusDays(12), AUCTION, name, when { live -> "In progress — open the auction room"; done -> "Completed"; else -> "Optional mini auction (pre-season)" }))
         }
         out.add(Entry(start, EVENT, "Season ${s.season} opener", "First match day of ${s.year}"))
+        // Stage 2: selection windows (match date - 5 days) are shown on the calendar alongside match dates.
+        for (c in s.league) {
+            if (c.userTeam == null || c.selectionDate.isEmpty()) continue
+            val d = runCatching { LocalDate.parse(c.selectionDate) }.getOrNull() ?: continue
+            val done = c.regDone
+            out.add(Entry(d, EVENT, if (done) "Squad registered · ${Registration.short(c)}" else "Squad selection · ${Registration.short(c)}",
+                if (done) "${c.reg.size} players locked in" else "Pick 15-16 players · 5 days before the opener", c, cats = setOf(EVENT) + category(s, c)))
+        }
         for (c in s.league) {
             val ko = c.fixtures.filter { !(it.stage.startsWith("League") || it.stage.startsWith("Group") || it.stage.startsWith("Match")) }
             val first = c.fixtures.minByOrNull { it.day }

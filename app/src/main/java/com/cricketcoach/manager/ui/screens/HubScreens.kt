@@ -101,6 +101,7 @@ fun MainMenu(vm: GameVM) {
 private fun MenuButtons(vm: GameVM, lastSub: String?) {
     MenuButton("NEW GAME", if (vm.save != null || lastSub != null) "Continue or start a career" else "Start your first career", Icons.Filled.PlayArrow, primary = true) { vm.nav(Screen.NewGame) }
     MenuButton("LOAD GAME", lastSub ?: "Career slots on this device", Icons.Filled.List) { vm.nav(Screen.Career) }
+    MenuButton("TOURNAMENT", "T20 World Cup • ODI World Cup • Champions Trophy", Icons.Filled.Star) { vm.nav(Screen.TournamentHub) }
     MenuButton("SETTINGS", "Audio • graphics • display • data", Icons.Filled.Settings) { vm.nav(Screen.SettingsScr) }
     MenuButton("ABOUT", "Version, credits & data sources", Icons.Filled.Info) { vm.nav(Screen.About) }
 }
@@ -172,6 +173,8 @@ fun NewGameScreen(vm: GameVM) {
                         Icons.Filled.Add, "Start") { startNewCareerFlow(vm, Screen.CareerType) } },
                     { m -> HubCard(m, "Create your team", "Name • badge • colours • stadium", "Build your own club from scratch and grow it through the divisions.",
                         Icons.Filled.Create, "Create") { startNewCareerFlow(vm, Screen.NewTeam) } },
+                    { m -> HubCard(m, "Tournament", "Standalone cups", "Run a T20 World Cup, ODI World Cup or Champions Trophy without using a career slot.",
+                        Icons.Filled.Star, "Play", primary = false) { vm.nav(Screen.TournamentHub) } },
                     { m -> HubCard(m, "Player database", "${Repo.ds.players.size} real players", "Browse ratings, career stats and data sources before you pick your side.",
                         Icons.Filled.Search, "Browse", primary = false) { vm.nav(Screen.Database) } },
                 )

@@ -60,6 +60,9 @@ sealed class Screen(val title: String) {
     object About : Screen("About")
     object NewGame : Screen("New Game")
     object MultiTeamSetup : Screen("Multi-Team Career")
+    object SquadHub : Screen("Squad Hub")
+    data class SeriesSelection(val compId: String) : Screen("Series Selection")
+    object TournamentHub : Screen("Tournament")
 }
 
 class PendingMatch(val compId: String, val fixtureId: String)
@@ -90,6 +93,8 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     var matchApplied by mutableStateOf(false)
     var busy by mutableStateOf(false)
     var saves by mutableStateOf<List<SaveMeta>>(emptyList())
+    /** Standalone tournaments run in memory and never write to the three career slots. */
+    var standalone by mutableStateOf(false)
     private val rnd = Random.Default
 
     init {
@@ -109,9 +114,9 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     fun nav(s: Screen) { stack.add(s) }
     fun back() { if (stack.size > 1) stack.removeAt(stack.size - 1) }
     fun replaceTop(s: Screen) { if (stack.isNotEmpty()) stack.removeAt(stack.size - 1); stack.add(s) }
-    fun goHome() { stack.clear(); stack.add(Screen.Main); if (save != null) stack.add(Screen.Dashboard) }
+    fun goHome() { stack.clear(); stack.add(Screen.Main); if (save != null) stack.add(if (standalone) Screen.TournamentsScr else Screen.Dashboard) }
     /** Sidebar navigation: keep the back stack shallow (Main > Home > section). */
-    fun navRoot(s: Screen) { stack.clear(); stack.add(Screen.Main); if (save != null) stack.add(Screen.Dashboard); if (s != Screen.Dashboard && s != Screen.Main) stack.add(s) }
+    fun navRoot(s: Screen) { stack.clear(); stack.add(Screen.Main); if (save != null) stack.add(if (standalone) Screen.TournamentsScr else Screen.Dashboard); if (s != Screen.Dashboard && s != Screen.Main && !(standalone && s == Screen.TournamentsScr)) stack.add(s) }
     /** Inbox: news items newer than the last one the user opened. */
     fun unreadNews(): Int { val s = save ?: return 0; if (s.news.isEmpty()) return 0; val i = s.news.indexOf(s.newsSeen); return if (i >= 0) i else minOf(s.news.size, 99) }
     fun markNewsRead() { val s = save ?: return; val top = s.news.firstOrNull() ?: return; if (s.newsSeen != top) { s.newsSeen = top; bump() } }
@@ -139,6 +144,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     fun persist() {
         bump()
         val s = save ?: return
+        if (standalone) return
         drainRewards(s)
         if (!settings.autosave) return
         val json = sm.toJson(s)
@@ -152,6 +158,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
 
     fun manualSave() {
         val s = save ?: return
+        if (standalone) { toast = "Standalone tournaments are not saved to career slots."; return }
         val json = sm.toJson(s); val meta = sm.metaOf(s)
         viewModelScope.launch(Dispatchers.IO) {
             sm.write(meta, json)
@@ -162,6 +169,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
 
     fun manualSaveSilent() {
         val s = save ?: return
+        if (standalone) return
         val json = sm.toJson(s); val meta = sm.metaOf(s)
         viewModelScope.launch(Dispatchers.IO) { sm.write(meta, json) }
     }
@@ -231,7 +239,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         busy = true
         viewModelScope.launch {
             val s = withContext(Dispatchers.Default) { Modes.newCareer(slot, manager.ifBlank { "Coach" }, mode, teamId, settings.economy.toDouble(), settings.difficulty) }
-            save = s; settings.lastSlot = slot; busy = false
+            save = s; standalone = false; settings.lastSlot = slot; busy = false
             pending = null; sim = null
             stack.clear(); stack.add(Screen.Main); stack.add(Screen.Dashboard)
             persist()
@@ -244,7 +252,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         busy = true
         viewModelScope.launch {
             val s = withContext(Dispatchers.Default) { Modes.newMultiCareer(slot, manager.ifBlank { "Coach" }, nationId, stateId, franchiseId, settings.economy.toDouble(), settings.difficulty) }
-            save = s; settings.lastSlot = slot; busy = false
+            save = s; standalone = false; settings.lastSlot = slot; busy = false
             pending = null; sim = null
             stack.clear(); stack.add(Screen.Main); stack.add(Screen.Dashboard)
             persist()
@@ -276,7 +284,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
                 if (boost) u.balance += 10.0 * s.economy
             }
             Social.post(s, Social.OFFICIAL, "NEW CLUB: ${s.userClub().name} are founded with ${s.manager} as head coach. Next stop: Division 1! #${s.userClub().short}", "NEWS", 600, rnd)
-            save = s; settings.lastSlot = slot; busy = false
+            save = s; standalone = false; settings.lastSlot = slot; busy = false
             pending = null; sim = null
             stack.clear(); stack.add(Screen.Main); stack.add(Screen.Dashboard)
             persist()
@@ -290,7 +298,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
             val s = withContext(Dispatchers.IO) { sm.load(slot) }
             busy = false
             if (s == null) { toast = "Could not load slot $slot"; return@launch }
-            save = s; settings.lastSlot = slot; pending = null; sim = null
+            save = s; standalone = false; settings.lastSlot = slot; pending = null; sim = null
             stack.clear(); stack.add(Screen.Main); stack.add(Screen.Dashboard)
         }
     }
@@ -303,24 +311,64 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun exitToMenu() { manualSave(); stack.clear(); stack.add(Screen.Main) }
+    fun exitToMenu() {
+        if (standalone) { standalone = false; save = null; pending = null; sim = null; stack.clear(); stack.add(Screen.Main); return }
+        manualSave(); stack.clear(); stack.add(Screen.Main)
+    }
+
+    /** Stage 2: standalone tournament from the main menu (no career slot used). */
+    fun startStandaloneTournament(type: String, userTeam: String) {
+        busy = true
+        viewModelScope.launch {
+            val s = withContext(Dispatchers.Default) {
+                val mode = if (type == "IPL") Modes.IPL else Modes.INTL
+                val sv = Modes.newCareer(0, "Tournament", mode, userTeam, settings.economy.toDouble(), settings.difficulty)
+                sv.league.clear(); sv.phase = "LEAGUE"; sv.day = 0
+                Tournaments.create(sv, type, userTeam, null)
+                sv.tournament?.startDate = Schedule.today(sv).plusDays(1).toString()
+                sv
+            }
+            save = s; standalone = true; busy = false
+            pending = null; sim = null
+            stack.clear(); stack.add(Screen.Main); stack.add(Screen.TournamentsScr)
+        }
+    }
 
     /* ---------------- calendar ---------------- */
     fun continueAction() {
         val s = save ?: return
+        if (standalone) { playNextTournament(); return }
         if (pending != null) { nav(Screen.PreMatch); return }
         when (s.phase) {
-            "PRESEASON" -> { val err = Career.startSeason(s); if (err != null) msg(err) else msg("Season ${s.season} is under way!"); persist() }
+            "PRESEASON" -> {
+                val next = s.league.flatMap { it.fixtures }.filter { !it.played }.minOfOrNull { it.day } ?: 1
+                val sel = selectionStop(s, next)
+                if (sel != null) { s.selectionToday = sel.selectionDate; persist(); openSelection(sel.id); return }
+                s.selectionToday = ""
+                val err = Career.startSeason(s); if (err != null) msg(err) else msg("Season ${s.season} is under way!"); persist()
+            }
             "LEAGUE", "PLAYOFFS" -> runDays(false, 1)
             "OFFSEASON" -> nav(Screen.SeasonSummary)
         }
     }
 
-    private sealed class DayOut { object Next : DayOut(); object SeasonEnd : DayOut(); class Match(val pm: PendingMatch) : DayOut(); class Register(val compId: String) : DayOut() }
+    private sealed class DayOut { object Next : DayOut(); object SeasonEnd : DayOut(); class Match(val pm: PendingMatch) : DayOut(); class Register(val compId: String) : DayOut(); class Selection(val compId: String) : DayOut() }
 
     /** v2.5 Phase G: a registration-gated competition whose user fixture is on [day] and isn't registered yet (the sim stops for it). */
     private fun registrationStop(s: CareerSave, list: List<Pair<Competition, Fixture>>): Competition? =
         list.firstOrNull { (c, f) -> c.userTeam != null && (f.home == c.userTeam || f.away == c.userTeam) && Registration.required(s, c) && !Registration.registered(s, c) }?.first
+
+    /** Stage 2: a selection window that opens on/before [nextDay] and has not been completed yet. */
+    private fun selectionStop(s: CareerSave, nextDay: Int): Competition? =
+        s.league.filter { c -> c.userTeam != null && Registration.required(s, c) && !Registration.registered(s, c) && c.selectionDate.isNotEmpty() && c.selectionDate <= Schedule.dateOf(s, nextDay).toString() &&
+            c.fixtures.any { !it.played && (it.home == c.userTeam || it.away == c.userTeam) } }
+            .minByOrNull { it.selectionDate }
+
+    private fun openSelection(compId: String) {
+        val c = compById(compId) ?: return
+        msg("Selection window open: pick your ${Registration.short(c)} squad (15-16 players).")
+        nav(Screen.SeriesSelection(compId))
+    }
 
     private fun openRegistration(compId: String) {
         val c = compById(compId) ?: return
@@ -330,10 +378,13 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     }
 
     /** Engine-only day step (safe off the main thread). */
-    private fun advanceDay(s: CareerSave, simUser: Boolean, stopForReg: Boolean = false): DayOut {
+    private fun advanceDay(s: CareerSave, simUser: Boolean, stopForReg: Boolean = false, stopForSelection: Boolean = true): DayOut {
         if (Career.leagueFinished(s)) { Career.endSeason(s, rnd); return DayOut.SeasonEnd }
         val nextDay = s.league.flatMap { it.fixtures }.filter { !it.played }.minOfOrNull { it.day }
             ?: run { Career.endSeason(s, rnd); return DayOut.SeasonEnd }
+        // Stage 2: stop on the selection date (5 days before the opener) so the popup can open.
+        if (stopForSelection) selectionStop(s, nextDay)?.let { s.selectionToday = it.selectionDate; return DayOut.Selection(it.id) }
+        s.selectionToday = ""
         val list = Career.fixturesOnDay(s, nextDay)
         // stop before the day is played when the user's squad for that competition still has to be registered
         // (only when the user's match would be auto-simulated; otherwise the Match Centre's registration gate handles it)
@@ -353,7 +404,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         return DayOut.Next
     }
 
-    private fun runDays(simUser: Boolean, maxDays: Int) {
+    private fun runDays(simUser: Boolean, maxDays: Int, stopSelection: Boolean = true) {
         val s = save ?: return
         if (busy) return
         busy = true
@@ -361,7 +412,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val out = withContext(Dispatchers.Default) {
                 var o: DayOut = DayOut.Next; var n = 0
-                while (n++ < maxDays && s.phase != "OFFSEASON") { o = advanceDay(s, simUser); if (o !is DayOut.Next) break }
+                while (n++ < maxDays && s.phase != "OFFSEASON") { o = advanceDay(s, simUser, stopForSelection = stopSelection); if (o !is DayOut.Next) break }
                 o
             }
             busy = false
@@ -372,6 +423,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
                 is DayOut.SeasonEnd -> { persist(); nav(Screen.SeasonSummary) }
                 is DayOut.Match -> { pending = out.pm; sim = null; matchApplied = false; persist(); nav(Screen.PreMatch) }
                 is DayOut.Register -> { persist(); openRegistration(out.compId) }
+                is DayOut.Selection -> { persist(); openSelection(out.compId) }
                 else -> { persist(); if (s.phase == "OFFSEASON") nav(Screen.SeasonSummary) }
             }
         }
@@ -379,9 +431,10 @@ class GameVM(app: Application) : AndroidViewModel(app) {
 
     fun simToSeasonEnd() {
         val s = save ?: return
+        if (standalone) { simWholeTournament(); return }
         if (s.phase == "PRESEASON") { val err = Career.startSeason(s); if (err != null) { msg(err); return } }
         if (s.phase == "OFFSEASON") { nav(Screen.SeasonSummary); return }
-        runDays(true, 500)
+        runDays(true, 500, stopSelection = false)
     }
 
     /* ---------------- calendar actions (Phase A) ---------------- */
@@ -398,13 +451,13 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     }
 
     /** Engine loop: advance game days up to [target]; earlier user matches are simulated. */
-    private fun advanceTo(s: CareerSave, target: Int, simUserOnTarget: Boolean): DayOut {
+    private fun advanceTo(s: CareerSave, target: Int, simUserOnTarget: Boolean, stopSelection: Boolean = true): DayOut {
         var guard = 0
         while (guard++ < 600) {
             if (s.phase == "OFFSEASON") return DayOut.SeasonEnd
             val nd = s.league.flatMap { it.fixtures }.filter { !it.played }.minOfOrNull { it.day } ?: break
             if (nd > target) break
-            val o = advanceDay(s, nd < target || simUserOnTarget, stopForReg = true)
+            val o = advanceDay(s, nd < target || simUserOnTarget, stopForReg = true, stopForSelection = stopSelection)
             if (o !is DayOut.Next) return o
         }
         return DayOut.Next
@@ -429,6 +482,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
      */
     fun calendarGo(compId: String, fxId: String, play: Boolean) {
         val s = save ?: return
+        if (standalone) { if (play) playNextTournament() else simTournamentUntilMine(); return }
         if (busy) return
         val c = compById(compId) ?: return
         val f = c.fixtures.firstOrNull { it.id == fxId } ?: return
@@ -468,6 +522,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
                     if (out.pm.fixtureId == fxId) nav(Screen.PreMatch) else { msg("Match day! Your next match comes first."); nav(Screen.PreMatch) }
                 }
                 is DayOut.Register -> { persist(); openRegistration(out.compId) }
+                is DayOut.Selection -> { persist(); openSelection(out.compId) }
                 is DayOut.SeasonEnd -> { calendarFocus = PendingMatch(compId, fxId); persist(); msg("Season complete.") }
                 else -> { calendarFocus = PendingMatch(compId, fxId); persist() }
             }
@@ -480,6 +535,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     /** Calendar: simulate every day until the user's next match (opens the Match Centre for it). */
     fun simToNextUserMatch() {
         val s = save ?: return
+        if (standalone) { simTournamentUntilMine(); return }
         if (pending != null) { nav(Screen.PreMatch); return }
         if (s.phase == "OFFSEASON") { nav(Screen.SeasonSummary); return }
         if (s.phase == "PRESEASON") { val err = Career.startSeason(s); if (err != null) { msg(err); return } }

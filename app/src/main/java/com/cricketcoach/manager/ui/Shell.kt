@@ -57,7 +57,7 @@ val LocalInShell = compositionLocalOf { false }
 
 /** Screens that live inside the career shell. Live match, pre-match and the auction stay full-screen. */
 fun Screen.inShell(): Boolean = when (this) {
-    Screen.Dashboard, Screen.Inbox, Screen.MyClub, is Screen.Squad, Screen.Database, is Screen.Profile, Screen.Transfers, Screen.Fixtures,
+    Screen.Dashboard, Screen.Inbox, Screen.MyClub, Screen.SquadHub, is Screen.Squad, Screen.Database, is Screen.Profile, Screen.Transfers, Screen.Fixtures,
     Screen.Table, Screen.TournamentsScr, Screen.Statistics, Screen.Finances, Screen.SettingsScr, Screen.Selection, Screen.Social, is Screen.SocialProfile, Screen.SeasonSummary, Screen.Calendar,
     Screen.YorkerHome, is Screen.YorkerProfile, is Screen.MatchReport -> true
     else -> false
@@ -75,7 +75,7 @@ private fun regNav(vm: GameVM, s: com.cricketcoach.manager.game.CareerSave): Nav
 private class NavItem(val key: String, val label: String, val glyph: String?, val icon: androidx.compose.ui.graphics.vector.ImageVector?, val badge: Int = 0, val star: Boolean = false, val go: () -> Unit)
 
 private fun selectedKey(s: Screen): String? = when (s) {
-    Screen.Dashboard -> "home"; Screen.Inbox -> "inbox"; is Screen.Squad -> "squad"; Screen.Selection -> "selection"; Screen.Transfers -> "transfers"
+    Screen.Dashboard -> "home"; Screen.Inbox -> "inbox"; Screen.SquadHub -> "squadhub"; is Screen.Squad -> "squad"; Screen.Selection -> "selection"; Screen.Transfers -> "transfers"
     Screen.MyClub -> "club"; Screen.Fixtures -> "fixtures"; Screen.Table -> "table"; Screen.TournamentsScr -> "tournaments"; Screen.Statistics -> "stats"; Screen.Calendar -> "calendar"
     Screen.Social, is Screen.SocialProfile -> "social"; Screen.YorkerHome, is Screen.YorkerProfile -> "yorker"; Screen.Finances -> "finances"; Screen.Database -> "database"; Screen.SettingsScr -> "settings"; else -> null
 }
@@ -107,14 +107,11 @@ private fun Sidebar(vm: GameVM) {
     val main = listOfNotNull(
         NavItem("home", "Home", null, I.Home) { vm.navRoot(Screen.Dashboard) },
         NavItem("inbox", "Inbox", "inbox", null, badge = vm.unreadNews()) { vm.navRoot(Screen.Inbox) },
-        NavItem("squad", "Squad & XI", "squad", null) { vm.navRoot(Screen.Squad()) },
-        if (multi && u.kind != "FRANCHISE") NavItem("selection", "Selection", "xi", null) { vm.navRoot(Screen.Selection) }
-        else if (Modes.hasTransfers(s)) NavItem("transfers", "Transfers", null, I.ShoppingCart) { vm.navRoot(Screen.Transfers) }
-        else NavItem("selection", "Selection", "xi", null) { vm.navRoot(Screen.Selection) },
+        NavItem("squadhub", "Squad Hub", "squad", null) { vm.navRoot(Screen.SquadHub) },
+        if (Modes.hasTransfers(s) && (!multi || u.kind == "FRANCHISE")) NavItem("transfers", "Transfers", null, I.ShoppingCart) { vm.navRoot(Screen.Transfers) } else null,
         if (Modes.hasAuction(s) && (!multi || u.kind == "FRANCHISE")) NavItem("auction", "Auction", "gavel", null, star = s.auction != null && !s.auction!!.done) {
             if (s.auction == null) vm.startMiniAuction() else { vm.navRoot(Screen.Dashboard); vm.nav(Screen.AuctionScr) }
         } else null,
-        NavItem("club", if (club) "My Club" else "Facilities", "stadium", null) { vm.navRoot(Screen.MyClub) },
     )
     val comps = listOfNotNull(
         NavItem("calendar", "Calendar", "calendar", null) { vm.navRoot(Screen.Calendar) },

@@ -7,7 +7,8 @@ import kotlin.math.min
  * v2.5 Phase E: mandatory tournament squad registration + pre-match team sheet rules.
  *
  *  - Before the user's first match in the IPL, Ranji Trophy, Vijay Hazare, Syed Mushtaq Ali, an international
- *    tour (bilateral series) or an ICC event, the user must register a tournament squad (18-25; ICC events 15).
+ *    tour (bilateral series) or an ICC event, the user must register a tournament squad (15-16 players; national series use a 50-70 player selection pool).
+ *  - Stage 2: the selection window opens 5 days before the first match and is shown on the calendar.
  *  - The registered squad is stored on the [Competition] (separate from the club squad and from the XI).
  *  - It locks when the user's first match in that competition has been played; after that only permitted
  *    replacements are allowed (registered player injured, retired or no longer at the club), with a limit.
@@ -30,10 +31,10 @@ object Registration {
         if (comp.userTeam == null || !save.isManaged(comp.userTeam!!)) return null
         if (save.tournament?.id == comp.id) return null
         return when {
-            comp.key == "IPL" -> Rule(18, 25, 8, 1, 6, 4, "IPL squad")
-            comp.key in DOMESTIC_KEYS -> Rule(18, 25, 99, 1, 6, 3, "${short(comp)} squad")
-            comp.key in ICC_KEYS -> Rule(15, 15, 99, 1, 5, 2, "ICC event squad")
-            comp.kind == "NATION" && comp.series -> Rule(18, 25, 99, 1, 6, 3, "Touring squad")
+            comp.key == "IPL" -> Rule(15, 16, 8, 1, 5, 4, "IPL squad")
+            comp.key in DOMESTIC_KEYS -> Rule(15, 16, 99, 1, 5, 3, "${short(comp)} squad")
+            comp.key in ICC_KEYS -> Rule(15, 16, 99, 1, 5, 2, "ICC event squad")
+            comp.kind == "NATION" && comp.series -> Rule(15, 16, 99, 1, 5, 3, "Touring squad")
             else -> null
         }
     }
@@ -51,9 +52,14 @@ object Registration {
         return comp.regDone && comp.fixtures.any { it.played && (it.home == u || it.away == u) }
     }
 
-    /** Players who may be registered: the user's club squad (not retired). */
+    /** Players who may be registered. National series use a 50-70 player selection pool; other teams use their club squad. */
     fun pool(save: CareerSave, comp: Competition): List<GPlayer> {
         val c = save.clubs[comp.userTeam ?: return emptyList()] ?: return emptyList()
+        if (c.kind == "NATION") {
+            val wide = Modes.nationPool(save, c)
+            val base = if (wide.size >= 50) wide else (wide + c.squad.mapNotNull { save.players[it] }.filter { !it.retired }).distinctBy { it.id }
+            return base.sortedByDescending { it.overall() }.take(70)
+        }
         return c.squad.mapNotNull { save.players[it] }.filter { !it.retired }
     }
 
@@ -77,6 +83,7 @@ object Registration {
         val c = save.clubs[comp.userTeam!!] ?: return listOf("Unknown team")
         val ps = ids.mapNotNull { save.players[it] }
         val out = ArrayList<String>()
+        if (ids.size != ids.distinct().size || ps.size != ids.size) out += "Select distinct, valid players"
         if (ps.size < r.min) out += "Select at least ${r.min} players (${ps.size} selected)"
         if (ps.size > r.max) out += "At most ${r.max} players (${ps.size} selected)"
         // role minimums are capped by what the club squad can actually offer
@@ -87,7 +94,8 @@ object Registration {
         if (ps.count { it.bowl >= BOWL_OPTION } < needBowl) out += "Register at least $needBowl bowling options (bowling $BOWL_OPTION+)"
         val os = ps.count { TeamSelector.isOverseas(it, c) }
         if (os > r.overseasMax) out += "Too many overseas players ($os/${r.overseasMax})"
-        val notHere = ps.filter { it.id !in c.squad || it.retired }
+        val available = pool(save, comp).map { it.id }.toSet()
+        val notHere = ps.filter { it.id !in available || it.retired }
         if (notHere.isNotEmpty()) out += "Not available to register: " + notHere.joinToString { it.name }
         return out
     }
@@ -117,6 +125,10 @@ object Registration {
         if (p.isNotEmpty() && !(auto && ids.isNotEmpty())) return p.first()
         comp.reg = ids.distinct().toMutableList(); comp.regDone = true; comp.regAuto = auto
         val c = save.clubs[comp.userTeam!!]!!
+        if (c.kind == "NATION") {
+            val keep = (comp.reg + c.squad.filter { it !in comp.reg }).distinct()
+            c.squad = keep.take(Modes.maxSquad(save)).toMutableList()
+        }
         save.addNews(if (auto) "${c.name}'s ${short(comp)} squad (${comp.reg.size}) was registered automatically for a simulated match."
             else "${c.name} registered their ${short(comp)} squad: ${comp.reg.size} players. It locks after the first match.")
         return null
@@ -140,18 +152,21 @@ object Registration {
         if (!comp.regDone) return "Register a squad first."
         if (!locked(save, comp)) {   // before the lock: free swap
             if (outPid !in comp.reg) return "Not in the registered squad."
-            comp.reg[comp.reg.indexOf(outPid)] = inPid
-            return null
+            val after = comp.reg.map { if (it == outPid) inPid else it }
+            return register(save, comp, after)
         }
         if (replacementsLeft(save, comp) <= 0) return "No replacements left (${r.replacements} used)."
         if (outPid !in replaceable(save, comp)) return "${save.players[outPid]?.name ?: "This player"} is fit and available - replacements are only for injured or departed players."
         val c = save.clubs[comp.userTeam!!]!!
         val pin = save.players[inPid] ?: return "Unknown player"
         if (inPid in comp.reg) return "${pin.name} is already registered."
-        if (inPid !in c.squad || pin.retired) return "${pin.name} is not in your club squad."
+        if (pin.retired || inPid !in pool(save, comp).map { it.id }) return "${pin.name} is not in the selection pool."
         if (pin.injured) return "${pin.name} is injured."
         val after = comp.reg.map { if (it == outPid) inPid else it }
         if (after.mapNotNull { save.players[it] }.count { TeamSelector.isOverseas(it, c) } > r.overseasMax) return "Overseas limit (${r.overseasMax}) would be exceeded."
+        if (inPid !in c.squad) {
+            c.squad = (after + c.squad.filter { it !in after }).distinct().take(Modes.maxSquad(save)).toMutableList()
+        }
         comp.reg = after.toMutableList(); comp.regRepl++
         val pout = save.players[outPid]
         val why = when { pout == null -> "unavailable"; pout.retired -> "retired"; outPid !in c.squad -> "left the club"; else -> pout.injury.ifBlank { "injury" } }
