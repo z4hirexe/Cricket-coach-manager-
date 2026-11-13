@@ -16,6 +16,7 @@ import com.cricketcoach.manager.save.Settings
 import com.cricketcoach.manager.audio.GameAudio
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
@@ -92,6 +93,10 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     var autoPlay by mutableStateOf(false)
     var matchApplied by mutableStateOf(false)
     var busy by mutableStateOf(false)
+    var simulationVisible by mutableStateOf(false)
+    var simulationDate by mutableStateOf("")
+    var simulationStatus by mutableStateOf("")
+    private var simulationStopRequested = false
     var saves by mutableStateOf<List<SaveMeta>>(emptyList())
     /** Standalone tournaments run in memory and never write to the three career slots. */
     var standalone by mutableStateOf(false)
@@ -333,6 +338,47 @@ class GameVM(app: Application) : AndroidViewModel(app) {
             stack.clear(); stack.add(Screen.Main); stack.add(Screen.TournamentsScr)
         }
     }
+
+    /** One tap: simulate other fixtures until a user selection window or user match. */
+    fun startCalendarSimulation() {
+        val s = save ?: return
+        if (busy) return
+        if (standalone) { playNextTournament(); return }
+        if (pending != null) { nav(Screen.PreMatch); return }
+        if (s.phase == "OFFSEASON") { nav(Screen.SeasonSummary); return }
+        if (s.phase == "PRESEASON") {
+            val err = Career.startSeason(s)
+            if (err != null) { msg(err); return }
+        }
+        simulationStopRequested = false
+        simulationDate = Schedule.today(s).toString()
+        simulationStatus = "Simulating to your next selection or match"
+        simulationVisible = true; busy = true
+        viewModelScope.launch {
+            var outcome: DayOut = DayOut.Next
+            try {
+                var days = 0
+                while (!simulationStopRequested && days++ < 800 && save === s) {
+                    outcome = withContext(Dispatchers.Default) { advanceDay(s, false, stopForSelection = true) }
+                    simulationDate = Schedule.today(s).toString()
+                    tick++
+                    if (outcome !is DayOut.Next) break
+                    delay(180)
+                }
+            } finally { busy = false; simulationVisible = false }
+            if (save !== s) return@launch
+            persist()
+            when (val out = outcome) {
+                is DayOut.Selection -> openSelection(out.compId)
+                is DayOut.Match -> { pending = out.pm; sim = null; matchApplied = false; persist(); nav(Screen.PreMatch) }
+                is DayOut.Register -> openRegistration(out.compId)
+                is DayOut.SeasonEnd -> nav(Screen.SeasonSummary)
+                else -> if (simulationStopRequested) msg("Simulation stopped.")
+            }
+        }
+    }
+
+    fun stopCalendarSimulation() { simulationStopRequested = true; simulationStatus = "Stopping after this date…" }
 
     /* ---------------- calendar ---------------- */
     fun continueAction() {

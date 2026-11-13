@@ -158,7 +158,7 @@ class MatchDirector(private val a: Arena3D) {
             mode == 3 && !follow -> { ex = 0f; ey = 1.8f; ez = -7f; tx = 0f; ty = 1.3f; tz = 18f; fov = 30f }
             mode == 1 -> { ex = bp[0] * 0.5f; ey = 22f + (if (follow) 10f else 0f); ez = (bp[2] - 14f).coerceIn(-30f, 30f); tx = bp[0]; ty = 0f; tz = bp[2]; fov = 50f }
             mode == 2 -> { ex = -offSign * 34f; ey = 3.2f; ez = 10f; tx = bp[0] * 0.6f; ty = 1f; tz = if (follow) bp[2] else 6f; fov = if (follow) 34f else 24f }
-            !follow -> { ex = 0f; ey = 11f; ez = 92f; tx = 0f; ty = 1.0f; tz = 2.5f; fov = 10.5f }   // TV gantry above the far sight screen
+            !follow -> { ex = 0f; ey = 6.5f; ez = 45f; tx = 0f; ty = 1.2f; tz = 2.5f; fov = 16f }   // TV gantry above the far sight screen
             else -> { ex = 0f; ey = 30f; ez = 20.12f + 48f; tx = bp[0]; ty = 0f; tz = bp[2]; fov = 38f }
         }
         val snap = (t < 0.05f)

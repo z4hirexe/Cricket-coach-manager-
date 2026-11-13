@@ -1,5 +1,7 @@
 package com.cricketcoach.manager.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -134,74 +136,100 @@ fun SquadHubScreen(vm: GameVM) {
     }
 }
 
-/** Series selection popup: opens 5 days before the first match; pick 15-16 from the selection pool. */
+/** Two-pane picker: the full player pool stays visible on the left, chosen squad on the right. */
 @Composable
 fun SeriesSelectionScreen(vm: GameVM, compId: String) {
     val s = vm.save ?: return
-    @Suppress("UNUSED_VARIABLE") val t = vm.tick
+    @Suppress("UNUSED_VARIABLE") val tick = vm.tick
     val comp = vm.compById(compId)
     val rule = comp?.let { Registration.rule(s, it) }
     if (comp == null || rule == null) { ScreenScaffold(vm, "Series Selection") { Sub("No selection needed.", Modifier.padding(16.dp)) }; return }
-    val c = s.clubs[comp.userTeam!!]!!
+    val club = s.clubs[comp.userTeam!!] ?: return
     val locked = Registration.locked(s, comp)
-    var sel by remember(compId) { mutableStateOf(if (comp.regDone) comp.reg.toSet() else Registration.autoSelect(s, comp).toSet()) }
+    var selected by remember(compId) { mutableStateOf(if (comp.regDone) comp.reg.toSet() else Registration.autoSelect(s, comp).toSet()) }
+    var query by remember(compId) { mutableStateOf("") }
     val pool = remember(compId, vm.tick) { Registration.pool(s, comp).sortedByDescending { it.overall() } }
-    val problems = if (locked) emptyList() else Registration.problems(s, comp, sel)
-    val firstFx = comp.fixtures.filter { it.home == c.id || it.away == c.id }.minByOrNull { it.day }
+    val list = pool.filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
+    val chosen = pool.filter { it.id in selected }
+    val problems = if (locked) emptyList() else Registration.problems(s, comp, selected)
+    val first = comp.fixtures.filter { it.home == club.id || it.away == club.id }.minByOrNull { it.day }
+    fun toggle(id: String) { if (!locked) { GameAudio.click(); selected = if (id in selected) selected - id else if (selected.size < rule.max) selected + id else selected } }
     ScreenScaffold(vm, "Series Selection · ${Registration.short(comp)}") {
-        Column(Modifier.fillMaxSize().padding(12.dp)) {
-            CcmCard(highlight = true) {
-                Text(comp.name, color = C.Gold, fontWeight = FontWeight.Bold, maxLines = 2)
-                Sub("Selection date: ${runCatching { Schedule.fmt(LocalDate.parse(comp.selectionDate), vm.settings.dateStyle) }.getOrDefault(comp.selectionDate)}")
-                if (firstFx != null) Sub("First match: ${Schedule.fmt(Schedule.fixtureDate(s, comp, firstFx), vm.settings.dateStyle)} · ${firstFx.stage}")
-                Text("Pick ${rule.min}-${rule.max} players from a pool of ${pool.size}.", color = C.Text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            }
-            Spacer(Modifier.height(8.dp))
-            if (locked) {
-                Sub("This squad is locked. Use permitted replacements for injured or departed players.")
-                Spacer(Modifier.height(8.dp))
-                GoldButton("OPEN REPLACEMENTS", Modifier.fillMaxWidth()) { vm.replaceTop(Screen.SquadRegistration(comp.id)) }
-            } else {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("${sel.size}/${rule.max}", color = if (sel.size in rule.min..rule.max) C.Green else C.Gold, fontWeight = FontWeight.Black, fontSize = 22.sp)
-                Spacer(Modifier.width(10.dp))
-                OutlineBtn("Auto-select") { sel = Registration.autoSelect(s, comp).toSet() }
-                Spacer(Modifier.width(6.dp))
-                OutlineBtn("Clear") { sel = emptySet() }
-                Spacer(Modifier.weight(1f))
-                Text("MIN ${rule.min}", color = C.Sub, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-            problems.forEach { Text("✕ $it", color = C.Red, fontSize = 11.sp, modifier = Modifier.padding(vertical = 2.dp)) }
-            Spacer(Modifier.height(6.dp))
-            LazyColumn(Modifier.weight(1f)) {
-                items(pool, key = { it.id }) { p ->
-                    val on = p.id in sel
-                    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp).clip(RoundedCornerShape(10.dp))
-                        .background(if (on) DS.Navy4 else C.Card).border(1.dp, if (on) C.Gold else DS.Line, RoundedCornerShape(10.dp))
-                        .clickable { GameAudio.click(); sel = if (on) sel - p.id else if (sel.size < rule.max) sel + p.id else sel }
-                        .padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(22.dp).clip(RoundedCornerShape(5.dp)).background(if (on) C.Gold else Color.Transparent).border(1.5.dp, if (on) C.Gold else C.Sub, RoundedCornerShape(5.dp)), contentAlignment = Alignment.Center) {
-                            if (on) Icon(Icons.Filled.Check, null, tint = Color(0xFF111827), modifier = Modifier.size(15.dp))
-                        }
-                        Spacer(Modifier.width(8.dp))
+        BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 6.dp)) {
+            val wide = maxWidth >= 560.dp
+            @Composable fun PoolPanel(modifier: Modifier) {
+                Column(modifier) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(p.name, color = if (on) C.Gold else C.Text, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("${Consts.ROLE_NAMES[p.role]} · OVR ${p.overall()} · Fit ${p.fitness}${if (p.injured) " · INJURED ${p.injuryDays}d" else ""}", color = C.Sub, fontSize = 10.sp, maxLines = 1)
+                            Text("PLAYER POOL · ${pool.size}", color = C.Gold, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                            Text("Tap a player to add or remove", color = C.Sub, fontSize = 11.sp)
                         }
-                        RatingPill(p.overall())
+                        if (!locked) TextButton(onClick = { selected = Registration.autoSelect(s, comp).toSet() }) { Text("AUTO", color = C.Gold, fontWeight = FontWeight.Bold) }
+                    }
+                    OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().heightIn(min = 48.dp), singleLine = true,
+                        placeholder = { Text("Search player name", fontSize = 13.sp) }, textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
+                        shape = RoundedCornerShape(10.dp))
+                    Spacer(Modifier.height(5.dp))
+                    LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(list, key = { it.id }) { p ->
+                            val on = p.id in selected
+                            val bg by animateColorAsState(if (on) DS.Navy4 else C.Card, label = "player selected")
+                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(bg)
+                                .border(1.dp, if (on) C.Gold else DS.Line, RoundedCornerShape(10.dp))
+                                .clickable(enabled = !locked) { toggle(p.id) }.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                PlayerFace(p.id, p.name, 38.dp); Spacer(Modifier.width(8.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(p.name, color = C.Text, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 2)
+                                    Text("${Consts.ROLE_NAMES[p.role] ?: p.role}  ·  Fitness ${p.fitness}%${if (p.injured) " · Injured" else ""}", color = if (p.injured) C.Red else C.Sub, fontSize = 11.sp, maxLines = 1)
+                                }
+                                RatingPill(p.overall()); Spacer(Modifier.width(7.dp))
+                                Box(Modifier.size(29.dp).clip(RoundedCornerShape(7.dp)).background(if (on) C.Gold else DS.Navy3).border(1.dp, if (on) C.Gold else C.Sub, RoundedCornerShape(7.dp)), contentAlignment = Alignment.Center) {
+                                    Text(if (on) "✓" else "+", color = if (on) Color.Black else C.Text, fontSize = 18.sp, fontWeight = FontWeight.Black)
+                                }
+                            }
+                        }
+                        if (list.isEmpty()) item { Sub("No players found.", Modifier.padding(12.dp)) }
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            GoldButton("CONFIRM SQUAD (${sel.size})", Modifier.fillMaxWidth(), enabled = problems.isEmpty() && sel.size in rule.min..rule.max) {
-                val err = Registration.register(s, comp, sel.toList())
-                if (err != null) vm.msg(err) else {
-                    TeamSelector.validate(c, s.players, Registration.xiPool(s, comp))
-                    vm.sheetEdited(); vm.persist()
-                    vm.msg("${Registration.short(comp)} squad registered (${sel.size}).")
-                    vm.back()
+            @Composable fun SelectionPanel(modifier: Modifier) {
+                Column(modifier.clip(RoundedCornerShape(12.dp)).background(DS.Navy3).border(1.dp, DS.Line, RoundedCornerShape(12.dp)).padding(9.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("YOUR SQUAD", color = C.Gold, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                            Text("${selected.size} / ${rule.max} selected · minimum ${rule.min}", color = C.Text, fontSize = 11.sp)
+                        }
+                        if (!locked) TextButton(onClick = { selected = emptySet() }) { Text("CLEAR", color = C.Sub, fontSize = 11.sp) }
+                    }
+                    Text("Selection: ${comp.selectionDate}  ·  Match: ${first?.let { Schedule.fixtureDate(s, comp, it) } ?: "—"}", color = C.Sub, fontSize = 10.sp, maxLines = 1)
+                    Spacer(Modifier.height(5.dp))
+                    if (wide) LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        items(chosen, key = { it.id }) { p ->
+                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(7.dp)).background(C.Card).clickable(enabled = !locked) { toggle(p.id) }.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(p.name, Modifier.weight(1f), color = C.Text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                                Text(if (locked) "${p.overall()}" else "−", color = C.Gold, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                            }
+                        }
+                    } else Spacer(Modifier.height(4.dp))
+                    problems.firstOrNull()?.let { Text(it, color = C.Red, fontSize = 11.sp, maxLines = 2) }
+                    Spacer(Modifier.height(4.dp))
+                    if (locked) GoldButton("REPLACEMENTS", Modifier.fillMaxWidth()) { vm.replaceTop(Screen.SquadRegistration(comp.id)) }
+                    else GoldButton("CONFIRM SQUAD (${selected.size})", Modifier.fillMaxWidth(), enabled = problems.isEmpty() && selected.size in rule.min..rule.max) {
+                        val err = Registration.register(s, comp, selected.toList())
+                        if (err != null) vm.msg(err) else {
+                            TeamSelector.validate(club, s.players, Registration.xiPool(s, comp))
+                            vm.sheetEdited(); vm.persist(); vm.msg("${Registration.short(comp)} squad registered (${selected.size})."); vm.back()
+                        }
+                    }
                 }
             }
+            if (wide) Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                PoolPanel(Modifier.weight(1.2f).fillMaxHeight())
+                SelectionPanel(Modifier.weight(0.8f).fillMaxHeight())
+            } else Column(Modifier.fillMaxSize()) {
+                SelectionPanel(Modifier.fillMaxWidth())
+                Spacer(Modifier.height(6.dp))
+                PoolPanel(Modifier.weight(1f))
             }
         }
     }

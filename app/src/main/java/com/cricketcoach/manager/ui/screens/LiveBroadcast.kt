@@ -355,6 +355,17 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
     var view3d by remember { mutableStateOf(vm.settings.view3d) }
     var cam by remember { mutableIntStateOf(vm.settings.camMode) }
     var animBusy by remember { mutableStateOf(false) }
+    var outcomeRevealed by remember { mutableStateOf(true) }
+    var wicketPauseNotice by remember { mutableStateOf(false) }
+    var priorScore by remember { mutableStateOf("0/0") }
+    var priorOvers by remember { mutableStateOf("0.0") }
+    var priorTeam by remember { mutableStateOf("") }
+    fun rememberBeforeBall() {
+        val before = m.cur
+        priorScore = before?.scoreText() ?: "0/0"
+        priorOvers = before?.oversText() ?: "0.0"
+        priorTeam = before?.let { m.club(it.batTeam).short } ?: ""
+    }
     var replayEv by remember { mutableStateOf<BallEv?>(null) }
     var playKey by remember { mutableIntStateOf(0) }
     /** 0 none, 1 commentary, 2 highlights, 3 scorecard, 4 wagon & charts */
@@ -375,23 +386,27 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
     LaunchedEffect(m.events.size) {
         val line = vm.updateCommentary(m)
         if (!view3d) { m.lastEv?.let { GameAudio.onBat(it.kind, it.how); GameAudio.onOutcome(it.kind, it.how, it.milestone) }; line?.let { vm.speakBall(it.evId) } }
-        GameAudio.setMood(com.cricketcoach.manager.audio.CrowdMood.of(m))
+        if (!view3d) GameAudio.setMood(com.cricketcoach.manager.audio.CrowdMood.of(m))
     }
-    LaunchedEffect(m.innings.size) { if (m.innings.size > 1 && !m.finished) GameAudio.play("horn", 0.7f) }
-    LaunchedEffect(m.finished) { if (m.finished) { GameAudio.play("horn"); GameAudio.play("applause"); if (vm.comLines.none { it.kind == "RESULT" }) GameAudio.speak(m.resultText) } }
+    LaunchedEffect(m.innings.size, outcomeRevealed) { if (m.innings.size > 1 && !m.finished && outcomeRevealed) GameAudio.play("horn", 0.7f) }
+    LaunchedEffect(m.finished, outcomeRevealed) { if (m.finished && outcomeRevealed) { GameAudio.play("horn"); GameAudio.play("applause"); if (vm.comLines.none { it.kind == "RESULT" }) GameAudio.speak(m.resultText) } }
     LaunchedEffect(vm.autoPlay, view3d, speedX) {
         while (vm.autoPlay && !m.finished) {
             if (view3d) { withTimeoutOrNull(32_000L / speedX + 2_000L) { snapshotFlow { animBusy }.first { !it } }; delay(300L / speedX) } else delay(vm.settings.simSpeedMs.toLong() / speedX)
             if (!vm.autoPlay) break
             replayEv = null
             val before = m.events.size
+            rememberBeforeBall()
             vm.stepBall()
-            if (view3d && m.events.size > before) animBusy = true
+            if (view3d && m.events.size > before) { animBusy = true; outcomeRevealed = false }
             // Settings > Match > Pause auto-play after a wicket
-            if (vm.settings.autoPauseWicket && m.events.size > before && m.lastEv?.kind == "WICKET" && !m.finished) { vm.autoPlay = false; vm.msg("Wicket! Auto-play paused - change your plans or press Auto.") }
+            if (vm.settings.autoPauseWicket && m.events.size > before && m.lastEv?.kind == "WICKET" && !m.finished) { vm.autoPlay = false; wicketPauseNotice = true }
         }
     }
-    fun step(f: () -> Unit) { replayEv = null; val before = m.events.size; f(); if (view3d && m.events.size > before) animBusy = true }
+    fun step(f: () -> Unit) {
+        replayEv = null; val before = m.events.size; rememberBeforeBall(); f()
+        if (view3d && m.events.size > before) { animBusy = true; outcomeRevealed = false }
+    }
     fun toggle(p: Int) { panel = if (panel == p) 0 else p }
     val ev = replayEv ?: m.lastEv
     val inn = m.cur
@@ -407,15 +422,19 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
 
         /* ---- stadium: full-bleed, behind everything ---- */
         Box(Modifier.fillMaxSize()) {
-            val legacy: @Composable () -> Unit = { Stadium3DView(ev, batCol, if (bowlCol == batCol) Color(0xFF1565C0) else bowlCol, cam, dur, replayEv != null, Modifier.fillMaxSize(), playKey = playKey, onDone = { animBusy = false }) }
+            val legacy: @Composable () -> Unit = { Stadium3DView(ev, batCol, if (bowlCol == batCol) Color(0xFF1565C0) else bowlCol, cam, dur, replayEv != null, Modifier.fillMaxSize(), playKey = playKey, onDone = { animBusy = false; outcomeRevealed = true }) }
             if (view3d && vm.settings.gfx >= Gfx.MEDIUM) {
                 val fmt = m.cfg.format
                 val light = when { fmt == "TEST" && (m.cfg.weather == "Overcast" || m.cfg.weather == "Cloudy") -> Lighting.OVERCAST; fmt == "TEST" -> Lighting.DAY; fmt == "ODI" -> Lighting.DUSK; else -> Lighting.NIGHT }
                 val wear = remember(m.events.size) { val tot = m.innings.sumOf { it.balls }; val cap = if (fmt == "TEST") 2700f else (m.cfg.overs * 12f).coerceAtLeast(60f); (0.08f + 0.92f * tot / cap).coerceIn(0f, 1f) }
                 Match3DView(ev, remember(ev?.id, inn?.bowlTeam) { castFor(m, ev, s.players) }, cam, dur, replayEv != null, vm.settings.gfx, light, fmt == "TEST",
                     Modifier.fillMaxSize(), playKey = playKey, pitchWear = wear, rate = speedX.toFloat(),
-                    onImpact = { e -> GameAudio.onBat(e.kind, e.how) }, onOutcome = { e -> GameAudio.onOutcome(e.kind, e.how, e.milestone); vm.speakBall(e.id) },
-                    onDone = { animBusy = false }, fallback = legacy)
+                    onImpact = { e -> GameAudio.onBat(e.kind, e.how) }, onOutcome = { e ->
+                        outcomeRevealed = true; GameAudio.onOutcome(e.kind, e.how, e.milestone); vm.speakBall(e.id)
+                        GameAudio.setMood(com.cricketcoach.manager.audio.CrowdMood.of(m))
+                        if (wicketPauseNotice) { wicketPauseNotice = false; vm.msg("Wicket! Auto-play paused.") }
+                    },
+                    onDone = { animBusy = false; outcomeRevealed = true; if (wicketPauseNotice) { wicketPauseNotice = false; vm.msg("Wicket! Auto-play paused.") } }, fallback = legacy)
             } else if (view3d) legacy()
             else Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0xFF14532D), Color(0xFF0B2E1A), Color(0xFF040A18))))) {
                 WagonWheel(m.events.filter { it.inn == m.innings.size - 1 }, Modifier.fillMaxSize().padding(start = 40.dp, end = railW + 40.dp, top = 56.dp, bottom = 110.dp))
@@ -463,7 +482,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
                     }
                 }
                 ViewPill("${speedX}x", C.Gold, speedX > 1) { speedX = SPEEDS[(SPEEDS.indexOf(speedX) + 1) % SPEEDS.size]; vm.settings.playSpeed = speedX }
-                m.winProbability()?.let { wp ->
+                (if (outcomeRevealed) m.winProbability() else null)?.let { wp ->
                     val chasing = inn?.let { m.club(it.batTeam).short } ?: ""
                     Column(Modifier.padding(start = 4.dp).clip(RoundedCornerShape(8.dp)).background(Navy).border(1.dp, Hair, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 3.dp)) {
                         Text("WIN %", color = C.Sub, fontSize = 7.5.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp)
@@ -478,7 +497,7 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
             }
 
             /* ---- slide-in panel ---- */
-            AnimatedVisibility(panel != 0, Modifier.align(Alignment.TopEnd).padding(top = 48.dp, end = 8.dp, bottom = bottomH + 26.dp),
+            AnimatedVisibility(panel != 0 && outcomeRevealed, Modifier.align(Alignment.TopEnd).padding(top = 48.dp, end = 8.dp, bottom = bottomH + 26.dp),
                 enter = slideInHorizontally(tween(220)) { it / 2 } + fadeIn(tween(220)), exit = slideOutHorizontally(tween(180)) { it / 2 } + fadeOut(tween(180))) {
                 val shown = panel.takeIf { it != 0 } ?: 1
                 Column(Modifier.width(panelW).fillMaxHeight().clip(RoundedCornerShape(12.dp)).background(Color(0xEE081127)).border(1.dp, Hair, RoundedCornerShape(12.dp))) {
@@ -548,16 +567,27 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
 
             /* ---- bottom: commentary ticker + TV scoreboard ---- */
             Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 8.dp, end = railW + 6.dp)) {
-                if (ev != null) Row(Modifier.padding(bottom = 4.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xCC050A18)).padding(horizontal = 8.dp, vertical = 3.dp),
+                if (ev != null && outcomeRevealed) Row(Modifier.padding(bottom = 4.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xCC050A18)).padding(horizontal = 8.dp, vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     if (replayEv != null) Text("REPLAY  ", color = C.Gold, fontSize = 9.sp, fontWeight = FontWeight.Black)
                     Text("${ev.over}.${ev.ball}  ", color = C.Gold, fontSize = 10.sp, fontWeight = FontWeight.Black)
                     Text(vm.comLines.firstOrNull { it.evId == ev.id && it.kind == ev.kind }?.text ?: ev.text, color = C.Text, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                TvScoreboard(m, Modifier.fillMaxWidth())
+                val scoreInn = m.cur
+                Row(Modifier.fillMaxWidth().height(42.dp).clip(RoundedCornerShape(topStart = 9.dp, topEnd = 9.dp)).background(Color(0xEF0E1A33)).border(1.dp, Hair, RoundedCornerShape(topStart = 9.dp, topEnd = 9.dp)).padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val team = if (!outcomeRevealed) priorTeam else scoreInn?.let { m.club(it.batTeam).short } ?: ""
+                    val score = if (!outcomeRevealed) priorScore else scoreInn?.scoreText() ?: "0/0"
+                    val overs = if (!outcomeRevealed) priorOvers else scoreInn?.oversText() ?: "0.0"
+                    Text(team, color = C.Gold, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(score, color = Color.White, fontWeight = FontWeight.Black, fontSize = 19.sp)
+                    Text("   $overs OV", color = C.Sub, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Spacer(Modifier.weight(1f))
+                    Text(if (!outcomeRevealed) "BALL IN PLAY" else boardInfo(m).situation, color = C.GoldLight, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
                 // compact match controls right under the scoreboard
                 val camNames = listOf("TV", "Aerial", "Side", "Bat")
-                val live = !m.finished
+                val live = !m.finished && !animBusy
                 CompositionLocalProvider(LocalRailH provides railBtnH) {
                     Row(Modifier.fillMaxWidth().background(NavyDeep).horizontalScroll(rememberScrollState()).padding(horizontal = 6.dp, vertical = 5.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -575,13 +605,13 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
                         RailBtn("Wagon", RIcon.WAGON, w, active = panel == 4) { toggle(4) }
                         BarDiv()
                         RailBtn("Cam ${camNames[cam]}", RIcon.CAM, w, enabled = view3d) { cam = (cam + 1) % 4; vm.settings.camMode = cam }
-                        RailBtn(if (view3d) "2D" else "3D", RIcon.VIEW, w) { view3d = !view3d; vm.settings.view3d = view3d; animBusy = false }
+                        RailBtn(if (view3d) "2D" else "3D", RIcon.VIEW, w) { view3d = !view3d; vm.settings.view3d = view3d; animBusy = false; outcomeRevealed = true }
                     }
                 }
             }
 
             /* ---- result card ---- */
-            if (m.finished && panel == 0) Box(Modifier.align(Alignment.Center).padding(end = railW).clip(RoundedCornerShape(16.dp))
+            if (m.finished && outcomeRevealed && panel == 0) Box(Modifier.align(Alignment.Center).padding(end = railW).clip(RoundedCornerShape(16.dp))
                 .background(Color(0xF50A1224)).border(1.dp, C.Gold.copy(alpha = 0.6f), RoundedCornerShape(16.dp)).padding(horizontal = 22.dp, vertical = 14.dp)) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("FULL TIME", color = C.Gold, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)

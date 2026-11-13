@@ -44,7 +44,8 @@ fun AppRoot(vm: GameVM) {
                 else Screens(vm, s)
             }
         }
-        if (vm.busy) BusyOverlay()
+        if (vm.busy && !vm.simulationVisible) BusyOverlay()
+        if (vm.simulationVisible) SimulationPopup(vm)
         val t = vm.toast
         if (t != null) {
             LaunchedEffect(t) { delay(3200); if (vm.toast == t) vm.toast = null }

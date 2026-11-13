@@ -13,6 +13,10 @@ import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
 import com.cricketcoach.manager.audio.GameAudio
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.scale
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -73,7 +77,7 @@ object C {
     val GoldLight = Color(0xFFFFE7A6)
     val GoldDeep = Color(0xFFB8862B)
     val Text = Color(0xFFEEF2FA)
-    val Sub = Color(0xFF9AACCF)
+    val Sub = Color(0xFFB8C9E6)
     val Red = Color(0xFFEF5350)
     val Blue = Color(0xFF5B9BFF)
     // flat fills (no decorative gradients)
@@ -139,7 +143,7 @@ fun ScreenScaffold(vm: GameVM, title: String, actions: @Composable RowScope.() -
 
 @Composable
 fun CcmCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, highlight: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
-    val m = modifier.fillMaxWidth().padding(vertical = 4.dp)
+    val m = modifier.fillMaxWidth().padding(vertical = 4.dp).animateContentSize()
     val colors = CardDefaults.cardColors(containerColor = if (highlight) C.CardHi else C.Card)
     val border = if (highlight) BorderStroke(1.dp, C.Gold.copy(alpha = 0.7f)) else BorderStroke(1.dp, DS.Line)
     if (onClick != null) Card(onClick = onClick, modifier = m, colors = colors, border = border, shape = DS.Card) { Column(Modifier.padding(12.dp), content = content) }
@@ -148,7 +152,10 @@ fun CcmCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, highli
 
 @Composable
 fun GoldButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(onClick = { GameAudio.click(); onClick() }, enabled = enabled, modifier = modifier.heightIn(min = DS.BtnH).clip(DS.Btn).background(if (enabled) C.GoldBrush else SolidColor(Color(0x33E9B949))), shape = DS.Btn,
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, tween(120), label = "button press")
+    Button(onClick = { GameAudio.click(); onClick() }, interactionSource = interaction, enabled = enabled, modifier = modifier.scale(scale).heightIn(min = DS.BtnH).clip(DS.Btn).background(if (enabled) C.GoldBrush else SolidColor(Color(0x33E9B949))), shape = DS.Btn,
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color(0xFF1A1200), disabledContainerColor = Color.Transparent)) {
         Text(text.uppercase(), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 0.8.sp, textAlign = TextAlign.Center)
@@ -157,7 +164,10 @@ fun GoldButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = t
 
 @Composable
 fun GreenButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(onClick = { GameAudio.click(); onClick() }, enabled = enabled, modifier = modifier.heightIn(min = DS.BtnH).clip(DS.Btn).background(if (enabled) C.BlueBrush else SolidColor(Color(0x3316233F))).border(1.dp, DS.Line, DS.Btn), shape = DS.Btn,
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, tween(120), label = "button press")
+    Button(onClick = { GameAudio.click(); onClick() }, interactionSource = interaction, enabled = enabled, modifier = modifier.scale(scale).heightIn(min = DS.BtnH).clip(DS.Btn).background(if (enabled) C.BlueBrush else SolidColor(Color(0x3316233F))).border(1.dp, DS.Line, DS.Btn), shape = DS.Btn,
         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = Color.White, disabledContainerColor = Color.Transparent)) {
         Text(text.uppercase(), fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 0.8.sp, textAlign = TextAlign.Center)
@@ -166,7 +176,10 @@ fun GreenButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = 
 
 @Composable
 fun OutlineBtn(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
-    OutlinedButton(onClick = { GameAudio.click(); onClick() }, enabled = enabled, modifier = modifier.heightIn(min = DS.BtnH), shape = DS.Btn,
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, tween(120), label = "button press")
+    OutlinedButton(onClick = { GameAudio.click(); onClick() }, interactionSource = interaction, enabled = enabled, modifier = modifier.scale(scale).heightIn(min = DS.BtnH), shape = DS.Btn,
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
         border = BorderStroke(1.dp, C.Gold.copy(alpha = if (enabled) 0.6f else 0.3f))) {
         Text(text, color = if (enabled) C.Gold else C.Sub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 2)

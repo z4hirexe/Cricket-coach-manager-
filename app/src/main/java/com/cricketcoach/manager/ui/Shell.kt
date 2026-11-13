@@ -118,7 +118,6 @@ private fun Sidebar(vm: GameVM) {
         regNav(vm, s),
         NavItem("fixtures", "Fixtures", "table", null) { vm.navRoot(Screen.Fixtures) },
         NavItem("table", if (club) "League Table" else "Points Tables", "table", null) { vm.navRoot(Screen.Table) },
-        NavItem("tournaments", "Tournaments", "trophy", null) { vm.navRoot(Screen.TournamentsScr) },
         NavItem("stats", "Player Stats", "chart", null) { vm.navRoot(Screen.Statistics) },
     )
     val media = listOf(NavItem("social", "Stumpstagram", "social", null, badge = 0) { vm.navRoot(Screen.Social) },
@@ -242,26 +241,11 @@ private fun ShellTopBar(vm: GameVM) {
             Text(calendarLabel(s), color = C.Text, fontWeight = FontWeight.Black, fontSize = 12.sp, maxLines = 1)
         }
         Spacer(Modifier.width(10.dp))
-        // simulate / continue
-        val inSeason = vm.pending == null && (s.phase == "LEAGUE" || s.phase == "PLAYOFFS")
-        val onCal = vm.screen == Screen.Calendar
-        // SIMULATE opens the cricket calendar (schedule centre); on the calendar it advances one day.
-        // Always: SIMULATE opens the calendar first; on the calendar the same button runs the next step.
-        val text = if (onCal) com.cricketcoach.manager.ui.screens.calendarStepLabel(vm) else "Simulate"
         Row(Modifier.height(40.dp).clip(DS.Btn).background(if (vm.busy) Color(0xFF334155) else DS.Gold)
-            .semantics { contentDescription = text }
-            .clickable(enabled = !vm.busy) { GameAudio.click(); if (!onCal) vm.navRoot(Screen.Calendar) else vm.continueAction() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (!onCal) Glyph("calendar", DS.GoldInk, 16.dp) else Icon(Icons.Filled.PlayArrow, null, tint = DS.GoldInk, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(5.dp))
-            Text(text.uppercase(), color = DS.GoldInk, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp, maxLines = 1, softWrap = false)
-        }
-        if (inSeason && !onCal) {
-            // quick one-day advance (the classic SIMULATE behaviour) stays one tap away
-            Spacer(Modifier.width(6.dp))
-            Box(Modifier.size(40.dp).clip(DS.Btn).background(DS.Navy3).border(1.dp, UI.Line, DS.Btn).semantics { contentDescription = "Advance one day" }
-                .clickable(enabled = !vm.busy) { GameAudio.click(); vm.continueAction() }, contentAlignment = Alignment.Center) {
-                Text("▶▶", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = (-2).sp)
-            }
+            .semantics { contentDescription = "Simulate to next event" }
+            .clickable(enabled = !vm.busy) { GameAudio.click(); vm.startCalendarSimulation() }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Glyph("calendar", DS.GoldInk, 16.dp); Spacer(Modifier.width(5.dp))
+            Text("SIMULATE", color = DS.GoldInk, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp, maxLines = 1)
         }
     }
 }

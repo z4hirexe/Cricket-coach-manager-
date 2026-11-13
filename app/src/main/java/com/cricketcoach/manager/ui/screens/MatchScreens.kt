@@ -186,6 +186,7 @@ fun TableScreen(vm: GameVM) {
                 Text(comp.name, color = C.Gold, fontWeight = FontWeight.Bold)
                 Sub(compFormatNote(comp))
                 when {
+                    comp.series -> SeriesScoreView(vm, s, comp)
                     comp.groups.size > 1 -> comp.groups.indices.forEach { g -> SectionTitle("Group ${'A' + g}"); PointsTable(vm, s, comp, g, playoff = if (comp.knockout == "QF") 2 else 2) }
                     comp.fixtures.any { !CompEngine.isKO(it) } -> PointsTable(vm, s, comp, null, playoff = when (comp.knockout) { "IPL", "SEMIS" -> 4; "FINAL" -> 2; else -> 0 })
                     else -> Sub("Knockout competition - see the bracket below.")
@@ -198,6 +199,40 @@ fun TableScreen(vm: GameVM) {
                 }
             }
             comp.champion?.let { Text("🏆 Champions: ${s.clubs[it]?.name}", color = C.Gold, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
+        }
+    }
+}
+
+/** A bilateral series has a series score and match results, not a tournament points table. */
+@Composable
+fun SeriesScoreView(vm: GameVM, s: CareerSave, comp: Competition) {
+    val fixtures = comp.fixtures.sortedBy { it.day }
+    val teams = comp.teams.take(2).ifEmpty { fixtures.flatMap { listOf(it.home, it.away) }.distinct().take(2) }
+    val wins = teams.associateWith { id -> fixtures.count { it.played && it.res?.winner == id } }
+    val draws = fixtures.count { it.played && it.res?.winner == null }
+    CcmCard(highlight = true) {
+        Text("${fixtures.size}-MATCH ${comp.format} SERIES", color = C.Sub, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly) {
+            teams.forEachIndexed { index, id ->
+                if (index > 0) Text("–", color = C.Gold, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                    ClubBadge(s.clubs[id], 38.dp)
+                    Text(s.clubs[id]?.name ?: id, color = C.Text, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1)
+                    Text("${wins[id] ?: 0}", color = C.Gold, fontWeight = FontWeight.Black, fontSize = 27.sp)
+                }
+            }
+        }
+        Text("${fixtures.count { it.played }} of ${fixtures.size} played${if (draws > 0) " · $draws draw / no result" else ""}", color = C.Sub, fontSize = 12.sp)
+    }
+    SectionTitle("MATCHES")
+    fixtures.forEachIndexed { i, f ->
+        CcmCard(onClick = if (f.played) ({ vm.openReport(comp.id, f.id) }) else null) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("MATCH ${i + 1}  ·  ${s.clubs[f.home]?.short ?: f.home} vs ${s.clubs[f.away]?.short ?: f.away}", color = C.Text, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(if (f.played) f.res?.text ?: "Result unavailable" else "Upcoming · ${Schedule.fixtureDate(s, comp, f)}", color = if (f.played) C.Gold else C.Sub, fontSize = 12.sp)
+                }
+            }
         }
     }
 }

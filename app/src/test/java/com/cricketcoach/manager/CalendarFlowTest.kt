@@ -82,4 +82,21 @@ class CalendarFlowTest {
         vm.calendarAdvanceDay(); waitIdle(vm)
         assertTrue(ipl.fixtures.count { it.played } > before || vm.pending != null)
     }
+    @Test fun oneTapSimulationStopsForSelectionThenMatch() {
+        if (!Repo.isLoaded()) File("src/main/assets/cricket_data.json").bufferedReader().use { Repo.loadFrom(it) }
+        File("src/main/assets/domestic_states.json").bufferedReader().use { Repo.loadDomestic(it) }
+        val vm = GameVM(ApplicationProvider.getApplicationContext<Application>())
+        val s = Modes.newCareer(1, "T", Modes.INTL, "N_IND", 1.0, 1, Random(14))
+        s.auction = null; vm.save = s; vm.goHome()
+        val c = s.league.first { it.series && it.userTeam == "N_IND" }
+        vm.startCalendarSimulation(); waitIdle(vm)
+        assertEquals(Screen.SeriesSelection(c.id), vm.screen)
+        assertEquals(c.selectionDate, Schedule.today(s).toString())
+        assertNull(Registration.register(s, c, Registration.autoSelect(s, c)))
+        vm.goHome(); vm.startCalendarSimulation(); waitIdle(vm)
+        assertEquals(Screen.PreMatch, vm.screen)
+        assertEquals(c.id, vm.pending?.compId)
+        assertFalse(vm.simulationVisible)
+    }
+
 }
