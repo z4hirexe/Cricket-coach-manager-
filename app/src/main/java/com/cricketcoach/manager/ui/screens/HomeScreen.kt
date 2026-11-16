@@ -53,6 +53,12 @@ fun Dashboard(vm: GameVM) {
         }
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            RecentResults(vm, s, u, Modifier.weight(1f).fillMaxHeight())
+            Spacer(Modifier.width(10.dp))
+            SquadPulse(vm, s, u, Modifier.weight(1f).fillMaxHeight())
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             ClubStatus(vm, s, Modifier.weight(1f).fillMaxHeight())
             Spacer(Modifier.width(10.dp))
             LatestNews(vm, s, Modifier.weight(1.25f).fillMaxHeight())
@@ -316,6 +322,87 @@ private fun LatestNews(vm: GameVM, s: CareerSave, modifier: Modifier) {
                 Spacer(Modifier.width(8.dp))
                 Text(body, color = if (i < unread) C.Text else C.Sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Text(meta, color = C.Sub, fontSize = 9.sp)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Broadcast-style form guide: last five completed fixtures of the active team (engine results only, nothing fabricated). */
+@Composable
+private fun RecentResults(vm: GameVM, s: CareerSave, u: Club, modifier: Modifier) {
+    val recent = remember(vm.tick, u.id) {
+        s.league.flatMap { c -> c.fixtures.filter { it.played && it.res != null && (it.home == u.id || it.away == u.id) }.map { c to it } }
+            .sortedByDescending { it.second.day }.take(5)
+    }
+    Panel(modifier, border = UI.Line) {
+        PanelHeader("Form guide", C.Gold, "trophy") { vm.navRoot(Screen.Fixtures) }
+        if (recent.isEmpty()) Sub("No completed matches yet.", Modifier.padding(horizontal = 14.dp))
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 2.dp)) {
+            for ((_, f) in recent.reversed()) {
+                val r = f.res!!
+                val (txt, col) = when {
+                    r.noResult -> "NR" to C.Sub
+                    r.draw -> "D" to UI.Amber
+                    r.winner == u.id -> "W" to UI.Neon
+                    else -> "L" to C.Red
+                }
+                Box(Modifier.padding(end = 6.dp).size(24.dp).clip(RoundedCornerShape(5.dp)).background(col.copy(alpha = 0.18f)).border(1.dp, col, RoundedCornerShape(5.dp)), contentAlignment = Alignment.Center) {
+                    Text(txt, color = col, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                }
+            }
+        }
+        for ((c, f) in recent) {
+            val r = f.res!!
+            val opp = s.clubs[if (f.home == u.id) f.away else f.home]
+            val won = r.winner == u.id
+            Row(Modifier.fillMaxWidth().clickable { vm.navRoot(Screen.Fixtures) }.padding(horizontal = 14.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                TeamFlag(opp, 20.dp); Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("vs ${opp?.short ?: "?"} · ${c.format}", color = C.Text, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(if (f.home == u.id) "${r.hScore} v ${r.aScore}" else "${r.aScore} v ${r.hScore}", color = C.Sub, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                Text(if (r.noResult) "NR" else if (r.draw) "DRAW" else if (won) "WON" else "LOST", color = if (r.noResult || r.draw) UI.Amber else if (won) UI.Neon else C.Red, fontSize = 10.sp, fontWeight = FontWeight.Black)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Squad pulse: fitness / form / injuries straight from player data. */
+@Composable
+private fun SquadPulse(vm: GameVM, s: CareerSave, u: Club, modifier: Modifier) {
+    val sq = remember(vm.tick, u.id) { u.squad.mapNotNull { s.players[it] } }
+    val injured = sq.filter { it.injuryDays > 0 }
+    val avgFit = if (sq.isEmpty()) 0 else sq.sumOf { it.fitness } / sq.size
+    val avgForm = if (sq.isEmpty()) 0 else sq.sumOf { it.form } / sq.size
+    val avgMorale = if (sq.isEmpty()) 0 else sq.sumOf { it.morale } / sq.size
+    val hot = sq.sortedByDescending { it.form }.take(3)
+    Panel(modifier, border = UI.Line) {
+        PanelHeader("Squad pulse", UI.Cyan, "squad") { vm.navRoot(Screen.SquadHub) }
+        @Composable fun bar(label: String, v: Int, col: Color) {
+            Column(Modifier.padding(horizontal = 14.dp, vertical = 3.dp)) {
+                Row { Text(label.uppercase(), color = C.Sub, fontSize = 9.sp, letterSpacing = 1.sp, modifier = Modifier.weight(1f)); Text("$v%", color = col, fontSize = 11.sp, fontWeight = FontWeight.Black) }
+                Spacer(Modifier.height(2.dp))
+                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(UI.Line)) {
+                    Box(Modifier.fillMaxWidth((v / 100f).coerceIn(0f, 1f)).fillMaxHeight().background(col))
+                }
+            }
+        }
+        bar("Fitness", avgFit, if (avgFit < 70) C.Red else UI.Neon)
+        bar("Form", avgForm, UI.Amber)
+        bar("Morale", avgMorale, UI.Cyan)
+        HorizontalDivider(color = UI.Line, modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp))
+        Row(Modifier.padding(horizontal = 14.dp)) {
+            Text("INJURIES", color = C.Sub, fontSize = 9.sp, letterSpacing = 1.sp, modifier = Modifier.weight(1f))
+            Text(if (injured.isEmpty()) "None" else "${injured.size}", color = if (injured.isEmpty()) UI.Neon else C.Red, fontSize = 11.sp, fontWeight = FontWeight.Black)
+        }
+        injured.take(2).forEach { p -> Text("${p.name} · ${p.injuryDays}d", color = C.Red, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 14.dp)) }
+        Text("IN FORM", color = C.Sub, fontSize = 9.sp, letterSpacing = 1.sp, modifier = Modifier.padding(start = 14.dp, top = 4.dp))
+        hot.forEach { p ->
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(p.name, color = C.Text, fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${p.form}", color = UI.Amber, fontSize = 10.sp, fontWeight = FontWeight.Black)
             }
         }
         Spacer(Modifier.height(8.dp))

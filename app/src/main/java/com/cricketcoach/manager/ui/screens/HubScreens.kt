@@ -115,7 +115,8 @@ fun MenuButton(title: String, sub: String, icon: ImageVector, primary: Boolean =
     val shape = RoundedCornerShape(9.dp)
     val ink = if (primary) DS.GoldInk else DS.White
     Row(Modifier.fillMaxWidth().height(52.dp).graphicsLayer { scaleX = s; scaleY = s; alpha = if (enabled) 1f else 0.45f }.clip(shape)
-        .background(if (primary) DS.Gold else Color(0xE60A1224)).border(1.dp, if (primary) DS.Gold else DS.Gold.copy(alpha = 0.35f), shape)
+        .background(if (primary) Brush.horizontalGradient(listOf(DS.Gold, Color(0xFFF2CC5A))) else Brush.horizontalGradient(listOf(Color(0xF0102C78), Color(0xF00A1636))))
+        .border(1.dp, if (primary) DS.Gold else DS.Royal.copy(alpha = 0.9f), shape)
         .semantics { contentDescription = title }
         .clickable(src, null, enabled = enabled, role = Role.Button) { GameAudio.click(); onClick() }.padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically) {

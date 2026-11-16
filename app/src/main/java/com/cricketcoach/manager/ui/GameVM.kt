@@ -761,6 +761,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
     fun startMiniAuction() {
         val s = save ?: return
         if (s.phase != "PRESEASON") { msg("Auctions happen in pre-season."); return }
+        if (!Modes.auctionSeasonOpen(s)) { msg("No auction in the ${Career.START_YEAR} season - real squads are locked. The auction opens from ${Career.START_YEAR + 1}."); return }
         if (s.auctionDoneThisSeason) { msg("This season's auction is complete."); return }
         if (s.auction == null) s.auction = Auction.start(s, "MINI")
         persist(); nav(Screen.AuctionScr)

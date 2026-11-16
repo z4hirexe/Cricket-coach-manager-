@@ -67,6 +67,7 @@ object DS {
     val Sub = Color(0xFF9AA8C4)
     val Muted = Color(0xFF66748F)
     val Accent = Color(0xFF4F8EF7)     // single cool accent (links, info)
+    val Royal = Color(0xFF123B9E)      // v2.7 broadcast royal blue (panel headers, selected tabs)
     val Good = Color(0xFF3DBE7A)
     val Bad = Color(0xFFE5484D)
     val Live = Color(0xFFE5484D)
@@ -159,7 +160,7 @@ fun DsButton(text: String, modifier: Modifier = Modifier, kind: DsKind = DsKind.
 @Composable
 fun DsCard(modifier: Modifier = Modifier, accent: Color? = null, selected: Boolean = false, onClick: (() -> Unit)? = null, pad: Dp = 12.dp, content: @Composable ColumnScope.() -> Unit) {
     val m = modifier.clip(DS.Card).background(if (selected) DS.Navy4 else DS.Navy3)
-        .border(1.dp, if (selected) DS.Gold.copy(alpha = 0.7f) else DS.Line, DS.Card)
+        .border(1.dp, if (selected) DS.Gold.copy(alpha = 0.7f) else DS.Royal.copy(alpha = 0.5f), DS.Card)
         .then(if (onClick != null) Modifier.clickable { GameAudio.click(); onClick() } else Modifier)
     Row(if (accent != null) m.height(IntrinsicSize.Min) else m) {
         if (accent != null) Box(Modifier.width(3.dp).fillMaxHeightCompat().background(accent))

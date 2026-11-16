@@ -145,7 +145,7 @@ fun ScreenScaffold(vm: GameVM, title: String, actions: @Composable RowScope.() -
 fun CcmCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, highlight: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     val m = modifier.fillMaxWidth().padding(vertical = 4.dp).animateContentSize()
     val colors = CardDefaults.cardColors(containerColor = if (highlight) C.CardHi else C.Card)
-    val border = if (highlight) BorderStroke(1.dp, C.Gold.copy(alpha = 0.7f)) else BorderStroke(1.dp, DS.Line)
+    val border = if (highlight) BorderStroke(1.dp, C.Gold.copy(alpha = 0.7f)) else BorderStroke(1.dp, Color(0x80123B9E))
     if (onClick != null) Card(onClick = onClick, modifier = m, colors = colors, border = border, shape = DS.Card) { Column(Modifier.padding(12.dp), content = content) }
     else Card(modifier = m, colors = colors, border = border, shape = DS.Card) { Column(Modifier.padding(12.dp), content = content) }
 }
@@ -231,19 +231,21 @@ fun StatBar(label: String, value: Int, max: Int = 99) {
 /** Underline tab strip: condensed labels, a gold indicator under the active tab and a hairline baseline. */
 @Composable
 fun Tabs(tabs: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-        .drawBehind { drawLine(DS.Line, Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f) }) {
+    // v2.7 broadcast tab strip: royal-blue filled selected tab, navy strip, gold underline
+    Row(Modifier.fillMaxWidth().background(Color(0xFF0A1636)).horizontalScroll(rememberScrollState())
+        .drawBehind { drawLine(Color(0xFF123B9E), Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 2f) }) {
         tabs.forEachIndexed { i, t ->
             val on = i == selected
-            Box(Modifier.clickable { GameAudio.click(); onSelect(i) }
-                .drawBehind { if (on) drawLine(DS.Gold, Offset(14.dp.toPx(), size.height - 1.5f), Offset(size.width - 14.dp.toPx(), size.height - 1.5f), 3f, StrokeCap.Round) }
-                .padding(horizontal = 16.dp, vertical = 11.dp)) {
-                Text(t, color = if (on) DS.Gold else DS.Sub, fontFamily = Display, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold,
-                    fontSize = 14.sp, letterSpacing = 0.4.sp, maxLines = 1)
+            Box(Modifier.background(if (on) Color(0xFF123B9E) else Color.Transparent).clickable { GameAudio.click(); onSelect(i) }
+                .drawBehind { if (on) drawLine(DS.Gold, Offset(0f, size.height - 1.5f), Offset(size.width, size.height - 1.5f), 3f) }
+                .padding(horizontal = 14.dp, vertical = 9.dp)) {
+                Text(t, color = if (on) Color.White else DS.Sub, fontFamily = Display, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold,
+                    fontSize = 13.sp, letterSpacing = 0.4.sp, maxLines = 1)
             }
         }
     }
 }
+
 
 /**
  * Original in-game club crests drawn in code (no official logos). Eight heraldic forms with enamel-style

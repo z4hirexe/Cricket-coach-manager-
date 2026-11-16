@@ -70,7 +70,15 @@ object Modes {
     fun fourDay(comp: Competition, fx: Fixture) = (comp.key == "RANJI" || comp.key == "DULEEP") && fx.stage != "Final"
 
     fun marketKind(save: CareerSave) = if (save.mode == IPL || save.isMultiTeam) "FRANCHISE" else "CLUB"
-    fun hasAuction(save: CareerSave) = save.mode == CLUB || save.mode == IPL || save.isMultiTeam
+    /** Auction is a feature of CLUB / IPL / multi-team careers... */
+    fun auctionMode(save: CareerSave) = save.mode == CLUB || save.mode == IPL || save.isMultiTeam
+    /**
+     * v2.7: the opening 2026 season is played with the real 2026 squads - no auction in season 1 (unless the player
+     * explicitly chose the "Build via Mega Auction" club setup, in which case the auction already exists on the save).
+     * From the 2027 season onwards the auction room opens as usual.
+     */
+    fun auctionSeasonOpen(save: CareerSave) = save.season > 1 || save.year > Career.START_YEAR || save.auction != null
+    fun hasAuction(save: CareerSave) = auctionMode(save) && auctionSeasonOpen(save)
     fun hasTransfers(save: CareerSave) = save.mode == CLUB || save.mode == IPL || save.isMultiTeam
     fun label(mode: String) = when (mode) { INTL -> "International"; DOMESTIC -> "Domestic"; IPL -> "IPL"; else -> "Club" }
 

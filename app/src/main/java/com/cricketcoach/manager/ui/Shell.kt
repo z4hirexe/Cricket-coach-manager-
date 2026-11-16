@@ -42,6 +42,8 @@ object UI {
     // v2.6 design system: accents mapped onto the navy / gold / white palette (DS in Brand.kt)
     val Panel = Color(0xFF0A1224)
     val Side = Color(0xFF070D1C)
+    val Royal = Color(0xFF123B9E)      // v2.7 broadcast royal blue
+    val RoyalHi = Color(0xFF1F55D0)
     val Line = Color(0xFF1E2B47)
     val Neon = Color(0xFFE9B949)       // primary accent = brand gold
     val NeonDeep = Color(0xFF3A2C0A)
@@ -191,7 +193,7 @@ private fun NavRow(n: NavItem, selected: Boolean) {
     val shape = RoundedCornerShape(10.dp)
     val tint = if (selected) Color.White else Color(0xFF9AA6BA)
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp).height(38.dp).clip(shape)
-        .then(if (selected) Modifier.background(DS.Navy4).drawBehind { drawRect(DS.Gold, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height)) } else Modifier)
+        .then(if (selected) Modifier.background(UI.Royal).drawBehind { drawRect(DS.Gold, size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height)) } else Modifier)
         .clickable { GameAudio.click(); n.go() }.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
             if (n.icon != null) Icon(n.icon, null, tint = if (selected) UI.Neon else tint, modifier = Modifier.size(20.dp))
@@ -219,8 +221,8 @@ private fun ShellTopBar(vm: GameVM) {
     val s = vm.save ?: return
     @Suppress("UNUSED_VARIABLE") val t = vm.tick
     val u = s.userClub()
-    Row(Modifier.fillMaxWidth().height(54.dp).background(UI.Panel)
-        .drawBehind { drawLine(UI.Line, Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 2f) }
+    Row(Modifier.fillMaxWidth().height(54.dp).background(Brush.horizontalGradient(listOf(Color(0xFF0C1B4A), UI.Royal, Color(0xFF0C1B4A))))
+        .drawBehind { drawLine(DS.Gold.copy(alpha = 0.6f), Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 2f) }
         .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.End))
         .padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         // manager
@@ -265,17 +267,24 @@ fun ShellTitleRow(vm: GameVM, title: String, actions: @Composable RowScope.() ->
 /** Card frame used across the new dashboard / inbox / social screens. */
 @Composable
 fun Panel(modifier: Modifier = Modifier, border: Color = UI.Line, glow: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
-    Column(modifier.clip(shape).background(Brush.verticalGradient(listOf(Color(0xF0101826), Color(0xF00B111C)))).border(if (glow) 1.5.dp else 1.dp, border, shape), content = content)
+    // v2.7 broadcast chrome: squarer TV panel, navy body, royal-blue hairline (gold when highlighted)
+    val shape = RoundedCornerShape(8.dp)
+    val line = if (glow || border == UI.Neon || border == DS.Gold) DS.Gold.copy(alpha = 0.7f) else UI.Royal.copy(alpha = 0.55f)
+    Column(modifier.clip(shape).background(Brush.verticalGradient(listOf(Color(0xF40C1A44), Color(0xF4071233)))).border(1.dp, line, shape), content = content)
 }
 
+/** Royal-blue broadcast header bar used on top of every [Panel]. */
 @Composable
 fun PanelHeader(title: String, color: Color, glyph: String? = null, onMore: (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (glyph != null) { Glyph(glyph, color, 16.dp); Spacer(Modifier.width(8.dp)) }
-        Text(title.uppercase(), color = color, fontWeight = FontWeight.Black, fontSize = 13.sp, letterSpacing = 1.5.sp, modifier = Modifier.weight(1f), maxLines = 1)
-        if (onMore != null) IconButton(onClick = { GameAudio.click(); onMore() }, modifier = Modifier.size(28.dp)) {
-            Icon(Icons.Filled.KeyboardArrowRight, "Open", tint = C.Sub)
-        }
+    val gold = color == UI.Neon || color == DS.Gold || color == C.Gold
+    Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(UI.Royal, UI.Royal.copy(alpha = 0.55f)))).padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(3.dp).height(14.dp).background(if (gold) DS.Gold else Color.White)); Spacer(Modifier.width(8.dp))
+        if (glyph != null) { Glyph(glyph, if (gold) DS.Gold else Color.White, 15.dp); Spacer(Modifier.width(7.dp)) }
+        Text(title.uppercase(), color = if (gold) DS.Gold else Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.4.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (onMore != null) IconButton(onClick = { GameAudio.click(); onMore() }, modifier = Modifier.size(26.dp)) {
+            Icon(Icons.Filled.KeyboardArrowRight, "Open", tint = Color.White)
+        } else Spacer(Modifier.width(8.dp))
     }
+    Spacer(Modifier.height(4.dp))
 }
