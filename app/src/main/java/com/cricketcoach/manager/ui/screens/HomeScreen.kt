@@ -42,27 +42,24 @@ fun Dashboard(vm: GameVM) {
     }
     val pendingPair = vm.pendingComp()?.let { c -> vm.pendingFixture()?.let { c to it } }
     val next = pendingPair ?: myFixtures.firstOrNull()
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+    val narrow = maxWidth < 560.dp
+    /** Two panels side by side on wide layouts, stacked when the content area is narrow (split-screen, small tablets). */
+    @Composable fun pair(wa: Float, wb: Float, a: @Composable (Modifier) -> Unit, b: @Composable (Modifier) -> Unit) {
+        if (narrow) { a(Modifier.fillMaxWidth()); Spacer(Modifier.height(10.dp)); b(Modifier.fillMaxWidth()) }
+        else Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) { a(Modifier.weight(wa).fillMaxHeight()); Spacer(Modifier.width(10.dp)); b(Modifier.weight(wb).fillMaxHeight()) }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 10.dp)) {
         if (s.isMultiTeam) { TeamSwitcher(vm, s); Spacer(Modifier.height(8.dp)) }
         Hero(vm, s, next, pendingPair != null)
         Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            CompetitionCentre(vm, s, next?.first ?: s.league.firstOrNull { c -> c.teams.contains(u.id) && c.stage != "DONE" } ?: s.league.firstOrNull(), Modifier.weight(0.42f).fillMaxHeight())
-            Spacer(Modifier.width(10.dp))
-            UpcomingFixtures(vm, s, myFixtures.filter { it.second.id != next?.second?.id }.take(4), Modifier.weight(0.58f).fillMaxHeight())
-        }
+        pair(0.42f, 0.58f,
+            { m -> CompetitionCentre(vm, s, next?.first ?: s.league.firstOrNull { c -> c.teams.contains(u.id) && c.stage != "DONE" } ?: s.league.firstOrNull(), m) },
+            { m -> UpcomingFixtures(vm, s, myFixtures.filter { it.second.id != next?.second?.id }.take(4), m) })
         Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            RecentResults(vm, s, u, Modifier.weight(1f).fillMaxHeight())
-            Spacer(Modifier.width(10.dp))
-            SquadPulse(vm, s, u, Modifier.weight(1f).fillMaxHeight())
-        }
+        pair(1f, 1f, { m -> RecentResults(vm, s, u, m) }, { m -> SquadPulse(vm, s, u, m) })
         Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            ClubStatus(vm, s, Modifier.weight(1f).fillMaxHeight())
-            Spacer(Modifier.width(10.dp))
-            LatestNews(vm, s, Modifier.weight(1.25f).fillMaxHeight())
-        }
+        pair(1f, 1.25f, { m -> ClubStatus(vm, s, m) }, { m -> LatestNews(vm, s, m) })
         if (s.phase == "PRESEASON" || s.phase == "LEAGUE" || s.phase == "PLAYOFFS") {
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth()) {
@@ -74,6 +71,7 @@ fun Dashboard(vm: GameVM) {
             }
         }
         Spacer(Modifier.height(16.dp))
+    }
     }
 }
 

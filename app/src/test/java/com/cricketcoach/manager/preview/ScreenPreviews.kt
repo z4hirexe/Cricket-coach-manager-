@@ -151,10 +151,11 @@ class ScreenPreviews {
     @Test fun dashboardIpl() { val vm = careerVm(Modes.IPL, "F_CSK", 5); inShell(vm, Screen.Dashboard, "34_dashboard_ipl.png") { Dashboard(vm) } }
     @Test fun squadHubIpl() { val vm = careerVm(Modes.IPL, "F_KKR", 5); inShell(vm, Screen.SquadHub, "37_squad_hub_ipl.png") { SquadHubScreen(vm) } }
     @Test fun transfersIpl() { val vm = careerVm(Modes.IPL, "F_KKR", 5); inShell(vm, Screen.Transfers, "38_transfers_ipl.png") { TransfersScreen(vm) } }
-    @Config(sdk = [34], qualifiers = "w411dp-h891dp-port-xxhdpi")
-    @Test fun dashboardIplPortrait() { val vm = careerVm(Modes.IPL, "F_CSK", 5); inShell(vm, Screen.Dashboard, "39_dashboard_ipl_portrait.png") { Dashboard(vm) } }
-    @Config(sdk = [34], qualifiers = "w411dp-h891dp-port-xxhdpi")
-    @Test fun squadHubPortrait() { val vm = careerVm(Modes.IPL, "F_KKR", 5); inShell(vm, Screen.SquadHub, "39_squad_hub_portrait.png") { SquadHubScreen(vm) } }
+    // The app is locked to landscape; these cover the smallest supported phone width (640dp wide, ~444dp content area => stacked dashboard panels).
+    @Config(sdk = [34], qualifiers = "w640dp-h360dp-land-xxhdpi")
+    @Test fun dashboardIplSmallPhone() { val vm = careerVm(Modes.IPL, "F_CSK", 5); inShell(vm, Screen.Dashboard, "39_dashboard_ipl_small_phone.png") { Dashboard(vm) } }
+    @Config(sdk = [34], qualifiers = "w640dp-h360dp-land-xxhdpi")
+    @Test fun squadHubSmallPhone() { val vm = careerVm(Modes.IPL, "F_KKR", 5); inShell(vm, Screen.SquadHub, "39_squad_hub_small_phone.png") { SquadHubScreen(vm) } }
     @Test fun inbox() { val vm = careerVm(days = 8); inShell(vm, Screen.Inbox, "35_inbox.png") { InboxScreen(vm) } }
     @Test fun socialIntl() { val vm = careerVm(Modes.INTL, "N_IND", 6); inShell(vm, Screen.Social, "41_stumpstagram_india.png", 2000) { SocialScreen(vm) } }
     @Test fun fixturesInShell() { val vm = careerVm(days = 6); inShell(vm, Screen.Fixtures, "36_fixtures_shell.png") { FixturesScreen(vm) } }
