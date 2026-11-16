@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,11 +67,23 @@ fun TransfersScreen(vm: GameVM) {
     var role by remember { mutableStateOf("All") }
     val u = s.marketClub()
     ScreenScaffold(vm, "Transfers") {
-        Row(Modifier.fillMaxWidth().background(C.Surface).padding(10.dp)) {
-            Column(Modifier.weight(1f)) { Sub("Balance"); Text(Money.fmt(u.balance), color = C.Gold, fontWeight = FontWeight.Bold) }
-            Column(Modifier.weight(1f)) { Sub("Cap room"); Text(Money.fmt(Career.purse(s, u)), color = C.Text, fontWeight = FontWeight.Bold) }
-            Column(Modifier.weight(1f)) { Sub("Squad"); Text("${u.squad.size}/25", color = C.Text, fontWeight = FontWeight.Bold) }
-            Column(Modifier.weight(1f)) { Sub("Overseas"); Text("${Career.overseasCount(s, u)}/8", color = C.Text, fontWeight = FontWeight.Bold) }
+        // v2.7 broadcast purse board
+        Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(DS.Royal.copy(alpha = 0.7f), Color(0xFF0A1636)))).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            ClubBadge(u, 34.dp); Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1.3f)) {
+                Text(u.name.uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Sub(if (Modes.marketKind(s) == "FRANCHISE") "Franchise market" else "Club market", size = 10)
+            }
+            @Composable fun stat(label: String, value: String, col: Color = C.Text) {
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                    Text(label.uppercase(), color = C.Sub, fontSize = 8.sp, letterSpacing = 1.sp)
+                    Text(value, color = col, fontWeight = FontWeight.Black, fontSize = 14.sp, maxLines = 1)
+                }
+            }
+            stat("Balance", Money.fmt(u.balance), C.Gold)
+            stat("Cap room", Money.fmt(Career.purse(s, u)))
+            stat("Squad", "${u.squad.size}/${Modes.maxSquad(s)}", if (u.squad.size >= Modes.maxSquad(s)) C.Red else C.Text)
+            stat("Overseas", "${Career.overseasCount(s, u)}/8")
         }
         Tabs(listOf("Free agents", "Transfer list", "All players", "Offers (${s.offers.size})", "Scouting"), tab) { tab = it }
         if (tab < 3) FlowRowSimple(listOf("All", "BAT", "BOWL", "AR", "WK"), role, Consts.ROLE_NAMES) { role = it }
@@ -86,9 +99,13 @@ fun TransfersScreen(vm: GameVM) {
                         PlayerRow(p, s.year, onClick = { vm.nav(Screen.Profile(p.id)) },
                             extra = if (p.clubId.isEmpty()) "Wants ${Money.fmt(maxOf(0.2 * s.economy, Money.value(p.overall(), p.age(s.year), s.economy)))}/yr" else "${s.clubs[p.clubId]?.short} • value ${Money.fmt(Career.askingPrice(s, p))}",
                             trailing = {
-                                Column(horizontalAlignment = Alignment.End) {
-                                    RatingPill(p.overall())
-                                    if (p.clubId.isEmpty()) TextButton(onClick = { vm.act { Career.signFreeAgent(it, p.id) } }, contentPadding = PaddingValues(4.dp)) { Text("Sign", color = C.Green) }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RatingTile(p.overall())
+                                    if (p.clubId.isEmpty()) {
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("SIGN", color = DS.GoldInk, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp,
+                                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(DS.Gold).clickable { GameAudio.click(); vm.act { Career.signFreeAgent(it, p.id) } }.padding(horizontal = 10.dp, vertical = 8.dp))
+                                    }
                                 }
                             })
                     }
@@ -99,24 +116,42 @@ fun TransfersScreen(vm: GameVM) {
                 item { Sub("AI clubs make offers for players you list for transfer (open a profile → List for transfer). Offers expire at season end.") }
                 items(s.offers.toList(), key = { it.id }) { o ->
                     val p = s.players[o.pid]
-                    CcmCard {
-                        Text("${s.clubs[o.fromClub]?.name} offer ${Money.fmt(o.fee)} for ${p?.name}", color = C.Text, fontWeight = FontWeight.Bold)
-                        Row {
-                            GreenButton("Accept") { vm.act { Career.acceptOffer(it, o.id) } }
+                    val from = s.clubs[o.fromClub]
+                    Panel(Modifier.fillMaxWidth().padding(vertical = 4.dp), border = DS.Gold) {
+                        PanelHeader("Offer · ${from?.short ?: "?"}", C.Gold, "gavel")
+                        Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (p != null) PlayerFace(p.id, p.name, 40.dp)
+                            Spacer(Modifier.width(10.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(p?.name ?: o.pid, color = C.Text, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
+                                Sub("${from?.name} bids for your ${p?.let { Consts.ROLE_NAMES[it.role]?.lowercase() } ?: "player"}", size = 10)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("FEE", color = C.Sub, fontSize = 8.sp, letterSpacing = 1.sp)
+                                Text(Money.fmt(o.fee), color = C.Gold, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                            }
+                        }
+                        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                            GreenButton("Accept", Modifier.weight(1f)) { vm.act { Career.acceptOffer(it, o.id) } }
                             Spacer(Modifier.width(8.dp))
-                            OutlineBtn("Reject") { s.offers.remove(o); vm.persist() }
+                            OutlineBtn("Reject", Modifier.weight(1f)) { s.offers.remove(o); vm.persist() }
                         }
                     }
                 }
                 item { if (s.offers.isEmpty()) Sub("No offers right now.") }
             }
             else -> Column(Modifier.padding(12.dp).verticalScroll(rememberScrollState())) {
-                Text("Scouting missions", color = C.Gold, fontWeight = FontWeight.Bold)
-                Sub("Send scouts (level ${u.scoutLvl}) to discover 3 young FICTIONAL prospects in a country for ${Money.fmt(1.0 * s.economy)}. They become free agents you can sign. Higher scouting level finds better talent.")
-                for (row in Consts.CLUBS.keys.toList().chunked(2)) Row {
+                SectionStrip("Scouting missions · level ${u.scoutLvl}")
+                Spacer(Modifier.height(4.dp))
+                Sub("Send scouts to discover 3 young FICTIONAL prospects in a country for ${Money.fmt(1.0 * s.economy)}. They become free agents you can sign. Higher scouting level finds better talent.")
+                Spacer(Modifier.height(6.dp))
+                for (row in Consts.CLUBS.keys.toList().chunked(4)) Row(Modifier.fillMaxWidth()) {
                     for (c in row) OutlineBtn(c, Modifier.weight(1f).padding(2.dp)) { vm.act { Career.scoutingMission(it, c) } }
+                    repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
-                SectionTitle("Scouted prospects (free agents)")
+                Spacer(Modifier.height(10.dp))
+                SectionStrip("Scouted prospects (free agents)")
+                Spacer(Modifier.height(4.dp))
                 s.players.values.filter { it.fictional && it.scouted && it.clubId.isEmpty() && !it.retired }.sortedByDescending { it.potential }.take(30).forEach { p ->
                     PlayerRow(p, s.year, onClick = { vm.nav(Screen.Profile(p.id)) }, extra = "Potential ${p.potential}")
                 }
