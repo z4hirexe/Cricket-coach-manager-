@@ -227,6 +227,38 @@ class ScreenPreviews {
     @Config(sdk = [34], qualifiers = "w740dp-h360dp-land-xxhdpi")
     @Test fun liveSmallPhone() { val vm = liveVm(); shot("102_live_small_phone.png", 5000) { LiveMatchScreen(vm) } }
 
+    /* ---------------- v2.7 broadcast match centre ---------------- */
+    /** Live match with the user's side in the given role; stops at a pending decision when [stopAt] is "BOWLER" or "BATTER". */
+    private fun broadcastVm(test: Boolean = false, userBats: Boolean = true, stopAt: String = "", balls: Int = 64): GameVM {
+        val vm = careerVm(Modes.INTL, "N_IND", 0)
+        vm.settings.comLang = "EN"; vm.settings.comStyle = 0
+        val s = vm.save!!
+        val comp = Competition(id = "PV", name = if (test) "Border Trophy" else "Border Cup", key = "PV", format = if (test) "TEST" else "T20", kind = "NATION", series = true)
+        val m = Career.makeSim(s, comp, Fixture("pv", "N_IND", "N_AUS", "Match", 0, 1), Random(11))
+        m.userTeam = "N_IND"
+        m.doToss("N_IND", if (userBats) "BAT" else "BOWL")
+        vm.sim = m
+        if (!test && stopAt.isEmpty()) m.endInnings()
+        m.manualDecisions = true
+        var g = 0
+        when (stopAt) {
+            "BOWLER" -> while (!m.needsBowler() && g++ < 3000) { if (m.needsBatter()) m.sendBatter(m.availableBatters().first().pid); m.nextBall(); vm.updateCommentary(m) }
+            "BATTER" -> while (!m.needsBatter() && g++ < 3000) { if (m.needsBowler()) m.setBowler(m.bowlerOptions().first { it.eligible }.pid); m.nextBall(); vm.updateCommentary(m) }
+            else -> repeat(balls) { if (m.needsBatter()) m.sendBatter(m.availableBatters().first().pid); if (m.needsBowler()) m.setBowler(m.bowlerOptions().first { it.eligible }.pid); if (!m.finished) { m.nextBall(); vm.updateCommentary(m) } }
+        }
+        vm.stack.clear(); vm.stack.add(Screen.Main); vm.stack.add(Screen.Dashboard); vm.stack.add(Screen.Live)
+        return vm
+    }
+    @Test fun broadcastChase() { val vm = broadcastVm(); shot("110_broadcast_t20_chase.png", 4000) { BroadcastMatchScreen(vm) } }
+    @Test fun broadcastTestMatch() { val vm = broadcastVm(test = true, balls = 230); shot("111_broadcast_test_match.png", 4000) { BroadcastMatchScreen(vm) } }
+    @Test fun broadcastOverSummary() { val vm = broadcastVm(userBats = false, stopAt = "BOWLER"); shot("112_broadcast_over_summary_change_bowler.png", 4000) { BroadcastMatchScreen(vm) } }
+    @Test fun broadcastNewBatter() { val vm = broadcastVm(userBats = true, stopAt = "BATTER"); shot("113_broadcast_new_batter.png", 4000) { BroadcastMatchScreen(vm) } }
+    @Test fun broadcastResult() { val vm = broadcastVm(); vm.sim!!.simToEnd(); shot("114_broadcast_result.png", 3000) { BroadcastMatchScreen(vm) } }
+    @Config(sdk = [34], qualifiers = "w740dp-h360dp-land-xxhdpi")
+    @Test fun broadcastSmallPhone() { val vm = broadcastVm(); shot("115_broadcast_small_phone.png", 4000) { BroadcastMatchScreen(vm) } }
+    @Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi")
+    @Test fun broadcastPortrait() { val vm = broadcastVm(); shot("116_broadcast_portrait.png", 4000) { BroadcastMatchScreen(vm) } }
+
     // ---- Phase E: Match Centre + tournament squad registration
     /** IPL career with the user's first match pending in the Match Centre. */
     private fun matchCentreVm(team: String = "F_MI", register: Boolean = true, confirm: Boolean = true, days: Int = 0): GameVM {
