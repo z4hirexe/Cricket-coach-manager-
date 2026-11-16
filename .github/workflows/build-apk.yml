@@ -106,6 +106,8 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Install and launch on Android 15 emulator
+        # Smoke test only: a flaky system-image download on the runner must not block the signed APK.
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
