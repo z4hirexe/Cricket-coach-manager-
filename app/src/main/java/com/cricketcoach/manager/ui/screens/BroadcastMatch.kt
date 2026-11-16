@@ -282,7 +282,8 @@ private fun StatusStrip(m: MatchSim) {
             Spacer(Modifier.width(14.dp))
         }
         Text(bi.situation, color = Color.White.copy(alpha = 0.85f), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        if (!m.isTest && inn != null) Text(m.phaseLabel().uppercase(), color = TV.Gold, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp)
+        // T20/ODI: powerplay / middle / death; Test: "Day n • Session n" (spec: day & session for Test matches)
+        if (inn != null) Text(m.phaseLabel().uppercase(), color = TV.Gold, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp)
     }
 }
 
