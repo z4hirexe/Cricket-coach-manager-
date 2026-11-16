@@ -769,7 +769,8 @@ private fun DetailTile(k: String, v: String, modifier: Modifier = Modifier, acce
 @Composable
 private fun OverlayFrame(title: String, subtitle: String, maxW: Dp = 820.dp, content: @Composable ColumnScope.() -> Unit) {
     Box(Modifier.fillMaxSize().background(Color(0xB3020614)).clickable(enabled = false) {}, contentAlignment = Alignment.Center) {
-        Column(Modifier.widthIn(max = maxW).fillMaxWidth(0.96f).fillMaxHeight(0.94f).clip(RoundedCornerShape(10.dp)).background(TV.Panel).border(1.5.dp, TV.Gold, RoundedCornerShape(10.dp))) {
+        Column(Modifier.widthIn(max = maxW).fillMaxWidth(0.96f).fillMaxHeight(0.94f).clip(RoundedCornerShape(10.dp)).background(TV.Panel).border(1.5.dp, TV.Gold, RoundedCornerShape(10.dp))
+            .semantics { contentDescription = "Overlay: $title" }) {
             Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(TV.Navy2, TV.Royal, TV.Navy2))).padding(horizontal = 12.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(title.uppercase(), color = TV.Gold, fontFamily = Display, fontSize = 15.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)

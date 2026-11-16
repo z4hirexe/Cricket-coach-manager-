@@ -52,6 +52,9 @@ class BroadcastMatchUiTest {
     }
     private fun tap(desc: String) { compose.onNodeWithContentDescription(desc).performClick(); compose.mainClock.advanceTimeBy(300) }
     private fun has(text: String) = compose.onAllNodesWithText(text, substring = true, ignoreCase = true).fetchSemanticsNodes().isNotEmpty()
+    /** Decision overlays carry "Overlay: <title>" semantics so commentary text ("End of over 1: ...") can never be mistaken for them. */
+    private fun overlay(title: String) = compose.onAllNodesWithContentDescription("Overlay: $title", substring = true).fetchSemanticsNodes().isNotEmpty()
+    private fun hasDesc(desc: String) = compose.onAllNodesWithContentDescription(desc).fetchSemanticsNodes().isNotEmpty()
     private fun nextBall() = tap("Next ball ›")
 
     /** Plays legal balls one by one, resolving a new-batter overlay the way the user would, until [until] holds. */
@@ -59,8 +62,13 @@ class BroadcastMatchUiTest {
         var n = 0
         while (!until() && n++ < max && !m.finished) {
             when {
-                has("WICKET · NEW BATTER") -> { compose.onNodeWithContentDescription("Send in batter").performClick(); compose.mainClock.advanceTimeBy(300) }
-                has("END OF OVER") -> { compose.onNodeWithContentDescription("Next over").performClick(); compose.mainClock.advanceTimeBy(300) }
+                overlay("Wicket") -> { compose.onNodeWithContentDescription("Send in batter").performClick(); compose.mainClock.advanceTimeBy(300) }
+                overlay("End of over") && hasDesc("Next over") -> { compose.onNodeWithContentDescription("Next over").performClick(); compose.mainClock.advanceTimeBy(300) }
+                overlay("End of over") -> { // user bowling: pick the first eligible bowler then confirm
+                    val o = m.bowlerOptions().first { it.eligible }
+                    compose.onNodeWithText(m.players[o.pid]!!.name, substring = true).performClick(); compose.mainClock.advanceTimeBy(200)
+                    compose.onNodeWithContentDescription("Confirm bowler").performClick(); compose.mainClock.advanceTimeBy(300)
+                }
                 else -> nextBall()
             }
         }
@@ -82,8 +90,8 @@ class BroadcastMatchUiTest {
 
     @Test fun overSummaryOpensAutomaticallyAndBlocksNextOverUntilConfirmed() {
         val (vm, m) = setup("T20", "BAT")
-        playUntil(m) { has("END OF OVER 1") }
-        assertTrue(has("END OF OVER 1"))
+        playUntil(m) { overlay("End of over 1") }
+        assertTrue(overlay("End of over 1"))
         val legal = m.events.count { it.legal }
         assertEquals("exactly one over played", 6, legal)
         // the next ball must not be playable while the summary is up
@@ -91,7 +99,7 @@ class BroadcastMatchUiTest {
         assertEquals(6, m.events.count { it.legal })
         assertTrue(has("CRR"))
         compose.onNodeWithContentDescription("Next over").performClick(); compose.mainClock.advanceTimeBy(300)
-        assertFalse(has("END OF OVER 1"))
+        assertFalse(overlay("End of over 1"))
         nextBall()
         assertEquals(7, m.events.count { it.legal })
         assertFalse(vm.autoPlay)
@@ -100,7 +108,7 @@ class BroadcastMatchUiTest {
     @Test fun userBowlingMustPickAnEligibleBowlerAndQuotaIsEnforced() {
         val (_, m) = setup("T20", "BOWL")
         // start of innings: user bowls first -> bowler picker appears before the first ball
-        assertTrue(has("START OF INNINGS"))
+        assertTrue(overlay("Start of innings"))
         assertTrue(has("CHANGE BOWLER"))
         compose.onNodeWithContentDescription("Confirm bowler").assertIsNotEnabled()
         val opts = m.bowlerOptions()
@@ -110,7 +118,7 @@ class BroadcastMatchUiTest {
         assertEquals(first.pid, m.cur!!.bowler)
         assertEquals(4, m.bowlerQuota())
         // engine rule: the same bowler cannot bowl consecutive overs
-        playUntil(m) { has("END OF OVER 1") }
+        playUntil(m) { overlay("End of over 1") }
         assertFalse("consecutive over not allowed", m.bowlerOptions().first { it.pid == first.pid }.eligible)
         assertFalse(m.setBowler(first.pid))
     }
@@ -120,9 +128,9 @@ class BroadcastMatchUiTest {
         var sawOverlay = false
         var n = 0
         while (!sawOverlay && n++ < 300 && !m.finished) {
-            if (has("END OF OVER")) { compose.onNodeWithContentDescription("Next over").performClick(); compose.mainClock.advanceTimeBy(300) }
+            if (overlay("End of over")) { compose.onNodeWithContentDescription("Next over").performClick(); compose.mainClock.advanceTimeBy(300) }
             else nextBall()
-            if (m.needsBatter()) sawOverlay = has("WICKET · NEW BATTER")
+            if (m.needsBatter()) sawOverlay = overlay("Wicket")
         }
         assertTrue("wicket fell and the selection overlay opened", sawOverlay)
         val before = m.cur!!.balls
@@ -130,9 +138,10 @@ class BroadcastMatchUiTest {
         assertEquals("no ball can be bowled until a batter is sent in", before, m.cur!!.balls)
         val avail = m.availableBatters()
         assertTrue(avail.isNotEmpty())
-        val pick = avail.last()
-        compose.onNodeWithText(m.players[pick.pid]!!.name, substring = true).performClick(); compose.mainClock.advanceTimeBy(200)
-        compose.onNodeWithContentDescription("Send in batter").performClick(); compose.mainClock.advanceTimeBy(300)
+        // pick the second available batter (visible row of the lazy list) so the choice differs from the default selection
+        val pick = avail.getOrElse(1) { avail.first() }
+        compose.onAllNodesWithText(m.players[pick.pid]!!.name, substring = true).onFirst().performClick(); compose.mainClock.advanceTimeBy(200)
+        compose.onNodeWithContentDescription("Send in batter").assertIsEnabled().performClick(); compose.mainClock.advanceTimeBy(300)
         assertFalse(m.needsBatter())
         val inn = m.cur!!
         assertTrue("chosen batter is now at the crease", pick.pid == inn.bc[inn.striker].pid || pick.pid == inn.bc[inn.nonStriker].pid)
@@ -143,7 +152,7 @@ class BroadcastMatchUiTest {
         tap("▶ Auto play")
         assertTrue(vm.autoPlay)
         compose.mainClock.advanceTimeBy(60_000)
-        assertTrue("auto play halted at a decision point", has("END OF OVER") || has("WICKET · NEW BATTER"))
+        assertTrue("auto play halted at a decision point", overlay("End of over") || overlay("Wicket"))
         val legal = m.events.count { it.legal }
         assertTrue("stopped within the first over, not beyond", legal <= 6)
         compose.mainClock.advanceTimeBy(30_000)
