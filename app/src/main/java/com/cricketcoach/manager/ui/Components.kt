@@ -380,23 +380,64 @@ fun StadiumGraphic(capacity: Int, primary: Long, modifier: Modifier = Modifier) 
     }
 }
 
+/** Broadcast rating tile: big number on a gold / green / royal block with an OVR caption. */
+@Composable
+fun RatingTile(r: Int, caption: String = "OVR", size: Dp = 40.dp) {
+    val col = when { r >= 88 -> C.Gold; r >= 80 -> C.Green; r >= 70 -> DS.Royal; r >= 60 -> Color(0xFF3B4A6B); else -> Color(0xFF2A3550) }
+    val ink = if (r >= 80) Color.Black else Color.White
+    Column(Modifier.size(size).clip(RoundedCornerShape(6.dp)).background(col), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text("$r", color = ink, fontWeight = FontWeight.Black, fontSize = (size.value * 0.42f).sp, lineHeight = (size.value * 0.44f).sp)
+        Text(caption, color = ink.copy(alpha = 0.75f), fontSize = 7.sp, letterSpacing = 1.sp, lineHeight = 8.sp)
+    }
+}
+
+@Composable
+private fun MicroBar(label: String, v: Int, col: Color, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Row { Text(label, color = C.Sub, fontSize = 8.sp, letterSpacing = 0.6.sp, modifier = Modifier.weight(1f)); Text("$v", color = col, fontSize = 8.sp, fontWeight = FontWeight.Bold) }
+        Box(Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFF1E2B47))) {
+            Box(Modifier.fillMaxWidth((v / 100f).coerceIn(0f, 1f)).fillMaxHeight().background(col))
+        }
+    }
+}
+
+/**
+ * v2.7 broadcast player card used by every squad / database / market list: role-coloured accent strip, face,
+ * name + role chip + meta line, fitness / form micro bars, and a rating tile (or caller-supplied trailing slot).
+ */
 @Composable
 fun PlayerRow(p: GPlayer, year: Int, onClick: () -> Unit, extra: String? = null, trailing: @Composable (() -> Unit)? = null, highlight: Boolean = false) {
-    CcmCard(onClick = onClick, highlight = highlight) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            PlayerFace(p.id, p.name, 42.dp)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(p.name, color = C.Text, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Sub("${Consts.ROLE_NAMES[p.role]} • ${p.country} • ${p.age(year)}${if (p.ageEst) "*" else ""}y${if (p.fictional) " • Fictional" else ""}")
-                Row {
-                    if (p.injured) Chip("Injured ${p.injuryDays}d", Color(0xFF5D1F1F))
-                    if (p.forSale) Chip("For sale", Color(0xFF4E3B00))
-                    if (extra != null) Sub(extra)
-                }
+    val rc = roleColor(p.role)
+    val shape = RoundedCornerShape(8.dp)
+    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp).clip(shape)
+        .background(Brush.horizontalGradient(listOf(Color(0xF00E1D4A), Color(0xF0091430))))
+        .border(1.dp, if (highlight) C.Gold.copy(alpha = 0.75f) else DS.Royal.copy(alpha = 0.5f), shape)
+        .clickable { GameAudio.click(); onClick() }.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(4.dp).fillMaxHeight().background(if (highlight) C.Gold else rc))
+        Spacer(Modifier.width(8.dp))
+        PlayerFace(p.id, p.name, 40.dp, ring = if (highlight) C.Gold else rc)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f).padding(vertical = 7.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(p.name, color = C.Text, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                Spacer(Modifier.width(6.dp))
+                Text(p.role, color = rc, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp,
+                    modifier = Modifier.border(1.dp, rc.copy(alpha = 0.7f), RoundedCornerShape(3.dp)).padding(horizontal = 4.dp, vertical = 1.dp))
+                if (p.injured) { Spacer(Modifier.width(4.dp)); Chip("INJ ${p.injuryDays}d", Color(0xFF5D1F1F)) }
+                if (p.forSale) { Spacer(Modifier.width(4.dp)); Chip("SALE", Color(0xFF4E3B00)) }
             }
-            if (trailing != null) trailing() else RatingPill(p.overall())
+            Sub("${p.country} • ${p.age(year)}${if (p.ageEst) "*" else ""}y${if (p.role == "BOWL" || p.role == "AR") " • ${p.bowlType.lowercase().replaceFirstChar { it.uppercase() }}" else ""}${if (p.fictional) " • Fictional" else ""}", size = 10)
+            if (extra != null) Sub(extra, size = 10)
         }
+        Spacer(Modifier.width(8.dp))
+        Row(Modifier.width(72.dp)) {
+            MicroBar("FIT", p.fitness, if (p.fitness >= 80) C.Green else if (p.fitness >= 55) C.Gold else C.Red, Modifier.weight(1f))
+            Spacer(Modifier.width(4.dp))
+            MicroBar("FRM", p.form, if (p.form >= 70) C.Green else if (p.form >= 45) C.Gold else C.Red, Modifier.weight(1f))
+        }
+        Spacer(Modifier.width(10.dp))
+        if (trailing != null) trailing() else RatingTile(p.overall())
+        Spacer(Modifier.width(10.dp))
     }
 }
 

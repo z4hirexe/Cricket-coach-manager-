@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -100,10 +101,10 @@ fun SquadHubScreen(vm: GameVM) {
     var tab by remember { mutableIntStateOf(0) }
     ScreenScaffold(vm, "Squad Hub · ${c.short}") {
         Column(Modifier.fillMaxSize()) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(DS.Royal.copy(alpha = 0.55f), Color.Transparent))).padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 ClubBadge(c, 42.dp); Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(c.name, color = C.Gold, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(c.name.uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp, letterSpacing = 1.sp, maxLines = 1)
                     Sub(comp?.let { "${Registration.short(it)} · ${it.format}" } ?: "No active competition")
                     if (comp?.selectionDate?.isNotEmpty() == true) Sub("Selection: ${runCatching { Schedule.fmt(LocalDate.parse(comp.selectionDate), vm.settings.dateStyle) }.getOrDefault(comp.selectionDate)}")
                 }
@@ -117,17 +118,8 @@ fun SquadHubScreen(vm: GameVM) {
             LazyColumn(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                 items(list, key = { it.id }) { p ->
                     PlayerRow(p, s.year, onClick = { vm.nav(Screen.Profile(p.id)) },
-                        extra = "Fitness ${p.fitness} · Form ${p.form}${if (p.injured) " · ${p.injury} (${p.injuryDays}d)" else ""}${if (p.id in c.xi) " · XI" else ""}",
-                        highlight = tab == 0 && p.id in c.xi,
-                        trailing = {
-                            Column(horizontalAlignment = Alignment.End) {
-                                RatingPill(p.overall())
-                                Spacer(Modifier.height(3.dp))
-                                Box(Modifier.width(54.dp).height(5.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF1E2B47))) {
-                                    Box(Modifier.fillMaxWidth(p.fitness / 100f).fillMaxHeight().background(if (p.fitness >= 80) C.Green else if (p.fitness >= 55) C.Gold else C.Red))
-                                }
-                            }
-                        })
+                        extra = buildList { if (p.id in c.xi) add("Playing XI"); if (p.injured) add("${p.injury} (${p.injuryDays}d)") }.joinToString(" · ").ifEmpty { null },
+                        highlight = tab == 0 && p.id in c.xi)
                 }
                 if (list.isEmpty()) item { Sub("No players in this group.", Modifier.padding(12.dp)) }
                 item { Spacer(Modifier.height(16.dp)) }

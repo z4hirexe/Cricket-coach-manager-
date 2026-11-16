@@ -149,6 +149,7 @@ class ScreenPreviews {
     @Test fun dashboardDomestic() { val vm = careerVm(); inShell(vm, Screen.Dashboard, "30_dashboard_bengal.png") { Dashboard(vm) } }
     @Test fun dashboardIntl() { val vm = careerVm(Modes.INTL, "N_IND", 4); inShell(vm, Screen.Dashboard, "33_dashboard_india.png") { Dashboard(vm) } }
     @Test fun dashboardIpl() { val vm = careerVm(Modes.IPL, "F_CSK", 5); inShell(vm, Screen.Dashboard, "34_dashboard_ipl.png") { Dashboard(vm) } }
+    @Test fun squadHubIpl() { val vm = careerVm(Modes.IPL, "F_KKR", 5); inShell(vm, Screen.SquadHub, "37_squad_hub_ipl.png") { SquadHubScreen(vm) } }
     @Test fun inbox() { val vm = careerVm(days = 8); inShell(vm, Screen.Inbox, "35_inbox.png") { InboxScreen(vm) } }
     @Test fun socialIntl() { val vm = careerVm(Modes.INTL, "N_IND", 6); inShell(vm, Screen.Social, "41_stumpstagram_india.png", 2000) { SocialScreen(vm) } }
     @Test fun fixturesInShell() { val vm = careerVm(days = 6); inShell(vm, Screen.Fixtures, "36_fixtures_shell.png") { FixturesScreen(vm) } }
