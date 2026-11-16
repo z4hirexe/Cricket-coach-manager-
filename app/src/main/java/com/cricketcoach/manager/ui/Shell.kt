@@ -255,10 +255,12 @@ private fun ShellTopBar(vm: GameVM) {
 /** Slim title row used by ScreenScaffold inside the shell. */
 @Composable
 fun ShellTitleRow(vm: GameVM, title: String, actions: @Composable RowScope.() -> Unit) {
-    Row(Modifier.fillMaxWidth().height(40.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().height(40.dp).background(Brush.horizontalGradient(listOf(UI.Royal.copy(alpha = 0.85f), Color.Transparent)))
+        .drawBehind { drawLine(DS.Gold.copy(alpha = 0.7f), Offset(0f, size.height - 1f), Offset(size.width * 0.6f, size.height - 1f), 2f) }
+        .padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         if (vm.stack.size > 2) IconButton(onClick = { GameAudio.click(); vm.back() }, modifier = Modifier.size(34.dp)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = C.Text) }
-        else Spacer(Modifier.width(8.dp))
-        Text(title.uppercase(), color = C.Gold, fontWeight = FontWeight.Black, fontSize = 15.sp, letterSpacing = 1.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        else { Spacer(Modifier.width(8.dp)); Box(Modifier.width(3.dp).height(16.dp).background(DS.Gold)); Spacer(Modifier.width(6.dp)) }
+        Text(title.uppercase(), color = Color.White, fontWeight = FontWeight.Black, fontSize = 15.sp, letterSpacing = 1.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(start = 4.dp))
         actions()
     }
