@@ -45,7 +45,9 @@ class ScheduleTest {
     @Test fun iplHasAuctionTransferTrainingAndDisclaimer() {
         val s = career(Modes.IPL, "F_KKR")
         val ev = Schedule.events(s)
-        assertTrue(ev.any { it.cat == Schedule.AUCTION })
+        // v2.7: the opening 2026 season uses the real squads - no auction event until 2027
+        assertTrue(ev.none { it.cat == Schedule.AUCTION })
+        run { val s2 = career(Modes.IPL, "F_KKR"); s2.season = 2; s2.year = 2027; assertTrue(Schedule.events(s2).any { it.cat == Schedule.AUCTION }) }
         assertTrue(ev.any { it.cat == Schedule.TRANSFER && it.endDate.isAfter(it.date) })
         assertTrue(ev.any { it.cat == Schedule.TRAINING })
         assertTrue(ev.any { it.cat == Schedule.EVENT && it.title.contains("opener") })
