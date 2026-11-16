@@ -104,8 +104,9 @@ class BroadcastMatchUiTest {
         assertTrue(has("CRR"))
         compose.onNodeWithContentDescription("Next over").performClick(); compose.mainClock.advanceTimeBy(300)
         assertFalse(overlay("End of over 1"))
+        val evBefore = m.events.size
         nextBall()
-        assertEquals(7, m.events.count { it.legal })
+        assertEquals("play resumes after confirmation (the ball may be a wide / no-ball)", evBefore + 1, m.events.size)
         assertFalse(vm.autoPlay)
     }
 
