@@ -94,6 +94,10 @@ class BroadcastMatchUiTest {
         assertTrue(overlay("End of over 1"))
         val legal = m.events.count { it.legal }
         assertEquals("exactly one over played", 6, legal)
+        // the summary lists the balls of over 1 (zero-based BallEv.over == 0), not an empty next over
+        val over1 = m.overEvents(0, 0)
+        assertEquals(m.events.size, over1.size)
+        assertTrue(hasDesc("Ball ${over1.first().over}.${over1.first().ball} ${Delivery.label(over1.first())}"))
         // the next ball must not be playable while the summary is up
         nextBall()
         assertEquals(6, m.events.count { it.legal })

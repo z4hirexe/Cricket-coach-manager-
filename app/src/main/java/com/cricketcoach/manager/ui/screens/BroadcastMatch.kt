@@ -137,7 +137,11 @@ fun BroadcastMatchScreen(vm: GameVM) {
     }
     // opening decision: the user's side is bowling first / a batter is pending after a resumed match
     LaunchedEffect(Unit) {
-        if (!m.finished) when { m.needsBatter() -> overlay = Overlay.NewBatter; m.needsBowler() -> overlay = Overlay.OverSummary(m.innings.size - 1, -1) }
+        if (!m.finished) when {
+            m.needsBatter() -> overlay = Overlay.NewBatter
+            // resumed mid-innings: summarise the last completed over; fresh innings: "start of innings" (-1)
+            m.needsBowler() -> overlay = Overlay.OverSummary(m.innings.size - 1, if ((m.cur?.balls ?: 0) > 0) (m.lastOverDone?.second ?: 0) - 1 else -1)
+        }
     }
 
     fun afterBall(innBefore: Int, overBefore: Pair<Int, Int>?) {
@@ -146,7 +150,8 @@ fun BroadcastMatchScreen(vm: GameVM) {
             m.finished -> { vm.applyMatch(); overlay = Overlay.Final }
             m.innings.size != innBefore -> overlay = Overlay.InningsBreak
             m.needsBatter() -> { GameAudio.play("wicket", 0.6f); overlay = Overlay.NewBatter }
-            m.lastOverDone != overBefore -> m.lastOverDone?.let { overlay = Overlay.OverSummary(it.first, it.second) }
+            // lastOverDone.second = number of completed overs (1 after the first over); BallEv.over is zero-based
+            m.lastOverDone != overBefore -> m.lastOverDone?.let { overlay = Overlay.OverSummary(it.first, it.second - 1) }
         }
     }
     fun ball() {
@@ -198,7 +203,7 @@ fun BroadcastMatchScreen(vm: GameVM) {
                     vm.bump()
                     val c = m.cur; val od = m.lastOverDone
                     // wicket on the last ball of the over: show the over summary (and the bowler change) next
-                    overlay = if (c != null && od != null && c.balls > 0 && c.balls % 6 == 0 && !c.overStarted && od.second == c.balls / 6) Overlay.OverSummary(od.first, od.second) else Overlay.None
+                    overlay = if (c != null && od != null && c.balls > 0 && c.balls % 6 == 0 && !c.overStarted && od.second == c.balls / 6) Overlay.OverSummary(od.first, od.second - 1) else Overlay.None
                 }
             }
             Overlay.InningsBreak -> InningsBreakOverlay(m) { overlay = if (m.needsBowler()) Overlay.OverSummary(m.innings.size - 1, -1) else Overlay.None; innSeen = m.innings.size }
