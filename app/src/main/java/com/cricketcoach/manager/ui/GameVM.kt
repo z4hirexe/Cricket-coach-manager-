@@ -34,6 +34,8 @@ sealed class Screen(val title: String) {
     object Fixtures : Screen("Fixtures")
     object PreMatch : Screen("Match Centre")
     object Live : Screen("Live Match")
+    /** v2.7: the 3D stadium broadcast (previous live screen), opened from the match menu */
+    object Live3D : Screen("Live Match 3D")
     object Table : Screen("League Table")
     object TournamentsScr : Screen("Tournaments")
     object Statistics : Screen("Statistics")
@@ -617,7 +619,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         if (sim == null) {
             // only reached with a registered squad from the Match Centre; calendar "simulate" registers a default squad
             Registration.ensureForAutoSim(s, c)
-            sim = Career.makeSim(s, c, f, rnd).also { it.userTeam = c.userTeam ?: "" }; matchApplied = false
+            sim = Career.makeSim(s, c, f, rnd).also { it.userTeam = c.userTeam ?: ""; it.manualDecisions = true }; matchApplied = false
         }
         return sim
     }
@@ -628,7 +630,7 @@ class GameVM(app: Application) : AndroidViewModel(app) {
         val c = pendingComp() ?: return null; val f = pendingFixture() ?: return null
         val old = sim
         if (old != null && old.started) return old
-        sim = Career.makeSim(s, c, f, rnd, old?.cfg).also { it.userTeam = c.userTeam ?: "" }; matchApplied = false
+        sim = Career.makeSim(s, c, f, rnd, old?.cfg).also { it.userTeam = c.userTeam ?: ""; it.manualDecisions = true }; matchApplied = false
         return sim
     }
 

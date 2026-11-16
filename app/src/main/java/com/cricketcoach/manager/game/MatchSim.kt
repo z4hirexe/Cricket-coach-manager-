@@ -33,6 +33,8 @@ class Inns(val batTeam: String, val bowlTeam: String, order: List<String>, var m
     val bw = LinkedHashMap<String, BowlCard>()
     var runs = 0; var wk = 0; var balls = 0; var extras = 0
     var striker = 0; var nonStriker = 1; var nextIdx = 2
+    /** v2.7: -1 none, else the crease slot (0 = striker, 1 = non-striker) waiting for a manually chosen batter */
+    var pendingSlot = -1
     var bowler = ""; var lastBowler = ""; var overStarted = false
     var target: Int? = null
     var closed = false; var declared = false; var followOn = false; var freeHit = false
@@ -63,8 +65,19 @@ class BallEv(
     /** WICKET: the batter who was out (may be the non-striker on a run-out); null in old saves */
     val outPid: String? = null,
     /** WICKET: catcher / run-out fielder / stumping keeper; null if none */
-    val fielderPid: String? = null
-) { val highlight: Boolean get() = kind == "FOUR" || kind == "SIX" || kind == "WICKET" || milestone }
+    val fielderPid: String? = null,
+    /** v2.7 broadcast: how the delivery happened (resolved once inside the same engine step - see [Delivery]) */
+    val line: String = "", val length: String = "", val speed: Int = 0, val shot: String = "", val foot: String = "",
+    val approach: String = "", val pitchX: Float = 0f, val pitchY: Float = 0.35f, val note: String = "",
+    /** the batter at the non-striker's end when the ball was bowled */
+    val nonStriker: String = "",
+    /** score after this delivery */
+    val scoreRuns: Int = 0, val scoreWk: Int = 0
+) {
+    val highlight: Boolean get() = kind == "FOUR" || kind == "SIX" || kind == "WICKET" || milestone
+    val legal: Boolean get() = kind != "WIDE" && kind != "NB"
+    val extras: Int get() = if (kind == "WIDE") runs else if (kind == "NB") runs - bat else 0
+}
 
 class MatchSim(
     val cfg: MatchCfg,
@@ -121,6 +134,18 @@ class MatchSim(
     var testBallsTotal = 2700; var testBallsUsed = 0
     /** When true the AI also makes the user's declaration decisions (quick-sim / "sim rest of match"). */
     var autoAll = false
+    /**
+     * v2.7 broadcast UI: when true (and [userTeam] is set) the engine PAUSES instead of auto-picking the user's next
+     * bowler at the start of an over / the user's next batter after a wicket.  [needsBowler] / [needsBatter] report the
+     * pending decision; [setBowler] / [sendBatter] resolve it.  Bulk helpers (nextOver / endInnings / simToEnd) make
+     * the decisions automatically, exactly as before.
+     */
+    var manualDecisions = false
+    private var bypassManual = false
+    private val manualOn: Boolean get() = manualDecisions && !bypassManual && userTeam.isNotEmpty()
+    /** last completed over (innings index, over number) - the UI opens the over summary when this changes */
+    var lastOverDone: Pair<Int, Int>? = null
+    var lastWicketEv: BallEv? = null
     // Rain
     var rainNote = ""
     private var rainAtBall = -1; private var rainLoseBalls = 0
@@ -305,12 +330,7 @@ class MatchSim(
             }
             s + rnd.nextDouble() * 4
         } ?: xiOf(inn.bowlTeam).first()
-        // spell tracking
-        inn.spell[best] = if (inn.lastOverBy[best] == overIdx - 2) (inn.spell[best] ?: 0) + 1 else 1
-        inn.lastOverBy[best] = overIdx
-        inn.bowler = best
-        inn.overStarted = true
-        inn.bw.getOrPut(best) { BowlCard(best) }.overRuns = 0
+        assignBowler(inn, best)
     }
 
     /* ---------------- ball model ---------------- */
@@ -415,7 +435,10 @@ class MatchSim(
         val inn = cur ?: return
         if (inn.closed) return
         val comBefore = com.size; val runsBefore = inn.runs; val wkBefore = inn.wk; val ballsBefore = inn.balls
+        if (needsBatter() || needsBowler()) return
         val batter = inn.bc.getOrNull(inn.striker)?.pid ?: ""
+        val nonStrikerBefore = inn.bc.getOrNull(inn.nonStriker)?.pid ?: ""
+        val freeHitBefore = inn.freeHit
         val innIdx = innings.size - 1; val keyBefore = keyEvents.size
         val recBefore = inn.recent.size; val lastRecentBefore = inn.recent.lastOrNull()
         lastHow = ""; lastOutPid = null; lastFielder = null
@@ -452,14 +475,19 @@ class MatchSim(
             else -> 0.12f + vrnd.nextFloat() * 0.1f
         }
         val ms = keyEvents.drop(keyBefore).any { it.startsWith("MILESTONE") }
-        val ev = BallEv(events.size, innIdx, ballsBefore / 6, ballsBefore % 6 + 1, inn.batTeam, batter, inn.bowler, runs, bat, kind, lastHow, angle, dist, text, ms, lastOutPid, lastFielder)
+        val bp = players[inn.bowler]
+        val d = Delivery.describe(vrnd, kind, bat, lastHow, angle, bp?.bowlType == "SPIN", bp?.bowl ?: 50, club(inn.batTeam).aggression, freeHitBefore, false)
+        val ev = BallEv(events.size, innIdx, ballsBefore / 6, ballsBefore % 6 + 1, inn.batTeam, batter, inn.bowler, runs, bat, kind, lastHow, angle, dist, text, ms, lastOutPid, lastFielder,
+            d.line, d.length, d.speed, d.shot, d.foot, d.approach, d.pitchX, d.pitchY, d.note, nonStrikerBefore, inn.runs, inn.wk)
         events.add(ev); lastEv = ev
+        if (kind == "WICKET") lastWicketEv = ev
     }
 
     private fun nextBallInner() {
         if (finished) return
         val inn = cur ?: return
         if (inn.closed) return
+        if (inn.pendingSlot >= 0) autoFillBatter(inn)
         if (!inn.overStarted) chooseBowler(inn)
         // rain interruption in 2nd innings of limited-overs match
         if (!isTest && innings.size == 2 && rainAtBall >= 0 && inn.balls >= rainAtBall) { applyRainInterruption(inn); if (finished || inn.closed) return }
@@ -634,9 +662,83 @@ class MatchSim(
         keyEvents.add("W: ${players[card.pid]?.name} ${card.runs}(${card.balls}) $how")
         if (inn.allOut || inn.nextIdx >= inn.bc.size) return
         val idx = inn.bc.indexOf(card)
+        if (manualOn && inn.batTeam == userTeam) { inn.pendingSlot = if (idx == inn.striker) 0 else 1; return }
         val nb = inn.nextIdx++
         inn.bc[nb].batted = true
         if (idx == inn.striker) inn.striker = nb else inn.nonStriker = nb
+    }
+
+    /* ---------------- v2.7 manual decisions (user's bowler / batter) ---------------- */
+    fun needsBatter(): Boolean { val inn = cur ?: return false; return !finished && !inn.closed && inn.pendingSlot >= 0 && manualOn && inn.batTeam == userTeam }
+    fun needsBowler(): Boolean { val inn = cur ?: return false; return !finished && !inn.closed && inn.pendingSlot < 0 && !inn.overStarted && manualOn && inn.bowlTeam == userTeam }
+
+    /** Batters still to come for the batting side (in the team-sheet order). */
+    fun availableBatters(): List<BatCard> { val inn = cur ?: return emptyList(); return inn.bc.drop(inn.nextIdx).filter { !it.batted && !it.out } }
+
+    /** The user picks the next batter (must be in [availableBatters]). Returns false if the choice is not allowed. */
+    fun sendBatter(pid: String): Boolean {
+        val inn = cur ?: return false
+        if (inn.pendingSlot < 0) return false
+        val i = inn.bc.indexOfFirst { it.pid == pid }
+        if (i < inn.nextIdx) return false
+        if (i != inn.nextIdx) { val c = inn.bc.removeAt(i); inn.bc.add(inn.nextIdx, c) }
+        val nb = inn.nextIdx++
+        inn.bc[nb].batted = true
+        if (inn.pendingSlot == 0) inn.striker = nb else inn.nonStriker = nb
+        inn.pendingSlot = -1
+        com.add(0, "${players[pid]?.name ?: pid} walks out to bat at number ${nb + 1}.")
+        return true
+    }
+    private fun autoFillBatter(inn: Inns) {
+        if (inn.pendingSlot < 0) return
+        if (inn.allOut || inn.nextIdx >= inn.bc.size) { inn.pendingSlot = -1; return }
+        val nb = inn.nextIdx++
+        inn.bc[nb].batted = true
+        if (inn.pendingSlot == 0) inn.striker = nb else inn.nonStriker = nb
+        inn.pendingSlot = -1
+    }
+
+    class BowlOpt(val pid: String, val eligible: Boolean, val reason: String, val oversLeft: Int, val card: BowlCard?, val inPlan: Boolean, val spell: Int)
+
+    /** Overs one bowler may still bowl in this innings (999 in Tests). */
+    fun bowlerQuota(): Int { val inn = cur ?: return 0; return if (isTest) 999 else max(1, ceil(inn.maxBalls / 6 / 5.0).toInt()) }
+
+    /** Every member of the fielding XI with the cricket-rules verdict (consecutive overs, over quota). */
+    fun bowlerOptions(): List<BowlOpt> {
+        val inn = cur ?: return emptyList()
+        val quota = bowlerQuota()
+        val plan = bowlOpts[inn.bowlTeam] ?: emptyList<String>()
+        val xiList = xiOf(inn.bowlTeam)
+        val ordered = plan.filter { it in xiList } + xiList.filter { it !in plan }
+        return ordered.map { pid ->
+            val bowled = oversBy(inn, pid)
+            val left = if (isTest) 999 else quota - bowled
+            val reason = when {
+                pid == inn.lastBowler && inn.balls > 0 -> "Bowled the last over"
+                left <= 0 -> "Quota of $quota overs used"
+                else -> ""
+            }
+            BowlOpt(pid, reason.isEmpty(), reason, left, inn.bw[pid], pid in plan, inn.spell[pid] ?: 0)
+        }
+    }
+
+    /** The user picks the bowler for the next over. Returns false if the choice breaks the rules. */
+    fun setBowler(pid: String): Boolean {
+        val inn = cur ?: return false
+        if (inn.overStarted) return false
+        val opt = bowlerOptions().firstOrNull { it.pid == pid } ?: return false
+        if (!opt.eligible) return false
+        assignBowler(inn, pid)
+        return true
+    }
+
+    private fun assignBowler(inn: Inns, best: String) {
+        val overIdx = inn.balls / 6
+        inn.spell[best] = if (inn.lastOverBy[best] == overIdx - 2) (inn.spell[best] ?: 0) + 1 else 1
+        inn.lastOverBy[best] = overIdx
+        inn.bowler = best
+        inn.overStarted = true
+        inn.bw.getOrPut(best) { BowlCard(best) }.overRuns = 0
     }
 
     private fun ordinal(n: Int) = n.toString() + when { n in 11..13 -> "th"; n % 10 == 1 -> "st"; n % 10 == 2 -> "nd"; n % 10 == 3 -> "rd"; else -> "th" }
@@ -686,12 +788,14 @@ class MatchSim(
         inn.lastBowler = inn.bowler
         inn.overStarted = false
         swap(inn)
+        if (inn.pendingSlot >= 0) inn.pendingSlot = 1 - inn.pendingSlot   // the vacant end changes with the swap
         val ov = inn.balls / 6
         val extra = inn.target?.let { t ->
             val need = t - inn.runs
             if (!isTest) " • Need $need from ${inn.maxBalls - inn.balls} balls (RRR ${"%.2f".format(need * 6.0 / max(1, inn.maxBalls - inn.balls))})" else " • Need $need"
         } ?: ""
         com.add(0, "End of over $ov: ${name(inn.batTeam)} ${inn.runs}/${inn.wk} (CRR ${"%.2f".format(inn.crr())})$extra")
+        lastOverDone = (innings.size - 1) to ov
         if (isTest) testDeclarationCheck(inn)
     }
 
@@ -844,27 +948,34 @@ class MatchSim(
         com.add(0, "RESULT: $text")
     }
 
-    fun nextOver() {
-        val inn = cur ?: return
+    private inline fun auto(block: () -> Unit) { val b = bypassManual; bypassManual = true; try { block() } finally { bypassManual = b } }
+
+    fun nextOver() = auto {
+        val inn = cur ?: return@auto
         val n = innings.size
         val targetBalls = (inn.balls / 6 + 1) * 6
         var guard = 0
         while (!finished && innings.size == n && inn.balls < targetBalls && guard < 80) { nextBall(); guard++ }
     }
 
-    fun endInnings() {
+    fun endInnings() = auto {
         val n = innings.size
         var guard = 0
         while (!finished && innings.size == n && guard < 5000) { nextBall(); guard++ }
     }
 
-    fun simToEnd() {
+    fun simToEnd() = auto {
         autoAll = true
         if (!started) autoToss()
         var guard = 0
         while (!finished && guard < 20000) { nextBall(); guard++ }
         if (!finished) finish(null, "Match drawn")
     }
+
+    /** Events of one over of one innings (legal and illegal deliveries, in bowling order). */
+    fun overEvents(innIdx: Int, over: Int): List<BallEv> = events.filter { it.inn == innIdx && it.over == over }
+    /** Commentary text of one delivery, if any was recorded. */
+    fun commentaryFor(ev: BallEv): String = ev.text
 
     /* ---------------- presentation helpers ---------------- */
     fun winProbability(): Int? {

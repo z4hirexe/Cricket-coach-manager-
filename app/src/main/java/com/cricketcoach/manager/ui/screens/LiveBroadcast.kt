@@ -163,7 +163,7 @@ private fun BarDiv() = Box(Modifier.padding(horizontal = 3.dp).width(1.dp).heigh
 
 /** Pause menu: Resume / Settings / Exit Match (exit asks for confirmation; nothing is lost). */
 @Composable
-private fun PauseMenu(m: MatchSim, onResume: () -> Unit, onSettings: () -> Unit, onExit: () -> Unit) {
+private fun PauseMenu(m: MatchSim, onResume: () -> Unit, onSettings: () -> Unit, onExit: () -> Unit, onBroadcast: (() -> Unit)? = null) {
     Box(Modifier.fillMaxSize().background(Color(0xB3020610)).clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { },
         contentAlignment = Alignment.Center) {
         Column(Modifier.width(300.dp).clip(RoundedCornerShape(14.dp)).background(DS.Navy2).border(1.dp, DS.Gold.copy(alpha = 0.45f), RoundedCornerShape(14.dp)).padding(18.dp),
@@ -176,6 +176,7 @@ private fun PauseMenu(m: MatchSim, onResume: () -> Unit, onSettings: () -> Unit,
             Spacer(Modifier.height(14.dp))
             DsButton("Resume", Modifier.fillMaxWidth()) { onResume() }
             Spacer(Modifier.height(8.dp))
+            if (onBroadcast != null) { DsButton("Broadcast view (2D)", Modifier.fillMaxWidth(), kind = DsKind.SECONDARY) { onBroadcast() }; Spacer(Modifier.height(8.dp)) }
             DsButton("Settings", Modifier.fillMaxWidth(), kind = DsKind.SECONDARY) { onSettings() }
             Spacer(Modifier.height(8.dp))
             DsButton("Exit match", Modifier.fillMaxWidth(), kind = DsKind.DANGER) { onExit() }
@@ -356,6 +357,9 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
     @Suppress("UNUSED_VARIABLE") val tk = vm.simTick
     if (m == null) { ScreenScaffold(vm, "Live Match") { Sub("No match in progress.", Modifier.padding(16.dp)) }; return }
     if (!m.started) m.autoToss()
+    // v2.7: the 3D stadium view lets the engine make the user's bowler / batter choices itself (as before); the
+    // broadcast screen restores manual decisions when the user returns to it.
+    DisposableEffect(m) { val prev = m.manualDecisions; m.manualDecisions = false; onDispose { m.manualDecisions = prev } }
     val me = vm.userSideId() ?: s.userClubId
     var view3d by remember { mutableStateOf(vm.settings.view3d) }
     var cam by remember { mutableIntStateOf(vm.settings.camMode) }
@@ -701,7 +705,8 @@ fun LiveMatchScreen(vm: GameVM, initialPanel: Int = 0, initialPaused: Boolean = 
             },
             confirmButton = { TextButton(onClick = { soundOpen = false }) { Text("DONE", color = C.Gold) } })
         /* ---- pause menu ---- */
-        if (paused && !m.finished) PauseMenu(m, onResume = { paused = false }, onSettings = { paused = false; vm.nav(Screen.SettingsScr) }, onExit = { confirmExit = true })
+        if (paused && !m.finished) PauseMenu(m, onResume = { paused = false }, onSettings = { paused = false; vm.nav(Screen.SettingsScr) }, onExit = { confirmExit = true },
+            onBroadcast = if (vm.screen is Screen.Live3D) ({ paused = false; vm.autoPlay = false; vm.back() }) else null)
         if (confirmExit) DsConfirm("Exit match?", "The match is kept exactly at this ball and your career is saved. Resume it any time from the Match Centre or the Calendar.",
             "Exit match", danger = true, onConfirm = { confirmExit = false; paused = false; vm.exitMatch() }, onDismiss = { confirmExit = false })
     }

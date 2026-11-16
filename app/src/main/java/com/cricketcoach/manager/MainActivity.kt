@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
                 // BackHandler that opens the pause menu, so Back can never drop the user out of a running match)
                 val d = androidx.compose.ui.platform.LocalDensity.current
                 val scale = when (vm.settings.uiScale) { 0 -> 0.9f; 2 -> 1.12f; else -> 1f }
-                val inMatch = vm.screen is com.cricketcoach.manager.ui.Screen.Live
+                val inMatch = vm.screen is com.cricketcoach.manager.ui.Screen.Live || vm.screen is com.cricketcoach.manager.ui.Screen.Live3D
                 androidx.compose.runtime.LaunchedEffect(inMatch, vm.tick) { keepAwake(inMatch && vm.settings.keepScreenOn); immersive() }
                 androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(d.density, d.fontScale * scale)) {
                     BackHandler(enabled = vm.stack.size > 1) { vm.back() }
