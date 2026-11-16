@@ -237,11 +237,11 @@ private fun BroadcastHeader(m: MatchSim, fx: Fixture?, comp: Competition?, s: Ca
         }
         ClubBadge(m.away, 30.dp)
         Spacer(Modifier.width(8.dp))
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f).widthIn(min = 60.dp)) {
             Text(m.cfg.venue, color = Color.White.copy(alpha = 0.9f), fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text("$date · ${m.cfg.pitch.lowercase().replaceFirstChar { it.uppercase() }} pitch · ${m.cfg.weather}", color = Color.White.copy(alpha = 0.6f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (inn != null) {
+        if (inn != null) Row(Modifier.weight(1.4f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
             val innLabel = if (m.isTest) listOf("1st", "2nd", "3rd", "4th").getOrElse(m.innings.size - 1) { "${m.innings.size}th" } + " INNS" else if (m.innings.size == 1) "1ST INNS" else "2ND INNS"
             HeaderStat(innLabel, m.club(inn.batTeam).short, Color.White)
             HeaderStat("SCORE", inn.scoreText(), TV.Gold, big = true)
@@ -339,7 +339,7 @@ private fun BattingCard(m: MatchSim, inn: Inns, live: Boolean) {
             val atCrease = live && !c.out && c.batted && ((i == inn.striker && inn.pendingSlot != 0) || (i == inn.nonStriker && inn.pendingSlot != 1))
             val striker = atCrease && i == inn.striker
             val bg = if (atCrease) Color(0xFFFFF4D1) else if (i % 2 == 0) Color.White else TV.Panel
-            Row(Modifier.fillMaxWidth().background(bg).padding(horizontal = 6.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().background(bg).padding(horizontal = 6.dp, vertical = 1.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(3.2f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (atCrease) Box(Modifier.size(6.dp).clip(CircleShape).background(if (striker) TV.Gold else TV.Green)); if (atCrease) Spacer(Modifier.width(3.dp))
@@ -670,7 +670,7 @@ private fun BowlerPanel(m: MatchSim, s: CareerSave, comp: Competition?, inn: Inn
         val rec = comp?.bowlS?.get(p.id)
         Text(if (rec != null && rec.balls > 0) "${comp.name.take(18)}: ${rec.wk} w · avg ${f1(rec.avg())} · econ ${f2(rec.econ())}" else "Career: ${p.careerWk} w in ${p.careerM} m", color = TV.Ink2, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 7.dp))
         Row(Modifier.fillMaxWidth().padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            PitchMap(evs, Modifier.weight(1f).height(88.dp).clip(RoundedCornerShape(4.dp)), dark = true)
+            PitchMap(evs, Modifier.weight(1f).height(72.dp).clip(RoundedCornerShape(4.dp)), dark = true)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Meter("Stamina", p.fitness / 100f, if (p.fitness > 60) TV.Green else TV.Live)
                 Meter("Form · ${formLabel(p.form)}", p.form / 100f, TV.Blue)
@@ -693,7 +693,7 @@ private fun BatterPanel(m: MatchSim, s: CareerSave, comp: Competition?, inn: Inn
         Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp)) { MiniStat("Runs", "${c.runs}", Modifier.weight(1f)); MiniStat("Balls", "${c.balls}", Modifier.weight(1f)); MiniStat("4s", "${c.fours}", Modifier.weight(.8f)); MiniStat("6s", "${c.sixes}", Modifier.weight(.8f)); MiniStat("SR", sr(c), Modifier.weight(1.2f)) }
         Text((comp?.let { batSummary(it, p) } ?: "") + "  ·  ${p.role}", color = TV.Ink2, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 7.dp))
         Row(Modifier.fillMaxWidth().padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            WagonWheel(mine, Modifier.weight(1f).height(88.dp))
+            WagonWheel(mine, Modifier.weight(1f).height(72.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val agg = m.club(inn.batTeam).aggression
                 val attackBalls = mine.count { it.bat >= 4 || (it.shot.contains("drive", true) || it.shot.contains("loft", true) || it.shot.contains("pull", true) || it.shot.contains("sweep", true) || it.shot.contains("cut", true)) }
@@ -864,7 +864,7 @@ private fun BowlerPicker(m: MatchSim, s: CareerSave, inn: Inns, chosen: String?,
                 val p = s.players[o.pid]; val c = o.card
                 val sel = chosen == o.pid
                 Row(Modifier.fillMaxWidth().background(if (sel) Color(0xFFFFF4D1) else if (!o.eligible) TV.Panel else Color.White)
-                    .clickable(enabled = o.eligible, role = Role.RadioButton) { GameAudio.click(); onPick(o.pid) }.padding(horizontal = 8.dp, vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    .clickable(enabled = o.eligible, role = Role.RadioButton) { GameAudio.click(); onPick(o.pid) }.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(2.6f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(12.dp).clip(CircleShape).border(1.5.dp, if (o.eligible) TV.Royal else TV.PanelLine, CircleShape).background(if (sel) TV.Royal else Color.Transparent)); Spacer(Modifier.width(5.dp))
@@ -906,7 +906,7 @@ private fun NewBatterOverlay(m: MatchSim, s: CareerSave, comp: Competition?, onP
             LazyColumn(Modifier.weight(1f)) {
                 items(avail) { c ->
                     val p = s.players[c.pid]; val sel = chosen == c.pid; val pos = inn.bc.indexOf(c) + 1
-                    Row(Modifier.fillMaxWidth().background(if (sel) Color(0xFFFFF4D1) else Color.White).clickable(role = Role.RadioButton) { GameAudio.click(); chosen = c.pid }.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().background(if (sel) Color(0xFFFFF4D1) else Color.White).clickable(role = Role.RadioButton) { GameAudio.click(); chosen = c.pid }.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                         Cl("$pos", .4f, TV.Ink2, align = TextAlign.Start)
                         Column(Modifier.weight(2.6f)) {
                             Text(p?.name ?: c.pid, color = TV.Ink, fontSize = 10.5.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
