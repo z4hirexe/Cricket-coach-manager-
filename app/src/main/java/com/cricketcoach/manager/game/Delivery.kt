@@ -84,7 +84,7 @@ object Delivery {
                         shot = pick(r, "Pushed to cover and set off" to 1.0, "Tapped to mid-wicket for a quick single" to 1.0)
                         foot = "Front foot"; note = "Direct hit - short of the crease going for the run."
                     }
-                    h.startsWith("c ") && (h.contains("†") || h.contains("wk") || r.nextDouble() < 0.3) -> {
+                    h.startsWith("c †") -> {
                         line = pick(r, "OUTSIDE OFF" to 1.5, "OFF STUMP" to 0.8); length = pick(r, "Good length" to 1.2, "Back of a length" to 0.8, "Full" to 0.6)
                         shot = pick(r, "Poked at it outside off" to 1.0, "Edged a drive" to 1.0, "Feathered a cut" to 0.5)
                         foot = if (length == "Full") "Front foot" else "Back foot"; note = "Thin edge through to the keeper."
