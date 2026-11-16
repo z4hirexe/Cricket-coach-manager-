@@ -183,10 +183,10 @@ fun NewGameScreen(vm: GameVM) {
                         Icons.Filled.Search, "Browse", primary = false, compact = true) { vm.nav(Screen.Database) } },
                 )
                 SectionStrip("Start a career")
-                if (wide) Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) { primary.forEach { it(Modifier.weight(1f).fillMaxHeight()) } }
+                if (wide) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { primary.forEach { it(Modifier.weight(1f)) } }
                 else primary.forEach { it(Modifier.fillMaxWidth()) }
                 SectionStrip("Quick play & tools")
-                if (wide) Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) { secondary.forEach { it(Modifier.weight(1f).fillMaxHeight()) } }
+                if (wide) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { secondary.forEach { it(Modifier.weight(1f)) } }
                 else secondary.forEach { it(Modifier.fillMaxWidth()) }
                 Text("Three career slots are saved locally on this device. No account or internet is required.",
                     color = DS.Muted, fontSize = 11.sp)
@@ -221,12 +221,11 @@ private fun HubCard(modifier: Modifier, title: String, tag: String, body: String
             if (badge != null) Text(badge, color = DS.GoldInk, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp,
                 modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(DS.Gold).padding(horizontal = 5.dp, vertical = 2.dp))
         }
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp).weight(1f, fill = false)) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Text(tag, color = DS.Gold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(4.dp))
-            Text(body, color = DS.Sub, fontSize = 12.sp, lineHeight = 16.sp, maxLines = if (compact) 2 else 4, overflow = TextOverflow.Ellipsis)
+            Text(body, color = DS.Sub, fontSize = 12.sp, lineHeight = 16.sp, minLines = if (compact) 2 else 3, maxLines = if (compact) 2 else 3, overflow = TextOverflow.Ellipsis)
         }
-        Spacer(Modifier.weight(1f))
         Box(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp)) {
             DsButton(cta, Modifier.fillMaxWidth(), kind = if (primary) DsKind.PRIMARY else DsKind.SECONDARY, height = DS.BtnHSmall, onClick = onClick)
         }
