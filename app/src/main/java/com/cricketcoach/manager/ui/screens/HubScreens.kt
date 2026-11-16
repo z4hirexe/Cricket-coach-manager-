@@ -167,20 +167,27 @@ fun NewGameScreen(vm: GameVM) {
                         DsButton("Continue", Modifier.widthIn(min = 160.dp), icon = Icons.Filled.PlayArrow) { if (vm.save != null) vm.goHome() else last?.let { vm.loadCareer(it.slot) } }
                     }
                 }
-                val cards: List<@Composable (Modifier) -> Unit> = listOf(
+                // v2.7 broadcast layout: three career modes as a hero row, two utility cards below
+                val primary: List<@Composable (Modifier) -> Unit> = listOf(
                     { m -> HubCard(m, "Multi-team career", "International • State • IPL", "Manage all three teams in one career. Merged season order: IPL → International → Domestic.",
-                        Icons.Filled.Star, "Start") { startNewCareerFlow(vm, Screen.MultiTeamSetup) } },
-                    { m -> HubCard(m, "New career", "International • Domestic • IPL", "Pick a real national side, a state team or an IPL franchise. Careers start in the ${Brand.CAREER_START} season.",
+                        Icons.Filled.Star, "Start", badge = "RECOMMENDED") { startNewCareerFlow(vm, Screen.MultiTeamSetup) } },
+                    { m -> HubCard(m, "New career", "International • Domestic • IPL", "Pick a real national side, a state team or an IPL franchise. Careers start in the ${Brand.CAREER_START} season with the real squads.",
                         Icons.Filled.Add, "Start") { startNewCareerFlow(vm, Screen.CareerType) } },
                     { m -> HubCard(m, "Create your team", "Name • badge • colours • stadium", "Build your own club from scratch and grow it through the divisions.",
                         Icons.Filled.Create, "Create") { startNewCareerFlow(vm, Screen.NewTeam) } },
-                    { m -> HubCard(m, "Tournament", "Standalone cups", "Run a T20 World Cup, ODI World Cup or Champions Trophy without using a career slot.",
-                        Icons.Filled.Star, "Play", primary = false) { vm.nav(Screen.TournamentHub) } },
-                    { m -> HubCard(m, "Player database", "${Repo.ds.players.size} real players", "Browse ratings, career stats and data sources before you pick your side.",
-                        Icons.Filled.Search, "Browse", primary = false) { vm.nav(Screen.Database) } },
                 )
-                if (wide) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { cards.forEach { it(Modifier.weight(1f)) } }
-                else cards.forEach { it(Modifier.fillMaxWidth()) }
+                val secondary: List<@Composable (Modifier) -> Unit> = listOf(
+                    { m -> HubCard(m, "Tournament", "Standalone cups", "Run a T20 World Cup, ODI World Cup or Champions Trophy without using a career slot.",
+                        Icons.Filled.Star, "Play", primary = false, compact = true) { vm.nav(Screen.TournamentHub) } },
+                    { m -> HubCard(m, "Player database", "${Repo.ds.players.size} real players", "Browse ratings, career stats and data sources before you pick your side.",
+                        Icons.Filled.Search, "Browse", primary = false, compact = true) { vm.nav(Screen.Database) } },
+                )
+                SectionStrip("Start a career")
+                if (wide) Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) { primary.forEach { it(Modifier.weight(1f).fillMaxHeight()) } }
+                else primary.forEach { it(Modifier.fillMaxWidth()) }
+                SectionStrip("Quick play & tools")
+                if (wide) Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) { secondary.forEach { it(Modifier.weight(1f).fillMaxHeight()) } }
+                else secondary.forEach { it(Modifier.fillMaxWidth()) }
                 Text("Three career slots are saved locally on this device. No account or internet is required.",
                     color = DS.Muted, fontSize = 11.sp)
             }
@@ -188,20 +195,41 @@ fun NewGameScreen(vm: GameVM) {
     }
 }
 
+/** Royal-blue broadcast section label (gold tick + uppercase caption). */
 @Composable
-private fun HubCard(modifier: Modifier, title: String, tag: String, body: String, icon: ImageVector, cta: String, primary: Boolean = true, onClick: () -> Unit) {
-    DsCard(modifier, onClick = onClick) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(DS.Navy4).border(1.dp, DS.Gold.copy(alpha = 0.4f), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                Icon(icon, null, tint = DS.Gold, modifier = Modifier.size(18.dp))
-            }
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) { DsTitle(title, size = 17.sp); Text(tag, color = DS.Gold, fontSize = 11.sp, maxLines = 1) }
+fun SectionStrip(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(3.dp).height(14.dp).background(DS.Gold)); Spacer(Modifier.width(8.dp))
+        Text(text.uppercase(), color = DS.Gold, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.6.sp)
+        Spacer(Modifier.width(10.dp))
+        Box(Modifier.weight(1f).height(1.dp).background(DS.Royal.copy(alpha = 0.6f)))
+    }
+}
+
+@Composable
+private fun HubCard(modifier: Modifier, title: String, tag: String, body: String, icon: ImageVector, cta: String, primary: Boolean = true,
+                    compact: Boolean = false, badge: String? = null, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(8.dp)
+    Column(modifier.clip(shape)
+        .background(Brush.verticalGradient(listOf(Color(0xF40C1A44), Color(0xF4071233))))
+        .border(1.dp, if (primary) DS.Gold.copy(alpha = 0.55f) else DS.Royal.copy(alpha = 0.7f), shape)
+        .clickable { GameAudio.click(); onClick() }) {
+        // header bar
+        Row(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(DS.Royal, DS.Royal.copy(alpha = 0.5f)))).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = DS.Gold, modifier = Modifier.size(16.dp)); Spacer(Modifier.width(8.dp))
+            Text(title.uppercase(), color = Color.White, fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = if (compact) 12.sp else 13.sp, letterSpacing = 1.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            if (badge != null) Text(badge, color = DS.GoldInk, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp,
+                modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(DS.Gold).padding(horizontal = 5.dp, vertical = 2.dp))
         }
-        Spacer(Modifier.height(6.dp))
-        Text(body, color = DS.Sub, fontSize = 12.sp, lineHeight = 16.sp, minLines = 2, maxLines = 3)
-        Spacer(Modifier.height(8.dp))
-        DsButton(cta, kind = if (primary) DsKind.PRIMARY else DsKind.SECONDARY, height = DS.BtnHSmall, onClick = onClick)
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp).weight(1f, fill = false)) {
+            Text(tag, color = DS.Gold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(4.dp))
+            Text(body, color = DS.Sub, fontSize = 12.sp, lineHeight = 16.sp, maxLines = if (compact) 2 else 4, overflow = TextOverflow.Ellipsis)
+        }
+        Spacer(Modifier.weight(1f))
+        Box(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp)) {
+            DsButton(cta, Modifier.fillMaxWidth(), kind = if (primary) DsKind.PRIMARY else DsKind.SECONDARY, height = DS.BtnHSmall, onClick = onClick)
+        }
     }
 }
 

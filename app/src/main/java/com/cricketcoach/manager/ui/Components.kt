@@ -110,8 +110,8 @@ fun ScreenScaffold(vm: GameVM, title: String, actions: @Composable RowScope.() -
         topBar = {
             val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
             if (landscape) {
-                Row(Modifier.fillMaxWidth().height(46.dp).background(DS.Navy2)
-                    .drawBehind { drawLine(DS.Line, androidx.compose.ui.geometry.Offset(0f, size.height - 1f), androidx.compose.ui.geometry.Offset(size.width, size.height - 1f), 2f) }
+                Row(Modifier.fillMaxWidth().height(46.dp).background(Brush.horizontalGradient(listOf(Color(0xFF0C1B4A), DS.Royal, Color(0xFF0C1B4A))))
+                    .drawBehind { drawLine(DS.Gold.copy(alpha = 0.6f), androidx.compose.ui.geometry.Offset(0f, size.height - 1f), androidx.compose.ui.geometry.Offset(size.width, size.height - 1f), 2f) }
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (vm.stack.size > 1) IconButton(onClick = { GameAudio.click(); vm.back() }, modifier = Modifier.size(38.dp)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = C.Text) }
@@ -129,7 +129,7 @@ fun ScreenScaffold(vm: GameVM, title: String, actions: @Composable RowScope.() -
                     actions()
                     if (vm.stack.size > 2) IconButton(onClick = { GameAudio.click(); vm.goHome() }) { Icon(Icons.Filled.Home, "Home") }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = C.Surface, titleContentColor = C.Gold, navigationIconContentColor = C.Text, actionIconContentColor = C.Text)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DS.Royal, titleContentColor = Color.White, navigationIconContentColor = C.Text, actionIconContentColor = C.Text)
             )
         }
     ) { pad ->

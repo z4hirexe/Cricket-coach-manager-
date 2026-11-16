@@ -147,7 +147,7 @@ fun ChooseTeamScreen(vm: GameVM, mode: String) {
                 Spacer(Modifier.height(8.dp))
                 Text(when (mode) {
                     Modes.DOMESTIC -> "Season: Duleep Trophy → Ranji Trophy → Syed Mushtaq Ali Trophy → Vijay Hazare Trophy → Irani Cup"
-                    Modes.IPL -> "Season: 70-match league (real 2-group format) → Qualifier 1 / Eliminator / Qualifier 2 / Final • mini auction every year, mega auction every 3rd"
+                    Modes.IPL -> "Season: 70-match league (real 2-group format) → Qualifier 1 / Eliminator / Qualifier 2 / Final • 2026 played with real squads (no auction) • auctions open from 2027"
                     else -> "Season: home Test series, away ODI series, T20I series + the ICC event of the year"
                 }, color = C.Text, fontSize = 11.sp, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(10.dp))
