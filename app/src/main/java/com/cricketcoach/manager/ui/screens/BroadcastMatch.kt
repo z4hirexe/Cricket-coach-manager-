@@ -165,6 +165,7 @@ fun BroadcastMatchScreen(vm: GameVM) {
 
     BoxWithConstraints(Modifier.fillMaxSize().background(TV.Navy)) {
         val wide = maxWidth >= 640.dp
+        val tallPortrait = maxHeight > 700.dp
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout).windowInsetsPadding(WindowInsets.navigationBars)) {
             BroadcastHeader(m, fx, comp, s)
             if (wide) Row(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -175,7 +176,7 @@ fun BroadcastMatchScreen(vm: GameVM) {
                 Box(Modifier.weight(0.34f).fillMaxHeight()) { CentreArea(vm, m, s, centre, animKey, ballMs, { centre = 0 }, { detail = it }) }
                 PlayerAnalysis(m, s, comp, Modifier.weight(0.26f).fillMaxHeight())
             } else Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Box(Modifier.fillMaxWidth().height(if (maxHeight > 700.dp) 190.dp else 150.dp)) { CentreArea(vm, m, s, centre, animKey, ballMs, { centre = 0 }, { detail = it }) }
+                Box(Modifier.fillMaxWidth().height(if (tallPortrait) 190.dp else 150.dp)) { CentreArea(vm, m, s, centre, animKey, ballMs, { centre = 0 }, { detail = it }) }
                 BallTracker(m, Modifier.height(74.dp)) { detail = it }
                 Row(Modifier.fillMaxWidth().clip(TV.panelShape).background(TV.Panel2)) {
                     for ((i, t) in listOf("Scorecard", "Players").withIndex()) TvTab(t, mobileTab == i, Modifier.weight(1f)) { mobileTab = i }

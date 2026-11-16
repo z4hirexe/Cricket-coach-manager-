@@ -137,9 +137,9 @@ object Delivery {
                 val off = angle in 20f..180f
                 val short = length == "Short" || length == "Back of a length"
                 shot = when (bat) {
-                    1 -> pick(r, if (off) "Pushed to cover" else "Worked to mid-wicket" to 1.5, "Dabbed to third man" to (if (off) 0.6 else 0.1), "Nudged to square leg" to (if (off) 0.1 else 0.8), if (short) "Dropped and ran" else "Tapped and ran" to 0.8)
-                    2 -> pick(r, if (off) "Driven into the covers" else "Clipped through mid-wicket" to 1.5, "Steered behind square" to 0.6)
-                    else -> pick(r, if (off) "Driven wide of long-off" else "Whipped wide of deep mid-wicket" to 1.5, "Cut to the sweeper" to 0.5)
+                    1 -> pick(r, (if (off) "Pushed to cover" else "Worked to mid-wicket") to 1.5, "Dabbed to third man" to (if (off) 0.6 else 0.1), "Nudged to square leg" to (if (off) 0.1 else 0.8), (if (short) "Dropped and ran" else "Tapped and ran") to 0.8)
+                    2 -> pick(r, (if (off) "Driven into the covers" else "Clipped through mid-wicket") to 1.5, "Steered behind square" to 0.6)
+                    else -> pick(r, (if (off) "Driven wide of long-off" else "Whipped wide of deep mid-wicket") to 1.5, "Cut to the sweeper" to 0.5)
                 }
                 foot = if (short) "Back foot" else "Front foot"
                 note = when (bat) { 1 -> "Rotated the strike with a single."; 2 -> "Good running - they come back for two."; else -> "Three run - hard running between the wickets." }
