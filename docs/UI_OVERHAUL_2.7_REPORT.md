@@ -1,8 +1,8 @@
 # Cricket Manager Pro — UI Overhaul v2.7.0-beta1 · Final Report
 
-**Repo:** https://github.com/z4hirexe/Cricket-coach-manager- (branch `main`, HEAD `6c88318`)
-**APK:** GitHub Releases → pre-release `build-69` (CricketManagerPro-2.7.0-beta1-build69.apk)
-**Tests:** 181 / 181 unit + Roborazzi screenshot tests pass (GitHub Actions run 43900800554)
+**Repo:** https://github.com/z4hirexe/Cricket-coach-manager- (branch `main`, HEAD `4801147`)
+**APK:** GitHub Releases → pre-release `build-73`
+**Tests:** 187 / 187 unit + Compose UI + Roborazzi screenshot tests pass (GitHub Actions run 43931824951)
 **Version:** versionCode 26 · versionName 2.7.0-beta1
 
 ---
@@ -36,13 +36,19 @@ Reference: Cricket Captain-style TV layout (user screenshot).
 - `Modes.auctionSeasonOpen()` — **no auction in the opening 2026 season** (real squads); Auction nav item, calendar event and "Mini Auction" button hidden; `startMiniAuction()` blocks with a message. **Auction opens from 2027** (season 2). Exception: Club mode "Build via Mega Auction" explicit choice.
 - Tests: `AuctionSeasonRuleTest`, `ScheduleTest` updated. IPL setup copy updated.
 
+### Final compliance pass (spec re-audit)
+- **Bug fixed:** Over Summary opened for the *next* (empty) over — `lastOverDone` is a completed-over count while `BallEv.over` is zero-based. Now summarises the correct over with its 6 balls; resuming a match mid-innings shows the last over instead of "Start of innings".
+- **Test matches:** status strip now shows **Day n • Session n** (was hidden for Tests).
+- **New `BroadcastMatchUiTest`** (Compose UI, drives the real screen): ball-tracker tap opens the delivery history of that exact ball with engine line/length/shot; over summary opens automatically, blocks the next ball until confirmed; user-bowling innings forces an eligible bowler pick, quota 4 ov (T20) and no consecutive overs; wicket opens manual batter selection, no ball can be bowled until a batter is sent in, chosen batter is at the crease; auto play halts at the over/wicket and makes no progress while an overlay is up; Test header shows Day/Session.
+- Decision overlays expose `Overlay: <title>` semantics (accessibility + testability).
+
 ### CI
 - Emulator smoke-test step made `continue-on-error` (runner system-image download flake blocked a signed APK once). Unit + screenshot tests and signed build remain hard gates.
 
 ---
 
 ## 2. Commits (chronological)
-`c7122a5`, `1f51923`, `8a06141` Phase 1 · `d4478c9` broadcast previews · `89bc985` broadcast polish · `2ed51e0`, `a901582`, `f199b58` Phase 2a · `0cf742e`, `cd0d167` Phase 2b · `e672f17` CI · `46e30ee` Phase 2c · `b8c3b7f`, `6c88318` Phase 3
+`c7122a5`, `1f51923`, `8a06141` Phase 1 · `d4478c9` broadcast previews · `89bc985` broadcast polish · `2ed51e0`, `a901582`, `f199b58` Phase 2a · `0cf742e`, `cd0d167` Phase 2b · `e672f17` CI · `46e30ee` Phase 2c · `b8c3b7f`, `6c88318` Phase 3 · `c51db9b`, `b5c1991`, `506d530`, `4801147` compliance pass (over-summary fix, Test day/session, UI tests)
 
 ## 3. Screenshots (CI-rendered, `/home/user/screenshots/`)
 `110–116_broadcast_*.png` (chase, Test, over summary + change bowler, new batter, result, small phone, portrait) · `p2_201_main_menu`, `p2_203_new_game`, `p2_33_dashboard_india`, `p2_209_squad_selection`, `p2_75_calendar_ipl`, `p2_37_squad_hub_ipl` · `p3_38_transfers_ipl`, `p3_39_dashboard_ipl_small_phone`, `p3_39_squad_hub_small_phone`
